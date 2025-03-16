@@ -9,39 +9,44 @@
       margin: 0;
       padding: 0;
       background-color: #ffffff;
+      color: black;
       font-family: sans-serif;
       text-align: center;
+      overflow: hidden;
     }
-    /* Container, der den gesamten Inhalt umschließt */
+    /* Container für den gesamten Hauptinhalt, der später eingeblendet wird */
     #mainContent {
-      display: none; /* Wird erst nach der Begrüßungs-Animation sichtbar */
+      opacity: 0;
+      transition: opacity 1s ease-in;
     }
-    /* Willkommen-Overlay */
+    /* Welcome Overlay: Vollbild, zentriert */
     #welcomeOverlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: #ffffff;
-      z-index: 9999;
+      color: black;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
-      font-size: 3em;
-      color: black;
-      animation: fadeOut 3s ease-in-out forwards;
-      /* Die Animation startet automatisch */
+      z-index: 1000;
+      animation: fadeInOut 3s forwards;
     }
-    /* Keyframes für Fade Out: Nach 2 Sekunden volle Sicht, dann ausblenden */
-    @keyframes fadeOut {
+    /* Keyframes für das Ein- und Ausblenden der Begrüßungsnachricht */
+    @keyframes fadeInOut {
       0% { opacity: 0; }
       20% { opacity: 1; }
       80% { opacity: 1; }
       100% { opacity: 0; }
     }
-    
-    /* Notationsbereich */
+    /* Styling der Begrüßungsnachricht */
+    #welcomeMessage {
+      font-size: 2.5em;
+      color: black;
+    }
+    /* Hauptinhalt: Notensystem, Menü, Score etc. */
     #notation {
       width: 820px;
       transform: scale(1.5);
@@ -55,7 +60,7 @@
     #rangeSelector, #modeSelector, #levelSelector {
       margin: 10px auto;
     }
-    /* Basis-Styling für Buttons (für Touch) */
+    /* Basis-Styling für alle Buttons – ohne Rahmen und Hintergrund */
     #rangeSelector span,
     #modeSelector span,
     #levelSelector span {
@@ -80,7 +85,7 @@
     .inactive-range {
       color: #000000;
     }
-    /* Mode- und Level-Buttons: Standardfarben */
+    /* Mode- und Level-Buttons: Standardfarben (Blau) */
     #modeSelector span, #levelSelector span {
       color: #007bff;
       transition: color 0.2s;
@@ -105,12 +110,12 @@
     }
   </style>
   
-  <!-- Globale Funktionen im Head -->
+  <!-- Globale Funktionen und Variablen im Head -->
   <script>
     // Globale Variablen
     var currentSeries = [];
     var seriesCounter = 0;
-    var seriesLength = 10; // Standard: 10 Noten (Level 3)
+    var seriesLength = 10; // Standard Level 3: 10 Noten
     var totalAttempts = 0;
     var correctAnswers = 0;
     var level = 3; // Standard-Level
@@ -132,15 +137,16 @@
       return { note: noteName, octave: octave };
     }
     
-    // Globale Funktion handleMIDIMessage, die von Swift aufgerufen wird.
+    // Globale Funktion handleMIDIMessage (wird von Swift aufgerufen)
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
       var nativeLog = document.getElementById("nativeLog");
       nativeLog.textContent = "MIDI: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
+      
       if (status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         console.log("Umgewandelte Note:", midiInfo);
-        // Anzeige des Notennamens in Großbuchstaben
+        // Aktualisiere Anzeige der aktuellen Note in Großbuchstaben (optional)
         document.getElementById("noteNameDisplay").textContent = midiInfo.note.toUpperCase() + "/" + midiInfo.octave;
         if (seriesCounter < currentSeries.length) {
           var expected = currentSeries[seriesCounter];
@@ -170,16 +176,16 @@
   </script>
 </head>
 <body>
-  <!-- Willkommen-Overlay -->
+  <!-- Welcome Overlay -->
   <div id="welcomeOverlay">
-    <strong>Hallo Jan-Philipp, schön dich zu sehen!</strong>
+    <div id="welcomeMessage">Hallo Jan-Philipp, schön dich zu sehen!</div>
   </div>
   
-  <!-- Hauptinhalt -->
-  <div id="mainContent" style="display:none;">
+  <!-- Hauptinhalt (wird nach der Begrüßung eingeblendet) -->
+  <div id="mainContent" style="opacity: 0;">
     <div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
     <h1>TRAININGSMODUS</h1>
-    
+  
     <!-- Range-Auswahl -->
     <div id="rangeSelector">
       <span id="range-c" class="active-range">C-Lage</span>
@@ -188,14 +194,14 @@
       <span id="range-g" class="inactive-range">G-Lage</span>
       <span id="range-mc" class="inactive-range">Mittlere C</span>
     </div>
-    
+  
     <!-- Handmodus-Auswahl -->
     <div id="modeSelector">
       <span id="mode-left" class="inactive-mode">✋</span>
       <span id="mode-right" class="active-mode" style="transform: scaleX(-1);">✋</span>
       <span id="mode-both" class="inactive-mode">🙌</span>
     </div>
-    
+  
     <!-- Level-Auswahl -->
     <div id="levelSelector">
       <span id="level-1" class="inactive-level">1️⃣</span>
@@ -203,7 +209,7 @@
       <span id="level-3" class="active-level">3️⃣</span>
       <span id="level-random" class="inactive-level">🎉</span>
     </div>
-    
+  
     <!-- Notensystem, Notenname, Score, ResponseTime, Debug -->
     <div id="notation"></div>
     <div id="noteNameDisplay" style="margin-top: 10px; font-size: 1.5em; color: #000;"></div>
@@ -216,21 +222,76 @@
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   
   <script>
-    // Willkommen-Animation: Faded-In, dann nach 3 Sekunden ausblenden und mainContent einblenden.
+    // Begrüßungsanimation: Nach der Animation wird das Welcome Overlay entfernt und der Hauptinhalt eingeblendet.
     document.addEventListener("DOMContentLoaded", function() {
-      var welcomeOverlay = document.getElementById("welcomeOverlay");
-      var mainContent = document.getElementById("mainContent");
-      
-      // Warte 3 Sekunden, bis die Begrüßung gezeigt wurde, dann ausblenden.
+      // Warte, bis die Welcome-Animation (3s) beendet ist, und blendet dann den Hauptinhalt ein
       setTimeout(function() {
-        welcomeOverlay.style.transition = "opacity 1s";
+        var welcomeOverlay = document.getElementById("welcomeOverlay");
+        welcomeOverlay.style.transition = "opacity 0.5s ease-out";
         welcomeOverlay.style.opacity = "0";
         setTimeout(function() {
           welcomeOverlay.style.display = "none";
-          mainContent.style.display = "block";
-          generateSeries();
-        }, 1000); // Warte, bis die Fade-Out-Animation abgeschlossen ist
+          var mainContent = document.getElementById("mainContent");
+          mainContent.style.transition = "opacity 1s ease-in";
+          mainContent.style.opacity = "1";
+        }, 500);
       }, 3000);
+      
+      // Initiale Serien-Generierung
+      generateSeries();
+      
+      // Konfiguration der Range-Buttons
+      var rangeButtons = document.querySelectorAll("#rangeSelector span");
+      rangeButtons.forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          rangeButtons.forEach(function(b) {
+            b.classList.remove("active-range");
+            b.classList.add("inactive-range");
+          });
+          btn.classList.remove("inactive-range");
+          btn.classList.add("active-range");
+          generateSeries();
+        });
+      });
+      
+      // Konfiguration der Handmodus-Buttons
+      var modeButtons = document.querySelectorAll("#modeSelector span");
+      modeButtons.forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          modeButtons.forEach(function(b) {
+            b.classList.remove("active-mode");
+            b.classList.add("inactive-mode");
+          });
+          btn.classList.remove("inactive-mode");
+          btn.classList.add("active-mode");
+          // Aktualisiere selectedMode basierend auf der Button-ID (z.B. "mode-left")
+          selectedMode = btn.id.split("-")[1];
+          generateSeries();
+        });
+      });
+      
+      // Konfiguration der Level-Buttons
+      var levelButtons = document.querySelectorAll("#levelSelector span");
+      levelButtons.forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          levelButtons.forEach(function(b) {
+            b.classList.remove("active-level");
+            b.classList.add("inactive-level");
+          });
+          btn.classList.remove("inactive-level");
+          btn.classList.add("active-level");
+          if (btn.id === "level-1") {
+            level = 1;
+          } else if (btn.id === "level-2") {
+            level = 2;
+          } else if (btn.id === "level-3") {
+            level = 3;
+          } else if (btn.id === "level-random") {
+            level = "random";
+          }
+          generateSeries();
+        });
+      });
     });
     
     // Funktion zum Generieren einer neuen Serie erwarteter Noten.
