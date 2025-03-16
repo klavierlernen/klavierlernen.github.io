@@ -10,6 +10,7 @@
       margin: 0;
       padding: 0;
       transition: background-color 0.5s;
+      background-color: #ffffff;
     }
     h1 {
       margin-top: 20px;
@@ -19,10 +20,9 @@
       transform: scale(1.5);
       margin: 20px auto;
       text-align: center;
-      border: 1px solid #ccc;
-      padding: 10px;
+      /* Keine Umrandung, kein Padding */
     }
-    /* Styling der Buttons */
+    /* Styling der Buttons: Ohne Umrandung und ohne Hintergrundfarben */
     #rangeSelector, #modeSelector, #levelSelector {
       margin: 10px auto;
     }
@@ -31,20 +31,19 @@
       font-size: 1.5em;
       margin: 5px;
       padding: 8px 12px;
-      border: 2px solid #007bff;
-      border-radius: 5px;
-      background-color: #fff;
+      /* Entferne Rahmen und Hintergrund */
+      border: none;
+      background: none;
       color: #007bff;
-      transition: background-color 0.2s, color 0.2s;
+      transition: color 0.2s;
       display: inline-block;
     }
     .active-range, .active-mode, .active-level {
-      background-color: #007bff;
-      color: #fff;
+      color: #0056b3;
+      font-weight: bold;
     }
     .inactive-range, .inactive-mode, .inactive-level {
-      background-color: #f9f9f9;
-      opacity: 0.9;
+      color: #007bff;
     }
     /* Debug-Ausgabe und Score */
     #nativeLog {
@@ -58,7 +57,7 @@
     }
   </style>
   
-  <!-- Definiere handleMIDIMessage bereits im Head, damit sie global verfügbar ist -->
+  <!-- Globale Funktionen im Head -->
   <script>
     // Globale Variablen
     var currentSeries = [];
@@ -66,24 +65,24 @@
     var seriesLength = 1;
     var totalAttempts = 0;
     var correctAnswers = 0;
-
-    // updateScore als globale Funktion
+    
+    // Globale Funktion updateScore
     function updateScore() {
       var scoreElem = document.getElementById("score");
       var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
       scoreElem.textContent = "Score: " + percent + "%";
     }
     window.updateScore = updateScore;
-
-    // Umrechnung von MIDI Data1 in Note und Oktave
+    
+    // Umrechnung von MIDI Data1 in Notennamen und Oktave
     function midiNoteToName(noteNumber) {
       var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
       var octave = Math.floor(noteNumber / 12) - 1;
       var noteName = noteNames[noteNumber % 12];
       return { note: noteName, octave: octave };
     }
-
-    // Globale Funktion, die von Swift (über evaluateJavaScript) aufgerufen wird.
+    
+    // Globale Funktion, die von Swift (via evaluateJavaScript) aufgerufen wird.
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
       var nativeLog = document.getElementById("nativeLog");
@@ -98,19 +97,17 @@
             correctAnswers++;
             expected.color = "green";
             nativeLog.textContent += " - Richtig!";
-            document.body.style.backgroundColor = "#d4edda"; // grün
           } else {
             expected.color = "red";
             nativeLog.textContent += " - Falsch!";
-            document.body.style.backgroundColor = "#f8d7da"; // rot
           }
           totalAttempts++;
           window.updateScore();
           seriesCounter++;
           drawSeries();
           if (seriesCounter >= seriesLength) {
+            // Nach 1 Sekunde wird eine neue Serie generiert
             setTimeout(function() {
-              document.body.style.backgroundColor = "#ffffff"; // Zurücksetzen
               generateSeries();
             }, 1000);
           }
@@ -158,12 +155,11 @@
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   
   <script>
-    // Restlicher Code, der innerhalb von DOMContentLoaded ausgeführt wird.
+    // Restlicher Code im Body, ausgeführt nach DOMContentLoaded
     document.addEventListener("DOMContentLoaded", function() {
-      // Initiale Serien-Generierung
       generateSeries();
       
-      // Range-Buttons konfigurieren
+      // Konfiguration der Range-Buttons
       var rangeButtons = document.querySelectorAll("#rangeSelector span");
       rangeButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -177,7 +173,7 @@
         });
       });
       
-      // Handmodus-Buttons konfigurieren
+      // Konfiguration der Handmodus-Buttons
       var modeButtons = document.querySelectorAll("#modeSelector span");
       modeButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -191,7 +187,7 @@
         });
       });
       
-      // Level-Buttons konfigurieren
+      // Konfiguration der Level-Buttons
       var levelButtons = document.querySelectorAll("#levelSelector span");
       levelButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -206,18 +202,18 @@
       });
     });
     
-    // Funktion zum Generieren einer neuen Serie erwarteter Noten.
+    // Funktion zum Generieren einer neuen Serie erwarteter Noten
     function generateSeries() {
       currentSeries = [];
       seriesCounter = 0;
-      seriesLength = 1; // Für diesen Test: eine Note
+      seriesLength = 1; // Hier: eine Note erwartet
       var rangeNotes = ["c", "d", "e", "f", "g"];
       var randomIndex = Math.floor(Math.random() * rangeNotes.length);
       currentSeries.push({ note: rangeNotes[randomIndex], octave: 4, clef: "treble", color: "black" });
       drawSeries();
     }
     
-    // Zeichnet die aktuelle Notenserie mithilfe von VexFlow.
+    // Zeichnet die aktuelle Notenserie mit VexFlow
     function drawSeries() {
       var notationDiv = document.getElementById("notation");
       notationDiv.innerHTML = "";
