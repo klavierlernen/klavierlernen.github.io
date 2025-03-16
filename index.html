@@ -12,7 +12,7 @@
       font-family: sans-serif;
       text-align: center;
     }
-    /* Zentrierung des gesamten Inhalts */
+    /* Zentriert den Inhalt vertikal und horizontal */
     body {
       display: flex;
       flex-direction: column;
@@ -60,7 +60,7 @@
     .inactive-range {
       color: #000000;
     }
-    /* Mode- und Level-Buttons: Standardfarben */
+    /* Mode- und Level-Buttons: Standardfarben (Blau) */
     #modeSelector span, #levelSelector span {
       color: #007bff;
       transition: color 0.2s;
@@ -72,20 +72,26 @@
     .inactive-mode, .inactive-level {
       color: #007bff;
     }
-    /* Debug-Ausgabe und Score */
-    #nativeLog {
+    /* Zusätzliche Anzeige für den Notennamen in Großbuchstaben */
+    #noteNameDisplay {
       margin-top: 10px;
-      font-size: 0.9em;
-      color: #ffffff;
-      display: none;
+      font-size: 1.5em;
+      color: #000;
     }
+    /* Score, ResponseTime und Debug-Ausgabe */
     #score, #responseTime {
       margin-top: 10px;
       font-size: 1.2em;
     }
+    #nativeLog {
+      margin-top: 10px;
+      font-size: 0.9em;
+      color: #ffffff;
+      display: none; /* Debug-Ausgabe ausgeblendet */
+    }
   </style>
   
-  <!-- Globale Funktionen und Variablen im Head -->
+  <!-- Globale Funktionen im Head -->
   <script>
     // Globale Variablen
     var currentSeries = [];
@@ -93,7 +99,7 @@
     var seriesLength = 10; // Standardmäßig Level 3: 10 Noten
     var totalAttempts = 0;
     var correctAnswers = 0;
-    var level = 3; // Standard: Level 3
+    var level = 3; // Standard-Level
     var selectedMode = "right"; // Standard: rechte Hand (Violinenschlüssel)
     
     // Globale Funktion updateScore
@@ -118,10 +124,11 @@
       var nativeLog = document.getElementById("nativeLog");
       nativeLog.textContent = "MIDI: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
       
-      // Nur Note-On verarbeiten (Status 144-159 und velocity > 0)
       if (status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         console.log("Umgewandelte Note:", midiInfo);
+        // Aktualisiere Anzeige des Notennamens in Großbuchstaben
+        document.getElementById("noteNameDisplay").textContent = midiInfo.note.toUpperCase() + "/" + midiInfo.octave;
         if (seriesCounter < currentSeries.length) {
           var expected = currentSeries[seriesCounter];
           if (midiInfo.note === expected.note && midiInfo.octave === expected.octave) {
@@ -148,7 +155,6 @@
       }
     };
   </script>
-  
 </head>
 <body>
   <div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
@@ -178,8 +184,9 @@
     <span id="level-random" class="inactive-level">🎉</span>
   </div>
   
-  <!-- Notensystem, Score, ResponseTime, Debug -->
+  <!-- Notensystem, Score, ResponseTime, Notenanzeige und Debug -->
   <div id="notation"></div>
+  <div id="noteNameDisplay" style="margin-top: 10px; font-size: 1.5em; color: #000;"></div>
   <div id="score">Score: 0%</div>
   <div id="responseTime">🏎️ -- ms</div>
   <div id="nativeLog"></div>
@@ -188,11 +195,10 @@
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   
   <script>
-    // Event Listener: DOMContentLoaded – konfiguriert die UI-Elemente.
     document.addEventListener("DOMContentLoaded", function() {
       generateSeries();
       
-      // Range-Buttons konfigurieren (schwarzer Text)
+      // Konfiguration der Range-Buttons
       var rangeButtons = document.querySelectorAll("#rangeSelector span");
       rangeButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -206,7 +212,7 @@
         });
       });
       
-      // Handmodus-Buttons konfigurieren
+      // Konfiguration der Handmodus-Buttons
       var modeButtons = document.querySelectorAll("#modeSelector span");
       modeButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -216,13 +222,13 @@
           });
           btn.classList.remove("inactive-mode");
           btn.classList.add("active-mode");
-          // Aktualisiere selectedMode basierend auf der Button-ID (z. B. "mode-left")
+          // Aktualisiere selectedMode basierend auf der Button-ID (z.B. "mode-left")
           selectedMode = btn.id.split("-")[1];
           generateSeries();
         });
       });
       
-      // Level-Buttons konfigurieren
+      // Konfiguration der Level-Buttons: Ändert den globalen Level-Wert und passt seriesLength an.
       var levelButtons = document.querySelectorAll("#levelSelector span");
       levelButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -250,7 +256,6 @@
     function generateSeries() {
       currentSeries = [];
       seriesCounter = 0;
-      // Bestimme seriesLength basierend auf dem Level
       if (level === 1) {
         seriesLength = 1;
       } else if (level === 2) {
@@ -287,7 +292,7 @@
       drawSeries();
     }
     
-    // Funktion zum Zeichnen der aktuellen Notenserie mit VexFlow.
+    // Zeichnet die aktuelle Notenserie mit VexFlow.
     function drawSeries() {
       var notationDiv = document.getElementById("notation");
       notationDiv.innerHTML = "";
