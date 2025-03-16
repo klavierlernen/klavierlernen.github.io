@@ -1,3 +1,5 @@
+<!DOCTYPE html>
+<html>
 <head>
   <meta charset="UTF-8">
   <title>Notentraining</title>
@@ -5,74 +7,99 @@
     body {
       font-family: sans-serif;
       text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      margin-top: 20px;
     }
     #notation {
       width: 820px;
-      transform: scale(2);
-      margin: 0 auto;
+      transform: scale(1.5);
+      margin: 20px auto;
       text-align: center;
+      border: 1px solid #ccc;
+      padding: 10px;
     }
-    .active-mode, .active-level, .active-range {
-      opacity: 1;
-      font-weight: bold;
-      color: black;
+    /* Styling der Buttons */
+    #rangeSelector, #modeSelector, #levelSelector {
+      margin: 10px auto;
     }
-    .inactive-mode, .inactive-level, .inactive-range {
-      opacity: 0.5;
+    #rangeSelector span, #modeSelector span, #levelSelector span {
+      cursor: pointer;
+      font-size: 1.5em;
+      margin: 5px;
+      padding: 8px 12px;
+      border: 2px solid #007bff;
+      border-radius: 5px;
+      background-color: #fff;
+      color: #007bff;
+      transition: background-color 0.2s, color 0.2s;
     }
-    /* Zusätzlicher Stil für eventuelle native Schnittstellen oder Debug-Infos */
+    .active-range, .active-mode, .active-level {
+      background-color: #007bff;
+      color: #fff;
+    }
+    /* Debug-Ausgabe */
     #nativeLog {
       margin-top: 10px;
       font-size: 0.9em;
       color: gray;
     }
+    /* Score und ResponseTime */
+    #score, #responseTime {
+      margin-top: 10px;
+      font-size: 1.2em;
+    }
   </style>
 </head>
 <body>
-  <!-- MIDI-Statusanzeige -->
+  <!-- MIDI Status und Überschrift -->
   <div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
-  <!-- Überschrift -->
   <h1>Notentraining</h1>
-  <!-- Range-, Handmodus- und Level-Auswahl wie bisher -->
+  
+  <!-- Range-Auswahl -->
   <div id="rangeSelector">
-    <span id="range-c" style="cursor: pointer; font-size: 1.5em; margin: 5px;">C-Lage</span>
-    <span id="range-d" style="cursor: pointer; font-size: 1.5em; margin: 5px;">D-Lage</span>
-    <span id="range-f" style="cursor: pointer; font-size: 1.5em; margin: 5px;">F-Lage</span>
-    <span id="range-g" style="cursor: pointer; font-size: 1.5em; margin: 5px;">G-Lage</span>
-    <span id="range-mc" style="cursor: pointer; font-size: 1.5em; margin: 5px;">Mittlere C</span>
+    <span id="range-c" class="active-range">C-Lage</span>
+    <span id="range-d" class="inactive-range">D-Lage</span>
+    <span id="range-f" class="inactive-range">F-Lage</span>
+    <span id="range-g" class="inactive-range">G-Lage</span>
+    <span id="range-mc" class="inactive-range">Mittlere C</span>
   </div>
-  <br>
+  
+  <!-- Handmodus-Auswahl -->
   <div id="modeSelector">
-    <span id="mode-left" style="cursor: pointer; font-size: 2em; margin: 5px;">✋</span>
-    <span id="mode-right" style="cursor: pointer; font-size: 2em; margin: 5px; display:inline-block; transform: scaleX(-1);">✋</span>
-    <span id="mode-both" style="cursor: pointer; font-size: 2em; margin: 5px;">🙌</span>
+    <span id="mode-left" class="inactive-mode">✋</span>
+    <span id="mode-right" class="active-mode" style="transform: scaleX(-1);">✋</span>
+    <span id="mode-both" class="inactive-mode">🙌</span>
   </div>
-  <br>
+  
+  <!-- Level-Auswahl -->
   <div id="levelSelector">
-    <span id="level-1" style="cursor: pointer; font-size: 2em; margin: 5px;">1️⃣</span>
-    <span id="level-2" style="cursor: pointer; font-size: 2em; margin: 5px;">2️⃣</span>
-    <span id="level-3" style="cursor: pointer; font-size: 2em; margin: 5px;">3️⃣</span>
-    <span id="level-random" style="cursor: pointer; font-size: 2em; margin: 5px;">🎉</span>
+    <span id="level-1" class="active-level">1️⃣</span>
+    <span id="level-2" class="inactive-level">2️⃣</span>
+    <span id="level-3" class="inactive-level">3️⃣</span>
+    <span id="level-random" class="inactive-level">🎉</span>
   </div>
-
+  
+  <!-- Notensystem, Score, ResponseTime, Debug -->
   <div id="notation"></div>
   <div id="score">Score: 0%</div>
   <div id="responseTime">🏎️ -- ms</div>
   <div id="nativeLog"></div>
-
   
   <!-- VexFlow einbinden -->
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   
   <script>
-    /* Globale Variablen – sind im globalen Scope verfügbar, damit Swift und alle Funktionen darauf zugreifen können */
+    // Globale Variablen – für alle Funktionen verfügbar
     var currentSeries = [];
     var seriesCounter = 0;
     var seriesLength = 1;
     var totalAttempts = 0;
     var correctAnswers = 0;
     
-    // Global updateScore (über window verfügbar)
+    // Globale Funktion updateScore
     function updateScore() {
       var scoreElem = document.getElementById("score");
       var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
@@ -80,7 +107,7 @@
     }
     window.updateScore = updateScore;
     
-    // Funktion zur Umrechnung von MIDI Data1 in Notennamen und Oktave.
+    // Funktion zur Umrechnung von MIDI Data1 in Notennamen und Oktave
     function midiNoteToName(noteNumber) {
       var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
       var octave = Math.floor(noteNumber / 12) - 1;
@@ -88,12 +115,12 @@
       return { note: noteName, octave: octave };
     }
     
-    // Globale Funktion, die von Swift (via evaluateJavaScript) aufgerufen wird.
+    // Globale Funktion, die von Swift (via evaluateJavaScript) aufgerufen wird
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
       document.getElementById("nativeLog").textContent =
          "MIDI: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
-      // Verarbeite nur Note-On Nachrichten (Status 144-159, velocity > 0)
+      // Verarbeite nur Note-On (Status 144-159, velocity > 0)
       if (status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         console.log("Umgewandelte Note:", midiInfo);
@@ -117,19 +144,19 @@
       }
     };
     
-    // Funktion zum Generieren einer neuen Serie erwarteter Noten.
+    // Funktion zum Generieren einer neuen Serie erwarteter Noten
     function generateSeries() {
       currentSeries = [];
       seriesCounter = 0;
-      seriesLength = 1; // Für diesen Test: Es wird nur eine Note erwartet.
+      seriesLength = 1; // Für diesen Test: Eine Note
       var rangeNotes = ["c", "d", "e", "f", "g"];
       var randomIndex = Math.floor(Math.random() * rangeNotes.length);
-      // Beispiel: Erwartete Note: Zufällig aus rangeNotes, Oktave 4, Clef "treble"
+      // Erwartete Note: Zufällig gewählt, Oktave 4, Clef "treble"
       currentSeries.push({ note: rangeNotes[randomIndex], octave: 4, clef: "treble", color: "black" });
       drawSeries();
     }
     
-    // Zeichnet die aktuelle Notenserie mit VexFlow.
+    // Funktion zum Zeichnen der Notenserie mit VexFlow
     function drawSeries() {
       var notationDiv = document.getElementById("notation");
       notationDiv.innerHTML = "";
@@ -154,38 +181,54 @@
       voice.draw(context, stave);
     }
     
-    // Event Listener für DOMContentLoaded – hier kannst du auch die Buttons (Range, Mode, Level) konfigurieren
+    // Event Listener für DOMContentLoaded – initialer Aufbau und Button-Event-Listener
     document.addEventListener("DOMContentLoaded", function() {
       // Initiale Serien-Generierung
       generateSeries();
       
-      // Beispielweise Range-Buttons, die bei Klick die Serie neu generieren:
-      var rangeC = document.getElementById("range-c");
-      var rangeD = document.getElementById("range-d");
-      var rangeF = document.getElementById("range-f");
-      var rangeG = document.getElementById("range-g");
-      var rangeMC = document.getElementById("range-mc");
-      
-      rangeC.addEventListener("click", function() {
-        // Hier könntest du noch die aktuelle Range ändern
-        generateSeries();
-      });
-      rangeD.addEventListener("click", function() {
-        generateSeries();
-      });
-      rangeF.addEventListener("click", function() {
-        generateSeries();
-      });
-      rangeG.addEventListener("click", function() {
-        generateSeries();
-      });
-      rangeMC.addEventListener("click", function() {
-        generateSeries();
+      // Beispiel: Konfiguration der Range-Buttons
+      var rangeButtons = document.querySelectorAll("#rangeSelector span");
+      rangeButtons.forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          // Setze alle Buttons auf inaktiv und den geklickten auf aktiv
+          rangeButtons.forEach(function(b) {
+            b.classList.remove("active-range");
+            b.classList.add("inactive-range");
+          });
+          btn.classList.remove("inactive-range");
+          btn.classList.add("active-range");
+          generateSeries();
+        });
       });
       
-      // Ähnlich kannst du auch für Mode und Level Buttons konfigurieren.
-      // Hier als Platzhalter, um zu zeigen, dass alle UI-Elemente weiterhin da sind.
+      // Analog: Konfiguration der Handmodus-Buttons
+      var modeButtons = document.querySelectorAll("#modeSelector span");
+      modeButtons.forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          modeButtons.forEach(function(b) {
+            b.classList.remove("active-mode");
+            b.classList.add("inactive-mode");
+          });
+          btn.classList.remove("inactive-mode");
+          btn.classList.add("active-mode");
+          generateSeries();
+        });
+      });
+      
+      // Konfiguration der Level-Buttons
+      var levelButtons = document.querySelectorAll("#levelSelector span");
+      levelButtons.forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          levelButtons.forEach(function(b) {
+            b.classList.remove("active-level");
+            b.classList.add("inactive-level");
+          });
+          btn.classList.remove("inactive-level");
+          btn.classList.add("active-level");
+          generateSeries();
+        });
+      });
     });
   </script>
 </body>
-
+</html>
