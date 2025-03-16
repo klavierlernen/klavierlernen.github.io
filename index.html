@@ -1,3 +1,5 @@
+<!DOCTYPE html>
+<html>
 <head>
   <meta charset="UTF-8">
   <title>Notentraining</title>
@@ -63,16 +65,15 @@
   <!-- VexFlow einbinden -->
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   <script>
-    // Beispiel: Globale Funktion, die vom nativen Wrapper (CoreMIDI) aufgerufen wird.
-    function handleMIDIMessage(status, data1, data2) {
+    // Globale Definition der Funktion, die von der nativen App aufgerufen wird.
+    window.handleMIDIMessage = function(status, data1, data2) {
       console.log("Native MIDI Message empfangen:", status, data1, data2);
-      // Optional: Ausgabe in einem speziellen Element, um zu sehen, dass die Schnittstelle funktioniert.
       document.getElementById("nativeLog").textContent =
          "Empfangene MIDI Nachricht: Status: " + status +
          ", Data1: " + data1 + ", Data2: " + data2;
-      // Hier kannst du deine bestehende Logik integrieren, z.B.:
-      // processNoteInput(…)
-    }
+      // Hier kannst du deine Logik integrieren, z.B.:
+      // processNoteInput(...)
+    };
 
     // Funktion zum Senden von Nachrichten an die native Schicht (falls benötigt)
     function sendMessageToNative(message) {
@@ -85,7 +86,7 @@
       }
     }
 
-    // Der bestehende Code für Notentraining (Range, Mode, Level, VexFlow, etc.) bleibt hier erhalten.
+    // Der bestehende Code für Notentraining (Range, Mode, Level, VexFlow, etc.) bleibt erhalten.
     document.addEventListener("DOMContentLoaded", function() {
       // Globale Zustände
       let currentRange = "C";
@@ -322,7 +323,7 @@
               octave = 3;
             } else if (selectedMode === "both") {
               clef = Math.random() < 0.5 ? "treble" : "bass";
-              octave = clef === "treble" ? 4 : 3;
+              octave = (clef === "treble") ? 4 : 3;
             }
             currentSeries.push({ note: note, octave: octave, clef: clef, color: "black" });
           }
@@ -337,7 +338,7 @@
             octave = 3;
           } else if (selectedMode === "both") {
             clef = Math.random() < 0.5 ? "treble" : "bass";
-            octave = clef === "treble" ? 4 : 3;
+            octave = (clef === "treble") ? 4 : 3;
           }
           currentSeries.push({ note: notes[currentIndex], octave: octave, clef: clef, color: "black" });
           for (let i = 1; i < seriesLength; i++) {
@@ -356,7 +357,7 @@
               octave = 3;
             } else if (selectedMode === "both") {
               clef = Math.random() < 0.5 ? "treble" : "bass";
-              octave = clef === "treble" ? 4 : 3;
+              octave = (clef === "treble") ? 4 : 3;
             }
             currentSeries.push({ note: notes[currentIndex], octave: octave, clef: clef, color: "black" });
           }
@@ -371,3 +372,4 @@
   </script>
   <script src='https://unpkg.com/vexflow/releases/vexflow-min.js'></script>
 </body>
+</html>
