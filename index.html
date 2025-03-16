@@ -2,68 +2,139 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>MIDI Note Verification</title>
+  <title>Notentraining</title>
   <style>
     body {
       font-family: sans-serif;
       text-align: center;
-      margin-top: 50px;
     }
-    #midiInput, #result {
-      font-size: 1.5em;
-      margin: 20px;
+    #notation {
+      width: 820px;
+      transform: scale(2);
+      margin: 0 auto;
+      text-align: center;
+    }
+    .active-mode, .active-level, .active-range {
+      opacity: 1;
+      font-weight: bold;
+      color: black;
+    }
+    .inactive-mode, .inactive-level, .inactive-range {
+      opacity: 0.5;
+    }
+    #nativeLog {
+      margin-top: 10px;
+      font-size: 0.9em;
+      color: gray;
     }
   </style>
 </head>
 <body>
-  <h1>VERSION 19:23 - MIDI Note Verification</h1>
-  <p id="midiInput">Empfangene Note: –</p>
-  <p id="result">Ergebnis: –</p>
-  
+  <!-- MIDI-Statusanzeige -->
+  <div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
+  <!-- Überschrift -->
+  <h1>Notentraining</h1>
+  <!-- Range-, Handmodus- und Level-Auswahl -->
+  <div id="rangeSelector">
+    <span id="range-c" style="cursor: pointer; font-size: 1.5em; margin: 5px;">C-Lage</span>
+    <span id="range-d" style="cursor: pointer; font-size: 1.5em; margin: 5px;">D-Lage</span>
+    <span id="range-f" style="cursor: pointer; font-size: 1.5em; margin: 5px;">F-Lage</span>
+    <span id="range-g" style="cursor: pointer; font-size: 1.5em; margin: 5px;">G-Lage</span>
+    <span id="range-mc" style="cursor: pointer; font-size: 1.5em; margin: 5px;">Mittlere C</span>
+  </div>
+  <br>
+  <div id="modeSelector">
+    <span id="mode-left" style="cursor: pointer; font-size: 2em; margin: 5px;">✋</span>
+    <span id="mode-right" style="cursor: pointer; font-size: 2em; margin: 5px; display:inline-block; transform: scaleX(-1);">✋</span>
+    <span id="mode-both" style="cursor: pointer; font-size: 2em; margin: 5px;">🙌</span>
+  </div>
+  <br>
+  <div id="levelSelector">
+    <span id="level-1" style="cursor: pointer; font-size: 2em; margin: 5px;">1️⃣</span>
+    <span id="level-2" style="cursor: pointer; font-size: 2em; margin: 5px;">2️⃣</span>
+    <span id="level-3" style="cursor: pointer; font-size: 2em; margin: 5px;">3️⃣</span>
+    <span id="level-random" style="cursor: pointer; font-size: 2em; margin: 5px;">🎉</span>
+  </div>
+
+  <div id="notation"></div>
+  <div id="score">Score: 0%</div>
+  <div id="responseTime">🏎️ -- ms</div>
+  <div id="nativeLog"></div>
+
+  <!-- VexFlow einbinden -->
+  <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   <script>
-    // Erwartete Note und Oktave zur Überprüfung
-    var expectedNote = "c";
-    var expectedOctave = 4;
-    
-    // Funktion, um den MIDI-Notenwert (Data1) in einen Notennamen und eine Oktave umzuwandeln.
-    function midiNoteToName(noteNumber) {
-      var noteNames = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
-      var octave = Math.floor(noteNumber / 12) - 1;
-      var noteName = noteNames[noteNumber % 12];
-      return { note: noteName, octave: octave };
-    }
-    
-    // Funktion, die den empfangenen MIDI-Notenwert (Data1) in eine Note umwandelt
-    // und diese mit der erwarteten Note vergleicht.
-    function verifyNote(noteNumber) {
-      var midiInfo = midiNoteToName(noteNumber);
-      
-      // Ausgabe der empfangenen Note
-      document.getElementById("midiInput").textContent =
-        "Empfangene Note: " + midiInfo.note.toUpperCase() + " (Oktave " + midiInfo.octave + ")";
-      
-      // Überprüfung
-      if(midiInfo.note === expectedNote && midiInfo.octave === expectedOctave) {
-        document.getElementById("result").textContent = "Ergebnis: Richtig!";
-      } else {
-        document.getElementById("result").textContent =
-          "Ergebnis: Falsch. Erwartet: " + expectedNote.toUpperCase() + " (Oktave " + expectedOctave + ")";
+    document.addEventListener("DOMContentLoaded", function() {
+      // Globale Zustände
+      let currentRange = "C";
+      let selectedMode = "right";
+      let level = 1;
+      let seriesLength = 1;
+      let currentSeries = [];
+      let seriesCounter = 0;
+      let noteStartTime = 0;
+      let totalAttempts = 0;
+      let correctAnswers = 0;
+
+      const rangeNotes = {
+        "C": ["c", "d", "e", "f", "g"],
+        "D": ["d", "e", "f#", "g", "a"],
+        "F": ["f", "g", "a", "bb", "c"],
+        "G": ["g", "a", "b", "c", "d"],
+        "MC": ["c", "d", "e", "f", "g"]
+      };
+
+      // --- Range-Auswahl ---
+      const rangeC = document.getElementById("range-c");
+      const rangeD = document.getElementById("range-d");
+      const rangeF = document.getElementById("range-f");
+      const rangeG = document.getElementById("range-g");
+      const rangeMC = document.getElementById("range-mc");
+
+      rangeC.addEventListener("click", function() {
+        currentRange = "C";
+        document.querySelector("h1").textContent = "C-Lage";
+        setActiveRange("range-c");
+        generateSeries();
+      });
+      rangeD.addEventListener("click", function() {
+        currentRange = "D";
+        document.querySelector("h1").textContent = "D-Lage";
+        setActiveRange("range-d");
+        generateSeries();
+      });
+      rangeF.addEventListener("click", function() {
+        currentRange = "F";
+        document.querySelector("h1").textContent = "F-Lage";
+        setActiveRange("range-f");
+        generateSeries();
+      });
+      rangeG.addEventListener("click", function() {
+        currentRange = "G";
+        document.querySelector("h1").textContent = "G-Lage";
+        setActiveRange("range-g");
+        generateSeries();
+      });
+      rangeMC.addEventListener("click", function() {
+        currentRange = "MC";
+        document.querySelector("h1").textContent = "Mittlere C-Lage";
+        setActiveRange("range-mc");
+        generateSeries();
+      });
+
+      function setActiveRange(activeId) {
+        [rangeC, rangeD, rangeF, rangeG, rangeMC].forEach(function(elem) {
+          elem.classList.remove("active-range");
+          elem.classList.add("inactive-range");
+        });
+        document.getElementById(activeId).classList.remove("inactive-range");
+        document.getElementById(activeId).classList.add("active-range");
       }
-    }
-    
-    // Globale Funktion, die von der nativen App aufgerufen wird (über evaluateJavaScript)
-    window.handleMIDIMessage = function(status, data1, data2) {
-      console.log("MIDI Message received: Status: " + status + " Data1: " + data1 + " Data2: " + data2);
-      // Nur Note-On Nachrichten verarbeiten (Status 144 bis 159 und velocity > 0)
-      if(status >= 144 && status < 160 && data2 > 0) {
-        verifyNote(data1);
-      }
-    }
-    
-    // Test: Simuliere einen MIDI-Aufruf nach 2 Sekunden (Data1 = 60 entspricht mittlerem C)
-    setTimeout(function() {
-      window.handleMIDIMessage(144, 60, 100);
-    }, 2000);
-  </script>
-</body>
-</html>
+      setActiveRange("range-c");
+
+      // --- Handmodus-Auswahl ---
+      const modeLeft = document.getElementById("mode-left");
+      const modeRight = document.getElementById("mode-right");
+      const modeBoth = document.getElementById("mode-both");
+
+      modeLeft.addEventListener("click", function() 
