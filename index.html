@@ -1,8 +1,6 @@
-<!DOCTYPE html>
-<html>
 <head>
   <meta charset="UTF-8">
-  <title>Notentraining 19:08</title>
+  <title>Notentraining</title>
   <link rel="stylesheet" href="./style.css">
   <style>
     body {
@@ -62,120 +60,133 @@
   <div id="responseTime">🏎️ -- ms</div>
   <div id="nativeLog"></div>
 
-  <!-- VexFlow einbinden -->
+  <!-- VexFlow nur einmal einbinden -->
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+
   <script>
-    // Global als window-Eigenschaft verfügbar machen, damit die native App sie aufrufen kann.
-    window.handleMIDIMessage = function(status, data1, data2) {
-      console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
-      document.getElementById("nativeLog").textContent =
-         "MIDI Nachricht: Status: " + status +
-         ", Data1: " + data1 + ", Data2: " + data2;
-      
-      // Nur Note-On Nachrichten verarbeiten (Status 144-159, data2 > 0)
-      if (status >= 144 && status < 160 && data2 > 0) {
-        // Verwende Data1 (den MIDI-Notenwert) zur Umrechnung
-        const midiInfo = midiNoteToName(data1);
-        console.log("Verarbeitete Note:", midiInfo.note, "Oktave:", midiInfo.octave);
-        processNoteInput(midiInfo.note, midiInfo.octave);
-      }
-    };
+    // Alle Skripte werden erst ausgeführt, wenn die Seite vollständig geladen ist
+    window.addEventListener('load', function() {
 
-    // MIDI Notenwert in Notennamen und Oktave umwandeln
-    function midiNoteToName(noteNumber) {
-      const noteNames = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
-      let octave = Math.floor(noteNumber / 12) - 1;
-      let noteName = noteNames[noteNumber % 12];
-      return { note: noteName, octave: octave };
-    }
-
-    // Beispielhafte Funktion zur Verarbeitung der Noteingabe
-    function processNoteInput(inputNote, inputOctave) {
-      console.log("processNoteInput:", inputNote, inputOctave);
-      totalAttempts++;
-      const expected = currentSeries[seriesCounter];
-      const responseTime = Date.now() - noteStartTime;
-      responseTimeElem.textContent = "Response Time: " + responseTime + " ms";
-      
-      // Überprüfe, ob die empfangene Note (inputNote, inputOctave) mit der erwarteten Note übereinstimmt.
-      if (inputNote === expected.note && inputOctave === expected.octave) {
-        correctAnswers++;
-        expected.color = "green";
-      } else {
-        expected.color = "red";
-      }
-      updateScore();
-      drawSeries();
-      seriesCounter++;
-      noteStartTime = Date.now();
-      setTimeout(function() {
-        if (seriesCounter >= seriesLength) {
-          generateSeries();
+      // Globale Definition für den nativen Aufruf
+      window.handleMIDIMessage = function(status, data1, data2) {
+        console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
+        document.getElementById("nativeLog").textContent =
+           "MIDI Nachricht: Status: " + status +
+           ", Data1: " + data1 + ", Data2: " + data2;
+        
+        // Nur Note-On Nachrichten verarbeiten (Status 144-159, data2 > 0)
+        if (status >= 144 && status < 160 && data2 > 0) {
+          const midiInfo = midiNoteToName(data1);
+          console.log("Verarbeitete Note:", midiInfo.note, "Oktave:", midiInfo.octave);
+          processNoteInput(midiInfo.note, midiInfo.octave);
         }
-      }, 500);
-    }
+      };
 
-    // Globale Variablen und Logik für Notentraining
-    let currentRange = "C";
-    let selectedMode = "right";
-    let level = 1;
-    let seriesLength = 1;
-    let currentSeries = [];
-    let seriesCounter = 0;
-    let noteStartTime = 0;
-    let totalAttempts = 0;
-    let correctAnswers = 0;
-
-    const rangeNotes = {
-      "C": ["c", "d", "e", "f", "g"],
-      "D": ["d", "e", "f#", "g", "a"],
-      "F": ["f", "g", "a", "bb", "c"],
-      "G": ["g", "a", "b", "c", "d"],
-      "MC": ["c", "d", "e", "f", "g"]
-    };
-
-    // Referenzen auf DOM-Elemente
-    const scoreElem = document.getElementById("score");
-    const responseTimeElem = document.getElementById("responseTime");
-    const notationDiv = document.getElementById("notation");
-    const VF = Vex.Flow;
-
-    // Dummy-Funktionen (bitte durch deine tatsächliche Logik ersetzen)
-    function drawSeries() {
-      notationDiv.innerHTML = "";
-      const usedWidth = 80 * seriesLength + 20;
-      const renderer = new VF.Renderer(notationDiv, VF.Renderer.Backends.SVG);
-      renderer.resize(usedWidth, 200);
-      const context = renderer.getContext();
-      const stave = new VF.Stave(10, 40, usedWidth - 20);
-      if (currentSeries.length > 0) {
-        stave.addClef(currentSeries[0].clef).setContext(context).draw();
+      // MIDI Notenwert in Notennamen und Oktave umwandeln
+      function midiNoteToName(noteNumber) {
+        const noteNames = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
+        let octave = Math.floor(noteNumber / 12) - 1;
+        let noteName = noteNames[noteNumber % 12];
+        return { note: noteName, octave: octave };
       }
-      const staveNotes = currentSeries.map(function(item) {
-        return new VF.StaveNote({
-          clef: item.clef,
-          keys: [item.note + "/" + item.octave],
-          duration: "q"
-        }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
-      });
-      const voice = new VF.Voice({ num_beats: seriesLength, beat_value: 4 });
-      staveNotes.forEach(note => voice.addTickable(note));
-      new VF.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
-      voice.draw(context, stave);
-    }
 
-    function updateScore() {
-      let percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
-      scoreElem.textContent = "Score: " + percent + "%";
-    }
+      // Verarbeitung der Noteingabe
+      function processNoteInput(inputNote, inputOctave) {
+        console.log("processNoteInput:", inputNote, inputOctave);
+        totalAttempts++;
+        const expected = currentSeries[seriesCounter];
+        const responseTime = Date.now() - noteStartTime;
+        responseTimeElem.textContent = "Response Time: " + responseTime + " ms";
+        
+        if (inputNote === expected.note && inputOctave === expected.octave) {
+          correctAnswers++;
+          expected.color = "green";
+        } else {
+          expected.color = "red";
+        }
+        updateScore();
+        drawSeries();
+        seriesCounter++;
+        noteStartTime = Date.now();
+        setTimeout(function() {
+          if (seriesCounter >= seriesLength) {
+            generateSeries();
+          }
+        }, 500);
+      }
 
-    function generateSeries() {
-      currentSeries = [];
-      seriesCounter = 0;
-      const notes = rangeNotes[currentRange];
-      if (level < 3) {
-        for (let i = 0; i < seriesLength; i++) {
-          let note = notes[Math.floor(Math.random() * notes.length)];
+      // Globale Variablen und Logik
+      let currentRange = "C";
+      let selectedMode = "right";
+      let level = 1;
+      let seriesLength = 1;
+      let currentSeries = [];
+      let seriesCounter = 0;
+      let noteStartTime = 0;
+      let totalAttempts = 0;
+      let correctAnswers = 0;
+
+      const rangeNotes = {
+        "C": ["c", "d", "e", "f", "g"],
+        "D": ["d", "e", "f#", "g", "a"],
+        "F": ["f", "g", "a", "bb", "c"],
+        "G": ["g", "a", "b", "c", "d"],
+        "MC": ["c", "d", "e", "f", "g"]
+      };
+
+      const scoreElem = document.getElementById("score");
+      const responseTimeElem = document.getElementById("responseTime");
+      const notationDiv = document.getElementById("notation");
+      const VF = Vex.Flow;
+
+      function drawSeries() {
+        notationDiv.innerHTML = "";
+        const usedWidth = 80 * seriesLength + 20;
+        const renderer = new VF.Renderer(notationDiv, VF.Renderer.Backends.SVG);
+        renderer.resize(usedWidth, 200);
+        const context = renderer.getContext();
+        const stave = new VF.Stave(10, 40, usedWidth - 20);
+        if (currentSeries.length > 0) {
+          stave.addClef(currentSeries[0].clef).setContext(context).draw();
+        }
+        const staveNotes = currentSeries.map(function(item) {
+          return new VF.StaveNote({
+            clef: item.clef,
+            keys: [item.note + "/" + item.octave],
+            duration: "q"
+          }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
+        });
+        const voice = new VF.Voice({ num_beats: seriesLength, beat_value: 4 });
+        staveNotes.forEach(note => voice.addTickable(note));
+        new VF.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
+        voice.draw(context, stave);
+      }
+
+      function updateScore() {
+        let percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
+        scoreElem.textContent = "Score: " + percent + "%";
+      }
+
+      function generateSeries() {
+        currentSeries = [];
+        seriesCounter = 0;
+        const notes = rangeNotes[currentRange];
+        if (level < 3) {
+          for (let i = 0; i < seriesLength; i++) {
+            let note = notes[Math.floor(Math.random() * notes.length)];
+            let clef, octave;
+            if (selectedMode === "right") {
+              clef = "treble"; octave = 4;
+            } else if (selectedMode === "left") {
+              clef = "bass"; octave = 3;
+            } else if (selectedMode === "both") {
+              clef = Math.random() < 0.5 ? "treble" : "bass";
+              octave = (clef === "treble") ? 4 : 3;
+            }
+            currentSeries.push({ note: note, octave: octave, clef: clef, color: "black" });
+          }
+        } else {
+          let currentIndex = Math.floor(Math.random() * notes.length);
           let clef, octave;
           if (selectedMode === "right") {
             clef = "treble"; octave = 4;
@@ -185,46 +196,32 @@
             clef = Math.random() < 0.5 ? "treble" : "bass";
             octave = (clef === "treble") ? 4 : 3;
           }
-          currentSeries.push({ note: note, octave: octave, clef: clef, color: "black" });
-        }
-      } else {
-        let currentIndex = Math.floor(Math.random() * notes.length);
-        let clef, octave;
-        if (selectedMode === "right") {
-          clef = "treble"; octave = 4;
-        } else if (selectedMode === "left") {
-          clef = "bass"; octave = 3;
-        } else if (selectedMode === "both") {
-          clef = Math.random() < 0.5 ? "treble" : "bass";
-          octave = (clef === "treble") ? 4 : 3;
-        }
-        currentSeries.push({ note: notes[currentIndex], octave: octave, clef: clef, color: "black" });
-        for (let i = 1; i < seriesLength; i++) {
-          const intervals = [1, 2, 3, 4];
-          let interval = intervals[Math.floor(Math.random() * intervals.length)];
-          let direction = Math.random() < 0.5 ? 1 : -1;
-          if (currentIndex + direction * interval < 0 || currentIndex + direction * interval >= notes.length) {
-            direction *= -1;
-          }
-          currentIndex += direction * interval;
-          if (selectedMode === "right") {
-            clef = "treble"; octave = 4;
-          } else if (selectedMode === "left") {
-            clef = "bass"; octave = 3;
-          } else if (selectedMode === "both") {
-            clef = Math.random() < 0.5 ? "treble" : "bass";
-            octave = (clef === "treble") ? 4 : 3;
-          }
           currentSeries.push({ note: notes[currentIndex], octave: octave, clef: clef, color: "black" });
+          for (let i = 1; i < seriesLength; i++) {
+            const intervals = [1, 2, 3, 4];
+            let interval = intervals[Math.floor(Math.random() * intervals.length)];
+            let direction = Math.random() < 0.5 ? 1 : -1;
+            if (currentIndex + direction * interval < 0 || currentIndex + direction * interval >= notes.length) {
+              direction *= -1;
+            }
+            currentIndex += direction * interval;
+            if (selectedMode === "right") {
+              clef = "treble"; octave = 4;
+            } else if (selectedMode === "left") {
+              clef = "bass"; octave = 3;
+            } else if (selectedMode === "both") {
+              clef = Math.random() < 0.5 ? "treble" : "bass";
+              octave = (clef === "treble") ? 4 : 3;
+            }
+            currentSeries.push({ note: notes[currentIndex], octave: octave, clef: clef, color: "black" });
+          }
         }
+        drawSeries();
+        noteStartTime = Date.now();
       }
-      drawSeries();
-      noteStartTime = Date.now();
-    }
 
-    // Initiale Generierung der Notenserie
-    generateSeries();
+      // Initiale Serien-Generierung
+      generateSeries();
+    });
   </script>
-  <script src="https://unpkg.com/vexflow/releases/vexflow-min.js"></script>
 </body>
-</html>
