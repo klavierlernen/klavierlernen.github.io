@@ -1,0 +1,23 @@
+body {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+#notation {
+  width: 820px;       /* feste Breite, passend zur maximalen Notenreihe */
+  margin: 0 auto;     /* zentriert den Container horizontal */
+  text-align: center; /* falls SVG-Inhalte inline-block sind */
+}
+
+.active-mode, .active-level {
+  opacity: 1;
+}
+
+.inactive-mode, .inactive-level {
+  opacity: 0.5;
+}
+
+.active-range {
+  font-weight: bold;
+  color: #ef7d00;
+}
