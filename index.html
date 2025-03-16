@@ -35,10 +35,15 @@
       background-color: #fff;
       color: #007bff;
       transition: background-color 0.2s, color 0.2s;
+      display: inline-block;
     }
     .active-range, .active-mode, .active-level {
       background-color: #007bff;
       color: #fff;
+    }
+    .inactive-range, .inactive-mode, .inactive-level {
+      background-color: #f9f9f9;
+      opacity: 0.9;
     }
     /* Debug-Ausgabe */
     #nativeLog {
@@ -92,14 +97,14 @@
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   
   <script>
-    // Globale Variablen – für alle Funktionen verfügbar
+    // Globale Variablen – verfügbar im globalen Scope.
     var currentSeries = [];
     var seriesCounter = 0;
     var seriesLength = 1;
     var totalAttempts = 0;
     var correctAnswers = 0;
     
-    // Globale Funktion updateScore
+    // updateScore global definieren
     function updateScore() {
       var scoreElem = document.getElementById("score");
       var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
@@ -107,7 +112,7 @@
     }
     window.updateScore = updateScore;
     
-    // Funktion zur Umrechnung von MIDI Data1 in Notennamen und Oktave
+    // Umrechnung von MIDI Data1 in Note und Oktave
     function midiNoteToName(noteNumber) {
       var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
       var octave = Math.floor(noteNumber / 12) - 1;
@@ -115,12 +120,13 @@
       return { note: noteName, octave: octave };
     }
     
-    // Globale Funktion, die von Swift (via evaluateJavaScript) aufgerufen wird
+    // Globale Funktion handleMIDIMessage, die von Swift aufgerufen wird.
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
       document.getElementById("nativeLog").textContent =
          "MIDI: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
-      // Verarbeite nur Note-On (Status 144-159, velocity > 0)
+      
+      // Verarbeite nur Note-On (Status 144-159 und velocity > 0)
       if (status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         console.log("Umgewandelte Note:", midiInfo);
@@ -137,26 +143,28 @@
           totalAttempts++;
           window.updateScore();
           seriesCounter++;
+          // Aktualisiere die Darstellung, damit die Farbänderung sichtbar wird.
+          drawSeries();
+          // Nach einer kurzen Verzögerung wird eine neue Serie erzeugt.
           if (seriesCounter >= seriesLength) {
-            generateSeries();
+            setTimeout(generateSeries, 1000);
           }
         }
       }
     };
     
-    // Funktion zum Generieren einer neuen Serie erwarteter Noten
+    // Erzeugt eine neue Serie erwarteter Noten (Beispiel: eine zufällige Note aus ["c","d","e","f","g"])
     function generateSeries() {
       currentSeries = [];
       seriesCounter = 0;
-      seriesLength = 1; // Für diesen Test: Eine Note
+      seriesLength = 1; // Für diesen Test: eine Note
       var rangeNotes = ["c", "d", "e", "f", "g"];
       var randomIndex = Math.floor(Math.random() * rangeNotes.length);
-      // Erwartete Note: Zufällig gewählt, Oktave 4, Clef "treble"
       currentSeries.push({ note: rangeNotes[randomIndex], octave: 4, clef: "treble", color: "black" });
       drawSeries();
     }
     
-    // Funktion zum Zeichnen der Notenserie mit VexFlow
+    // Zeichnet die aktuelle Notenserie mit VexFlow.
     function drawSeries() {
       var notationDiv = document.getElementById("notation");
       notationDiv.innerHTML = "";
@@ -181,16 +189,15 @@
       voice.draw(context, stave);
     }
     
-    // Event Listener für DOMContentLoaded – initialer Aufbau und Button-Event-Listener
+    // Konfiguration der Buttons (Range, Mode, Level)
     document.addEventListener("DOMContentLoaded", function() {
-      // Initiale Serien-Generierung
+      // Initiale Serie erzeugen
       generateSeries();
       
-      // Beispiel: Konfiguration der Range-Buttons
+      // Range-Buttons konfigurieren
       var rangeButtons = document.querySelectorAll("#rangeSelector span");
       rangeButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
-          // Setze alle Buttons auf inaktiv und den geklickten auf aktiv
           rangeButtons.forEach(function(b) {
             b.classList.remove("active-range");
             b.classList.add("inactive-range");
@@ -201,7 +208,7 @@
         });
       });
       
-      // Analog: Konfiguration der Handmodus-Buttons
+      // Handmodus-Buttons konfigurieren
       var modeButtons = document.querySelectorAll("#modeSelector span");
       modeButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -215,7 +222,7 @@
         });
       });
       
-      // Konfiguration der Level-Buttons
+      // Level-Buttons konfigurieren
       var levelButtons = document.querySelectorAll("#levelSelector span");
       levelButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
