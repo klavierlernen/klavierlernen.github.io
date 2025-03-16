@@ -58,7 +58,6 @@
 <div id="notation"></div>
 <div id="score">Score: 0%</div>
 <div id="responseTime">🏎️ -- ms</div>
-  <div id="noteCounter">Bearbeitete Noten: 0</div>
   <script>
  document.addEventListener("DOMContentLoaded", function() {
   // Array mit den natürlichen Noten der C‑Lage
@@ -407,40 +406,7 @@
   }
 });
   </script>  
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-  // Beispielhafte globale Variablen (wird beim Laden der Seite neu initialisiert)
-  let totalAttempts = 0;
-  let correctAnswers = 0;
   
-  // Hole die Score-Elemente aus dem DOM
-  const scoreDiv = document.getElementById("score");
-  const noteCounterDiv = document.getElementById("noteCounter");
-  
-  // Diese Funktion aktualisiert die Score-Anzeige (Prozent) und den Notenzähler
-  function updateScore() {
-    let percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
-    scoreDiv.textContent = "Score: " + percent + "%";
-    noteCounterDiv.textContent = "Bearbeitete Noten: " + totalAttempts;
-  }
-  
-  // Beispielhafte Funktion, die bei jedem bearbeiteten Versuch aufgerufen wird.
-  // Diese Funktion wird in deinem bestehenden MIDI-Code (handleMIDIMessage) nach jedem Versuch aufgerufen.
-  function processNote(isCorrect) {
-    totalAttempts++;
-    if(isCorrect) {
-      correctAnswers++;
-    }
-    updateScore();
-  }
-  
-  // Beispiel: Simuliere, dass eine Note verarbeitet wurde:
-  // (Entferne diesen Simulationscode, wenn du den realen MIDI-Code nutzt.)
-  setTimeout(function() {
-    processNote(true);
-  }, 1000);
-});
-  </script>
 </body>
 <!-- partial -->
   <script src='https://unpkg.com/vexflow/releases/vexflow-min.js'></script>
