@@ -12,7 +12,7 @@
       font-family: sans-serif;
       text-align: center;
     }
-    /* Zentriert den Body-Inhalt vertikal und horizontal */
+    /* Zentrierung des gesamten Inhalts */
     body {
       display: flex;
       flex-direction: column;
@@ -22,13 +22,11 @@
     h1 {
       margin-top: 20px;
     }
-    /* Notationsbereich */
     #notation {
       width: 820px;
       transform: scale(1.5);
       text-align: center;
       margin: 20px auto;
-      /* Kein Rahmen, keine Hintergrundfarbe */
       border: none;
       padding: 10px;
       box-sizing: border-box;
@@ -37,20 +35,20 @@
     #rangeSelector, #modeSelector, #levelSelector {
       margin: 10px auto;
     }
-    /* Basis-Styling für alle Buttons */
+    /* Basis-Styling für alle Buttons – ohne Rahmen und Hintergrund */
     #rangeSelector span,
     #modeSelector span,
     #levelSelector span {
       cursor: pointer;
-      font-size: 2em;             /* Für Touch größer */
+      font-size: 2em;
       margin: 8px;
-      padding: 16px 20px;         /* Größere Klickfläche */
-      border: none;               /* Kein Rahmen */
-      background: none;           /* Kein Hintergrund */
+      padding: 16px 20px;
+      border: none;
+      background: none;
       display: inline-block;
-      touch-action: manipulation; /* Optimiert Touch */
+      touch-action: manipulation;
     }
-    /* Range-Buttons: Text in Schwarz */
+    /* Range-Buttons: schwarzer Text */
     #rangeSelector span {
       color: #000000;
       transition: color 0.2s;
@@ -62,7 +60,7 @@
     .inactive-range {
       color: #000000;
     }
-    /* Mode- und Level-Buttons: Standardfarben (Blau) */
+    /* Mode- und Level-Buttons: Standardfarben */
     #modeSelector span, #levelSelector span {
       color: #007bff;
       transition: color 0.2s;
@@ -78,7 +76,7 @@
     #nativeLog {
       margin-top: 10px;
       font-size: 0.9em;
-      color: #ffffff; /* Falls ausgeblendet, kannst du display: none setzen */
+      color: #ffffff;
       display: none;
     }
     #score, #responseTime {
@@ -87,9 +85,9 @@
     }
   </style>
   
-  <!-- Globale Funktionen im Head -->
+  <!-- Globale Funktionen und Variablen im Head -->
   <script>
-    // Globale Variablen – diese Variablen sind im globalen Scope verfügbar.
+    // Globale Variablen
     var currentSeries = [];
     var seriesCounter = 0;
     var seriesLength = 10; // Standardmäßig Level 3: 10 Noten
@@ -97,7 +95,7 @@
     var correctAnswers = 0;
     var level = 3; // Standard: Level 3
     var selectedMode = "right"; // Standard: rechte Hand (Violinenschlüssel)
-
+    
     // Globale Funktion updateScore
     function updateScore() {
       var scoreElem = document.getElementById("score");
@@ -114,13 +112,13 @@
       return { note: noteName, octave: octave };
     }
     
-    // Globale Funktion, die von Swift (via evaluateJavaScript) aufgerufen wird.
+    // Globale Funktion handleMIDIMessage, die von Swift aufgerufen wird.
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
       var nativeLog = document.getElementById("nativeLog");
       nativeLog.textContent = "MIDI: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
       
-      // Verarbeite nur Note-On (Status 144-159, velocity > 0)
+      // Nur Note-On verarbeiten (Status 144-159 und velocity > 0)
       if (status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         console.log("Umgewandelte Note:", midiInfo);
@@ -150,6 +148,7 @@
       }
     };
   </script>
+  
 </head>
 <body>
   <div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
@@ -189,11 +188,11 @@
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   
   <script>
-    // Konfiguration der UI-Elemente – ausgeführt nach DOMContentLoaded
+    // Event Listener: DOMContentLoaded – konfiguriert die UI-Elemente.
     document.addEventListener("DOMContentLoaded", function() {
       generateSeries();
       
-      // Konfiguration der Range-Buttons
+      // Range-Buttons konfigurieren (schwarzer Text)
       var rangeButtons = document.querySelectorAll("#rangeSelector span");
       rangeButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -207,7 +206,7 @@
         });
       });
       
-      // Konfiguration der Handmodus-Buttons
+      // Handmodus-Buttons konfigurieren
       var modeButtons = document.querySelectorAll("#modeSelector span");
       modeButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -217,13 +216,13 @@
           });
           btn.classList.remove("inactive-mode");
           btn.classList.add("active-mode");
-          // Aktualisiere selectedMode basierend auf der Button-ID (z.B. "mode-left")
+          // Aktualisiere selectedMode basierend auf der Button-ID (z. B. "mode-left")
           selectedMode = btn.id.split("-")[1];
           generateSeries();
         });
       });
       
-      // Konfiguration der Level-Buttons: Ändert den globalen Level-Wert und passt seriesLength an.
+      // Level-Buttons konfigurieren
       var levelButtons = document.querySelectorAll("#levelSelector span");
       levelButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -251,7 +250,7 @@
     function generateSeries() {
       currentSeries = [];
       seriesCounter = 0;
-      // Bestimme seriesLength basierend auf level
+      // Bestimme seriesLength basierend auf dem Level
       if (level === 1) {
         seriesLength = 1;
       } else if (level === 2) {
@@ -264,7 +263,6 @@
       var rangeNotes = ["c", "d", "e", "f", "g"];
       for (var i = 0; i < seriesLength; i++) {
         var randomIndex = Math.floor(Math.random() * rangeNotes.length);
-        // Wähle Clef basierend auf selectedMode
         var clef, octave;
         if (selectedMode === "left") {
           clef = "bass";
@@ -289,7 +287,7 @@
       drawSeries();
     }
     
-    // Zeichnet die aktuelle Notenserie mit VexFlow.
+    // Funktion zum Zeichnen der aktuellen Notenserie mit VexFlow.
     function drawSeries() {
       var notationDiv = document.getElementById("notation");
       notationDiv.innerHTML = "";
