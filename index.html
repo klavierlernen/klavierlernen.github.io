@@ -1,0 +1,515 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2575.4">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; -webkit-text-stroke: #000000}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; -webkit-text-stroke: #000000; min-height: 14.0px}
+    span.s1 {font-kerning: none}
+  </style>
+</head>
+<body>
+<p class="p1"><span class="s1">&lt;!DOCTYPE html&gt;</span></p>
+<p class="p1"><span class="s1">&lt;html lang="de"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;head&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;meta charset="UTF-8"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;title&gt;Notentraining&lt;/title&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;link rel="stylesheet" href="./style.css"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;style&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>body {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-family: sans-serif;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>text-align: center;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>#notation {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>width: 820px;<span class="Apple-converted-space"> </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>transform: scale(2); /* Vergrößert den Container um das 1,5-fache */</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>/* feste Breite, passend zur maximalen Notenreihe */</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>margin: 0 auto; <span class="Apple-converted-space">    </span>/* zentriert den Container horizontal */</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>text-align: center; /* falls SVG-Inhalte inline-block sind */</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.active-mode, .active-level, .active-range {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>opacity: 1;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>font-weight: bold;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>color: black;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>.inactive-mode, .inactive-level, .inactive-range {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>opacity: 0.5;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/style&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/head&gt;</span></p>
+<p class="p1"><span class="s1">&lt;body&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;!-- MIDI-Statusanzeige oben links --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"&gt;&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;!-- Überschrift; Text passt sich an die aktuelle Lage an --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;h1&gt;Notentraining&lt;/h1&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;!-- Range-Auswahl: C, D, F, G und Mittlere C --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div id="rangeSelector"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;span id="range-c" style="cursor: pointer; font-size: 1.5em; margin: 5px;"&gt;C-Lage&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;span id="range-d" style="cursor: pointer; font-size: 1.5em; margin: 5px;"&gt;D-Lage&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;span id="range-f" style="cursor: pointer; font-size: 1.5em; margin: 5px;"&gt;F-Lage&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;span id="range-g" style="cursor: pointer; font-size: 1.5em; margin: 5px;"&gt;G-Lage&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;span id="range-mc" style="cursor: pointer; font-size: 1.5em; margin: 5px;"&gt;Mittlere C&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;br&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;!-- Handmodus-Auswahl --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div id="modeSelector"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;span id="mode-left" style="cursor: pointer; font-size: 2em; margin: 5px;"&gt;✋&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;span id="mode-right" style="cursor: pointer; font-size: 2em; margin: 5px; display:inline-block; transform: scaleX(-1);"&gt;✋&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;span id="mode-both" style="cursor: pointer; font-size: 2em; margin: 5px;"&gt;🙌&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1">&lt;br&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;!-- Level-Auswahl inklusive Zufallsauswahl der Lage --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div id="levelSelector"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;span id="level-1" style="cursor: pointer; font-size: 2em; margin: 5px;"&gt;1️⃣&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;span id="level-2" style="cursor: pointer; font-size: 2em; margin: 5px;"&gt;2️⃣&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;span id="level-3" style="cursor: pointer; font-size: 2em; margin: 5px;"&gt;3️⃣&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;span id="level-random" style="cursor: pointer; font-size: 2em; margin: 5px;"&gt;🎉&lt;/span&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div id="notation"&gt;&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div id="score"&gt;Score: 0%&lt;/div&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;div id="responseTime"&gt;🏎️ -- ms&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;!-- VexFlow einbinden --&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"&gt;&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>document.addEventListener("DOMContentLoaded", function() {</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// Globale Zustände</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>let currentRange = "C"; // Standard: C-Lage</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>let selectedMode = "right"; // "right" (Violinschlüssel, Oktave 4), "left" (Bassschlüssel, Oktave 3), "both"</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>let level = 1; // Level 1: 1 Note, Level 2: 5 Noten, Level 3: 10 Noten</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>let seriesLength = 1;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>let currentSeries = [];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>let seriesCounter = 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>let noteStartTime = 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>let totalAttempts = 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>let correctAnswers = 0;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// Notenarrays für die jeweiligen Lagen</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// Für F-Lage verwenden wir z. B. "bb" für B‑flat.</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const rangeNotes = {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>"C": ["c", "d", "e", "f", "g"],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>"D": ["d", "e", "f#", "g", "a"],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>"F": ["f", "g", "a", "bb", "c"],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>"G": ["g", "a", "b", "c", "d"],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>"MC": ["c", "d", "e", "f", "g"] // Mittlere C-Lage</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>};</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// --- Range-Auswahl ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const rangeC = document.getElementById("range-c");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const rangeD = document.getElementById("range-d");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const rangeF = document.getElementById("range-f");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const rangeG = document.getElementById("range-g");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const rangeMC = document.getElementById("range-mc");</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>rangeC.addEventListener("click", function() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>currentRange = "C";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.querySelector("h1").textContent = "C-Lage";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>setActiveRange("range-c");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>generateSeries();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>rangeD.addEventListener("click", function() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>currentRange = "D";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.querySelector("h1").textContent = "D-Lage";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>setActiveRange("range-d");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>generateSeries();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>rangeF.addEventListener("click", function() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>currentRange = "F";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.querySelector("h1").textContent = "F-Lage";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>setActiveRange("range-f");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>generateSeries();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>rangeG.addEventListener("click", function() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>currentRange = "G";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.querySelector("h1").textContent = "G-Lage";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>setActiveRange("range-g");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>generateSeries();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>rangeMC.addEventListener("click", function() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>currentRange = "MC";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.querySelector("h1").textContent = "Mittlere C-Lage";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>setActiveRange("range-mc");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>generateSeries();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>function setActiveRange(activeId) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// Alle Range-Buttons auf inaktiv setzen</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>[rangeC, rangeD, rangeF, rangeG, rangeMC].forEach(function(elem) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>elem.classList.remove("active-range");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>elem.classList.add("inactive-range");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// Den ausgewählten Button aktivieren</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.getElementById(activeId).classList.remove("inactive-range");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.getElementById(activeId).classList.add("active-range");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// Standardmäßig aktivieren wir C-Lage</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>setActiveRange("range-c");</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// --- Handmodus-Auswahl ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const modeLeft = document.getElementById("mode-left");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const modeRight = document.getElementById("mode-right");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const modeBoth = document.getElementById("mode-both");</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>modeLeft.addEventListener("click", function() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>selectedMode = "left";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>setActiveModeIcon("left");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>generateSeries();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>modeRight.addEventListener("click", function() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>selectedMode = "right";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>setActiveModeIcon("right");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>generateSeries();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>modeBoth.addEventListener("click", function() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>selectedMode = "both";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>setActiveModeIcon("both");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>generateSeries();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>function setActiveModeIcon(mode) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>modeLeft.classList.add("inactive-mode");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>modeRight.classList.add("inactive-mode");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>modeBoth.classList.add("inactive-mode");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>modeLeft.classList.remove("active-mode");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>modeRight.classList.remove("active-mode");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>modeBoth.classList.remove("active-mode");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (mode === "left") {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>modeLeft.classList.remove("inactive-mode");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>modeLeft.classList.add("active-mode");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>} else if (mode === "right") {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>modeRight.classList.remove("inactive-mode");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>modeRight.classList.add("active-mode");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>} else if (mode === "both") {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>modeBoth.classList.remove("inactive-mode");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>modeBoth.classList.add("active-mode");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// --- Level-Auswahl ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const level1 = document.getElementById("level-1");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const level2 = document.getElementById("level-2");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const level3 = document.getElementById("level-3");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const levelRandom = document.getElementById("level-random");</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>level1.addEventListener("click", function() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>level = 1;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>seriesLength = 1;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>seriesCounter = 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>setActiveLevel("1");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>generateSeries();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>level2.addEventListener("click", function() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>level = 2;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>seriesLength = 5;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>seriesCounter = 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>setActiveLevel("2");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>generateSeries();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>level3.addEventListener("click", function() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>level = 3;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>seriesLength = 10;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>seriesCounter = 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>setActiveLevel("3");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>generateSeries();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// Zufalls-Lagenwahl über den 🎉-Button</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>levelRandom.addEventListener("click", function() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const ranges = ["C", "D", "F", "G", "MC"];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const randomRange = ranges[Math.floor(Math.random() * ranges.length)];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>currentRange = randomRange;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let headerText = "";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let activeId = "";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>switch(randomRange) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>case "C":</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>headerText = "C-Lage";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>activeId = "range-c";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>break;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>case "D":</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>headerText = "D-Lage";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>activeId = "range-d";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>break;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>case "F":</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>headerText = "F-Lage";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>activeId = "range-f";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>break;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>case "G":</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>headerText = "G-Lage";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>activeId = "range-g";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>break;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>case "MC":</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>headerText = "Mittlere C-Lage";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>activeId = "range-mc";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>break;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>document.querySelector("h1").textContent = headerText;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>setActiveRange(activeId);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>generateSeries();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>function setActiveLevel(lvl) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>level1.classList.add("inactive-level");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>level2.classList.add("inactive-level");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>level3.classList.add("inactive-level");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>level1.classList.remove("active-level");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>level2.classList.remove("active-level");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>level3.classList.remove("active-level");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (lvl === "1") {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>level1.classList.remove("inactive-level");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>level1.classList.add("active-level");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>} else if (lvl === "2") {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>level2.classList.remove("inactive-level");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>level2.classList.add("active-level");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>} else if (lvl === "3") {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>level3.classList.remove("inactive-level");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>level3.classList.add("active-level");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// --- VexFlow und Anzeige ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const VF = Vex.Flow;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const notationDiv = document.getElementById("notation");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const scoreDiv = document.getElementById("score");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const responseDiv = document.getElementById("responseTime");</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// Zeichnet die aktuelle Serie von Noten</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>function drawSeries() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>notationDiv.innerHTML = "";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const usedWidth = 80 * seriesLength + 20; // Dynamische Breite: 80px pro Note + 20px Padding</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const renderer = new VF.Renderer(notationDiv, VF.Renderer.Backends.SVG);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>renderer.resize(usedWidth, 200);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const context = renderer.getContext();</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// Erstelle einen Stave mit dynamischer Breite</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const stave = new VF.Stave(10, 40, usedWidth - 20);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>stave.addClef(currentSeries[0].clef).setContext(context).draw();</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// Erstelle Notenobjekte</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const staveNotes = currentSeries.map(function(item) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>return new VF.StaveNote({</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>clef: item.clef,</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>keys: [item.note + "/" + item.octave],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>duration: "q"</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>}).setStyle({ fillStyle: item.color, strokeStyle: item.color });</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const voice = new VF.Voice({ num_beats: seriesLength, beat_value: 4 });</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>staveNotes.forEach(note =&gt; voice.addTickable(note));</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>new VF.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>voice.draw(context, stave);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// --- Score und Antwortzeit ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>function updateScore() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let percent = totalAttempts &gt; 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>scoreDiv.textContent = "Score: " + percent + "%";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// --- Serien-Generierung ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>function generateSeries() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>currentSeries = [];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>seriesCounter = 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>// Wähle das Notenarray anhand der aktuellen Lage aus</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const notes = rangeNotes[currentRange];</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (level &lt; 3) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>for (let i = 0; i &lt; seriesLength; i++) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>let note = notes[Math.floor(Math.random() * notes.length)];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>let clef, octave;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if (selectedMode === "right") {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>clef = "treble";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>octave = 4;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>} else if (selectedMode === "left") {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>clef = "bass";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>octave = 3;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>} else if (selectedMode === "both") {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>if (Math.random() &lt; 0.5) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>clef = "treble";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>octave = 4;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>clef = "bass";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>octave = 3;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>currentSeries.push({ note: note, octave: octave, clef: clef, color: "black" });</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>// Level 3: Serie mit Intervallbeziehungen</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>let currentIndex = Math.floor(Math.random() * notes.length);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>let clef, octave;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>if (selectedMode === "right") {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>clef = "treble";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>octave = 4;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>} else if (selectedMode === "left") {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>clef = "bass";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>octave = 3;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>} else if (selectedMode === "both") {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if (Math.random() &lt; 0.5) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>clef = "treble";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>octave = 4;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>clef = "bass";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>octave = 3;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>currentSeries.push({ note: notes[currentIndex], octave: octave, clef: clef, color: "black" });</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>for (let i = 1; i &lt; seriesLength; i++) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const intervals = [1, 2, 3, 4]; // Sekunde, Terz, Quarte, Quinte</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>let interval = intervals[Math.floor(Math.random() * intervals.length)];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>let direction = Math.random() &lt; 0.5 ? 1 : -1;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if (currentIndex + direction * interval &lt; 0 || currentIndex + direction * interval &gt;= notes.length) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>direction *= -1;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>currentIndex = currentIndex + direction * interval;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if (selectedMode === "right") {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>clef = "treble";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>octave = 4;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>} else if (selectedMode === "left") {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>clef = "bass";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>octave = 3;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>} else if (selectedMode === "both") {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>if (Math.random() &lt; 0.5) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>clef = "treble";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>octave = 4;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>clef = "bass";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>octave = 3;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>currentSeries.push({ note: notes[currentIndex], octave: octave, clef: clef, color: "black" });</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>drawSeries();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>noteStartTime = Date.now(); // Startzeit setzen</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// --- MIDI-Integration ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (navigator.requestMIDIAccess) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>alert("Dein Browser unterstützt das Web MIDI API nicht.");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>function onMIDISuccess(midiAccess) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>console.log("MIDI ist bereit!");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const inputs = midiAccess.inputs.values();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>for (let input of inputs) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>input.onmidimessage = handleMIDIMessage;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>generateSeries();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>function onMIDIFailure() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>alert("Kein Zugriff auf MIDI-Geräte möglich.");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>function midiNoteToName(noteNumber) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const noteNames = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let octave = Math.floor(noteNumber / 12) - 1;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let noteName = noteNames[noteNumber % 12];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>return { noteName, octave };</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>// --- Verarbeitung der MIDI-Nachrichten ---</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>function handleMIDIMessage(event) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>console.log("MIDI-Nachricht:", event.data);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const [status, data1, data2] = event.data;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>if (status &gt;= 144 &amp;&amp; status &lt; 160 &amp;&amp; data2 &gt; 0) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>const midiInfo = midiNoteToName(data1);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>console.log("Empfangene Note:", midiInfo.noteName, midiInfo.octave);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>totalAttempts++;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>const expected = currentSeries[seriesCounter];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>const responseTime = Date.now() - noteStartTime;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>responseDiv.textContent = "Response Time: " + responseTime + " ms";</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>if (midiInfo.noteName === expected.note &amp;&amp; midiInfo.octave === expected.octave) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>correctAnswers++;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>expected.color = "green";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>expected.color = "red";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>updateScore();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>drawSeries();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>seriesCounter++;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>noteStartTime = Date.now();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>setTimeout(function() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if (seriesCounter &gt;= seriesLength) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>generateSeries();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>}, 500);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>function updateScore() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let percent = totalAttempts &gt; 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>scoreDiv.textContent = "Score: " + percent + "%";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/script&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>document.addEventListener("DOMContentLoaded", function() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>const midiStatusDiv = document.getElementById("midiStatus");</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>function disableInteractiveElements(disable) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const interactiveIds = ["modeSelector", "levelSelector", "rangeSelector"];</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>interactiveIds.forEach(function(id) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>const elem = document.getElementById(id);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>if (elem) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if (disable) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>elem.style.pointerEvents = "none";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>elem.style.opacity = "0.5";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>elem.style.pointerEvents = "auto";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>elem.style.opacity = "1";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>if (navigator.requestMIDIAccess) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>navigator.requestMIDIAccess().then(function(midiAccess) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>function updateMIDIStatus() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>let hasInput = false;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>for (let input of midiAccess.inputs.values()) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>console.log("MIDI Input:", input.name, input.state);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>if (input.state === "connected") {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>hasInput = true;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>break;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if (hasInput) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>midiStatusDiv.textContent = "🔌";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>disableInteractiveElements(false);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>midiStatusDiv.textContent = "⛔ Keine MIDI Verbindung";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">              </span>disableInteractiveElements(true);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>updateMIDIStatus();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>setInterval(updateMIDIStatus, 1000);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}, function() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>midiStatusDiv.textContent = "⛔";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">          </span>disableInteractiveElements(true);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>} else {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>midiStatusDiv.textContent = "⛔";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>disableInteractiveElements(true);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">      </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>});</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;/script&gt;<span class="Apple-converted-space">   </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">  </span>&lt;script src='https://unpkg.com/vexflow/releases/vexflow-min.js'&gt;&lt;/script&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/body&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/html&gt;</span></p>
+</body>
+</html>
