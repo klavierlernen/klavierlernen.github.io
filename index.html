@@ -33,9 +33,9 @@
 <body>
   <div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
   <h1>Notentraining</h1>
-  <!-- (Hier folgen deine UI-Elemente: Range-, Mode- und Level-Auswahl) -->
+  <!-- Hier können weitere UI-Elemente wie Range-, Mode- und Level-Auswahl eingefügt werden -->
   <div id="notation"></div>
-  <div id="score">V19:55 Score: 0%</div>
+  <div id="score">Score: 0%</div>
   <div id="responseTime">🏎️ -- ms</div>
   <div id="nativeLog"></div>
 
@@ -43,14 +43,14 @@
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   
   <script>
-    // Globale Variablen – diese sind auch außerhalb von DOMContentLoaded verfügbar.
+    // Globale Variablen – diese sind auch für handleMIDIMessage sichtbar.
     var currentSeries = [];
     var seriesCounter = 0;
     var seriesLength = 1;
     var totalAttempts = 0;
     var correctAnswers = 0;
 
-    // Wandelt den MIDI Data1-Wert in Notennamen und Oktave um.
+    // Wandelt den MIDI Data1-Wert in einen Notennamen und eine Oktave um.
     function midiNoteToName(noteNumber) {
       var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
       var octave = Math.floor(noteNumber / 12) - 1;
@@ -58,12 +58,13 @@
       return { note: noteName, octave: octave };
     }
 
-    // Diese Funktion wird von Swift über evaluateJavaScript aufgerufen.
+    // Globale Funktion, die von Swift (über evaluateJavaScript) aufgerufen wird.
+    // Diese Funktion vergleicht den umgerechneten Data1-Wert mit der aktuell erwarteten Note.
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
       document.getElementById("nativeLog").textContent =
          "MIDI Nachricht: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
-      // Verarbeite nur Note-On (Status 144-159, velocity > 0)
+      // Verarbeite nur Note-On (Status 144-159 und velocity > 0)
       if (status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         console.log("Umgewandelte Note:", midiInfo);
@@ -94,19 +95,19 @@
       scoreElem.textContent = "Score: " + percent + "%";
     }
 
-    // Erzeugt eine neue Serie erwarteter Noten (hier exemplarisch eine zufällige Note aus der Range "C")
+    // Generiert eine neue Serie erwarteter Noten.
     function generateSeries() {
       currentSeries = [];
       seriesCounter = 0;
       seriesLength = 1; // Für diesen Test: eine Note
       var rangeNotes = ["c", "d", "e", "f", "g"];
       var randomIndex = Math.floor(Math.random() * rangeNotes.length);
-      // Beispiel: Erwartete Note: zufällig, Oktave 4, Clef "treble"
+      // Beispiel: Erwartete Note: zufällig aus der Range, Oktave 4, Clef: treble
       currentSeries.push({ note: rangeNotes[randomIndex], octave: 4, clef: "treble", color: "black" });
       drawSeries();
     }
 
-    // Zeichnet die aktuelle Notenserie mit VexFlow.
+    // Zeichnet die aktuelle Notenserie mithilfe von VexFlow.
     function drawSeries() {
       var notationDiv = document.getElementById("notation");
       notationDiv.innerHTML = "";
@@ -131,7 +132,7 @@
       voice.draw(context, stave);
     }
 
-    // Beim Laden der Seite wird eine erste Serie erzeugt.
+    // Erzeuge beim Laden der Seite initial eine Serie.
     document.addEventListener("DOMContentLoaded", function() {
       generateSeries();
     });
