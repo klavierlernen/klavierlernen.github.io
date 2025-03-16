@@ -22,34 +22,11 @@
     .inactive-mode, .inactive-level, .inactive-range {
       opacity: 0.5;
     }
-    /* Zusätzlicher Stil für native Schnittstellen und Debug-Ausgaben */
+    /* Zusätzlicher Stil für eventuelle native Schnittstellen oder Debug-Infos */
     #nativeLog {
       margin-top: 10px;
       font-size: 0.9em;
       color: gray;
-    }
-    /* Stil für die Multi-Source Anzeige */
-    #midiSourcesDisplay {
-      margin-top: 20px;
-      display: inline-block;
-      text-align: left;
-      border: 1px solid #ccc;
-      padding: 10px;
-      width: 90%;
-      max-width: 600px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      border: 1px solid #aaa;
-      padding: 8px;
-      text-align: center;
-    }
-    th {
-      background-color: #eee;
     }
   </style>
 </head>
@@ -58,7 +35,7 @@
   <div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
   <!-- Überschrift -->
   <h1>Notentraining</h1>
-  <!-- Range-, Handmodus- und Level-Auswahl -->
+  <!-- Range-, Handmodus- und Level-Auswahl wie bisher -->
   <div id="rangeSelector">
     <span id="range-c" style="cursor: pointer; font-size: 1.5em; margin: 5px;">C-Lage</span>
     <span id="range-d" style="cursor: pointer; font-size: 1.5em; margin: 5px;">D-Lage</span>
@@ -83,109 +60,21 @@
   <div id="notation"></div>
   <div id="score">Score: 0%</div>
   <div id="responseTime">🏎️ -- ms</div>
-  <!-- Anzeige für native Debug-Ausgaben -->
   <div id="nativeLog"></div>
-  <!-- Anzeige der MIDI-Quellen -->
-  <div id="midiSourcesDisplay">
-    <h2>MIDI Quellen</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Quelle</th>
-          <th>Empfangene Note</th>
-          <th>Erwartete Note</th>
-          <th>Ergebnis</th>
-        </tr>
-      </thead>
-      <tbody id="midiTableBody">
-      </tbody>
-    </table>
-  </div>
 
-  <!-- VexFlow einbinden (einmalig!) -->
+  <!-- VexFlow einbinden -->
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   <script>
-    // Globales Objekt zur Verwaltung von MIDI-Quellen
-    var midiSources = {};
-
-    // Initialisiert eine neue Quelle mit einem Standard-Erwartungswert (hier: C4)
-    function initSource(sourceId) {
-      midiSources[sourceId] = {
-        expected: { note: "c", octave: 4 },
-        lastReceived: null,
-        result: "–"
-      };
-      updateMIDITable();
-    }
-
-    // Aktualisiert die HTML-Tabelle zur Anzeige der MIDI-Quellen
-    function updateMIDITable() {
-      var tbody = document.getElementById("midiTableBody");
-      tbody.innerHTML = "";
-      for (var src in midiSources) {
-        var entry = midiSources[src];
-        var tr = document.createElement("tr");
-        
-        var tdSrc = document.createElement("td");
-        tdSrc.textContent = src;
-        tr.appendChild(tdSrc);
-        
-        var tdReceived = document.createElement("td");
-        if (entry.lastReceived) {
-          tdReceived.textContent = entry.lastReceived.note.toUpperCase() + " (Oktave " + entry.lastReceived.octave + ")";
-        } else {
-          tdReceived.textContent = "–";
-        }
-        tr.appendChild(tdReceived);
-        
-        var tdExpected = document.createElement("td");
-        tdExpected.textContent = entry.expected.note.toUpperCase() + " (Oktave " + entry.expected.octave + ")";
-        tr.appendChild(tdExpected);
-        
-        var tdResult = document.createElement("td");
-        tdResult.textContent = entry.result;
-        tr.appendChild(tdResult);
-        
-        tbody.appendChild(tr);
-      }
-    }
-
-    // Wandelt den MIDI-Notenwert (Data1) in einen Notennamen und eine Oktave um.
-    function midiNoteToName(noteNumber) {
-      var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
-      var octave = Math.floor(noteNumber / 12) - 1;
-      var noteName = noteNames[noteNumber % 12];
-      return { note: noteName, octave: octave };
-    }
-
-    // Globale Funktion, die von der nativen App aufgerufen wird.
-    // Neben den Standardparametern (status, data1, data2) kann ein optionaler sourceId übergeben werden.
-    window.handleMIDIMessage = function(status, data1, data2, sourceId) {
-      console.log("handleMIDIMessage:", status, data1, data2, sourceId);
+    // Beispiel: Globale Funktion, die vom nativen Wrapper (CoreMIDI) aufgerufen wird.
+    function handleMIDIMessage(status, data1, data2) {
+      console.log("Native MIDI Message empfangen:", status, data1, data2);
+      // Optional: Ausgabe in einem speziellen Element, um zu sehen, dass die Schnittstelle funktioniert.
       document.getElementById("nativeLog").textContent =
-         "MIDI Nachricht: Status: " + status +
+         "Empfangene MIDI Nachricht: Status: " + status +
          ", Data1: " + data1 + ", Data2: " + data2;
-      
-      // Verarbeite nur Note-On-Nachrichten (Status 144-159, velocity > 0)
-      if (status >= 144 && status < 160 && data2 > 0) {
-        var src = sourceId || "Default";
-        if (!midiSources[src]) {
-          initSource(src);
-        }
-        var midiInfo = midiNoteToName(data1);
-        midiSources[src].lastReceived = midiInfo;
-        // Vergleiche empfangene Note mit der erwarteten Note dieser Quelle
-        if (midiInfo.note === midiSources[src].expected.note &&
-            midiInfo.octave === midiSources[src].expected.octave) {
-          midiSources[src].result = "Richtig";
-        } else {
-          midiSources[src].result = "Falsch";
-        }
-        updateMIDITable();
-      } else {
-        console.log("Keine gültige Note-On Nachricht.");
-      }
-    };
+      // Hier kannst du deine bestehende Logik integrieren, z.B.:
+      // processNoteInput(…)
+    }
 
     // Funktion zum Senden von Nachrichten an die native Schicht (falls benötigt)
     function sendMessageToNative(message) {
@@ -198,7 +87,7 @@
       }
     }
 
-    // Der bestehende Code für Notentraining (Range, Mode, Level, VexFlow etc.) bleibt erhalten.
+    // Der bestehende Code für Notentraining (Range, Mode, Level, VexFlow, etc.) bleibt hier erhalten.
     document.addEventListener("DOMContentLoaded", function() {
       // Globale Zustände
       let currentRange = "C";
@@ -388,6 +277,7 @@
       }
 
       // --- VexFlow und Anzeige ---
+      const VF = Vex.Flow;
       const notationDiv = document.getElementById("notation");
       const scoreDiv = document.getElementById("score");
       const responseDiv = document.getElementById("responseTime");
