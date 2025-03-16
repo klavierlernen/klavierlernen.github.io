@@ -7,50 +7,94 @@
     body {
       font-family: sans-serif;
       text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      margin-top: 20px;
     }
     #notation {
       width: 820px;
-      transform: scale(2);
-      margin: 0 auto;
+      transform: scale(1.5); /* Hier ggf. anpassen */
+      margin: 20px auto;
       text-align: center;
+      border: 1px solid #ccc;
+      padding: 10px;
     }
-    .active-mode, .active-level, .active-range {
-      opacity: 1;
-      font-weight: bold;
-      color: black;
-    }
-    .inactive-mode, .inactive-level, .inactive-range {
-      opacity: 0.5;
-    }
-    /* Debug-Ausgabe */
-    #nativeLog {
+    #score, #responseTime, #nativeLog {
       margin-top: 10px;
-      font-size: 0.9em;
-      color: gray;
+      font-size: 1.1em;
+    }
+    /* Styling der Buttons */
+    #rangeSelector, #modeSelector, #levelSelector {
+      margin: 10px auto;
+    }
+    #rangeSelector span, #modeSelector span, #levelSelector span {
+      cursor: pointer;
+      font-size: 1.5em;
+      margin: 5px;
+      padding: 5px 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .active-range, .active-mode, .active-level {
+      background-color: #ddd;
+      font-weight: bold;
+    }
+    .inactive-range, .inactive-mode, .inactive-level {
+      background-color: #f9f9f9;
+      opacity: 0.8;
     }
   </style>
 </head>
 <body>
+  <!-- MIDI Status und Überschrift -->
   <div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
   <h1>Notentraining</h1>
-  <!-- Hier können deine UI-Elemente für Range, Mode, Level eingefügt werden -->
+  
+  <!-- Range-Auswahl -->
+  <div id="rangeSelector">
+    <span id="range-c" class="inactive-range">C-Lage</span>
+    <span id="range-d" class="inactive-range">D-Lage</span>
+    <span id="range-f" class="inactive-range">F-Lage</span>
+    <span id="range-g" class="inactive-range">G-Lage</span>
+    <span id="range-mc" class="inactive-range">Mittlere C</span>
+  </div>
+  
+  <!-- Handmodus-Auswahl -->
+  <div id="modeSelector">
+    <span id="mode-left" class="inactive-mode">✋</span>
+    <span id="mode-right" class="inactive-mode" style="transform: scaleX(-1);">✋</span>
+    <span id="mode-both" class="inactive-mode">🙌</span>
+  </div>
+  
+  <!-- Level-Auswahl -->
+  <div id="levelSelector">
+    <span id="level-1" class="inactive-level">1️⃣</span>
+    <span id="level-2" class="inactive-level">2️⃣</span>
+    <span id="level-3" class="inactive-level">3️⃣</span>
+    <span id="level-random" class="inactive-level">🎉</span>
+  </div>
+  
+  <!-- Notensystem, Score, ResponseTime, Debug -->
   <div id="notation"></div>
   <div id="score">Score: 0%</div>
   <div id="responseTime">🏎️ -- ms</div>
   <div id="nativeLog"></div>
-
-  <!-- VexFlow einbinden (nur einmal) -->
+  
+  <!-- VexFlow einbinden -->
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   
   <script>
-    // Globale Variablen – auch für Swift zugänglich.
+    /* Globale Variablen – sind im globalen Scope verfügbar, damit Swift und alle Funktionen darauf zugreifen können */
     var currentSeries = [];
     var seriesCounter = 0;
     var seriesLength = 1;
     var totalAttempts = 0;
     var correctAnswers = 0;
     
-    // updateScore global definieren
+    // Global updateScore (über window verfügbar)
     function updateScore() {
       var scoreElem = document.getElementById("score");
       var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
@@ -58,7 +102,7 @@
     }
     window.updateScore = updateScore;
     
-    // MIDI Data1 in Note und Oktave umwandeln.
+    // Funktion zur Umrechnung von MIDI Data1 in Notennamen und Oktave.
     function midiNoteToName(noteNumber) {
       var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
       var octave = Math.floor(noteNumber / 12) - 1;
@@ -70,7 +114,8 @@
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
       document.getElementById("nativeLog").textContent =
-         "MIDI Nachricht: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
+         "MIDI: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
+      // Verarbeite nur Note-On Nachrichten (Status 144-159, velocity > 0)
       if (status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         console.log("Umgewandelte Note:", midiInfo);
@@ -94,18 +139,19 @@
       }
     };
     
-    // Neue Serie erwarteter Noten generieren (Beispiel: eine zufällige Note aus ["c", "d", "e", "f", "g"])
+    // Funktion zum Generieren einer neuen Serie erwarteter Noten.
     function generateSeries() {
       currentSeries = [];
       seriesCounter = 0;
-      seriesLength = 1; // Test: nur eine Note
+      seriesLength = 1; // Für diesen Test: Es wird nur eine Note erwartet.
       var rangeNotes = ["c", "d", "e", "f", "g"];
       var randomIndex = Math.floor(Math.random() * rangeNotes.length);
+      // Beispiel: Erwartete Note: Zufällig aus rangeNotes, Oktave 4, Clef "treble"
       currentSeries.push({ note: rangeNotes[randomIndex], octave: 4, clef: "treble", color: "black" });
       drawSeries();
     }
     
-    // Zeichnet die Notenserie mittels VexFlow.
+    // Zeichnet die aktuelle Notenserie mit VexFlow.
     function drawSeries() {
       var notationDiv = document.getElementById("notation");
       notationDiv.innerHTML = "";
@@ -130,9 +176,37 @@
       voice.draw(context, stave);
     }
     
-    // Beim Laden der Seite wird eine initiale Serie generiert.
+    // Event Listener für DOMContentLoaded – hier kannst du auch die Buttons (Range, Mode, Level) konfigurieren
     document.addEventListener("DOMContentLoaded", function() {
+      // Initiale Serien-Generierung
       generateSeries();
+      
+      // Beispielweise Range-Buttons, die bei Klick die Serie neu generieren:
+      var rangeC = document.getElementById("range-c");
+      var rangeD = document.getElementById("range-d");
+      var rangeF = document.getElementById("range-f");
+      var rangeG = document.getElementById("range-g");
+      var rangeMC = document.getElementById("range-mc");
+      
+      rangeC.addEventListener("click", function() {
+        // Hier könntest du noch die aktuelle Range ändern
+        generateSeries();
+      });
+      rangeD.addEventListener("click", function() {
+        generateSeries();
+      });
+      rangeF.addEventListener("click", function() {
+        generateSeries();
+      });
+      rangeG.addEventListener("click", function() {
+        generateSeries();
+      });
+      rangeMC.addEventListener("click", function() {
+        generateSeries();
+      });
+      
+      // Ähnlich kannst du auch für Mode und Level Buttons konfigurieren.
+      // Hier als Platzhalter, um zu zeigen, dass alle UI-Elemente weiterhin da sind.
     });
   </script>
 </body>
