@@ -33,38 +33,44 @@
 <body>
   <div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
   <h1>Notentraining</h1>
-  <!-- Hier können weitere UI-Elemente wie Range-, Mode- und Level-Auswahl eingefügt werden -->
+  <!-- Hier können deine UI-Elemente für Range, Mode, Level eingefügt werden -->
   <div id="notation"></div>
   <div id="score">Score: 0%</div>
   <div id="responseTime">🏎️ -- ms</div>
   <div id="nativeLog"></div>
 
-  <!-- VexFlow einbinden (nur einmal!) -->
+  <!-- VexFlow (nur einmal einbinden) -->
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   
   <script>
-    // Globale Variablen – diese sind auch für handleMIDIMessage sichtbar.
+    // Globale Variablen – im globalen Scope, damit sie auch von Swift aus zugänglich sind.
     var currentSeries = [];
     var seriesCounter = 0;
     var seriesLength = 1;
     var totalAttempts = 0;
     var correctAnswers = 0;
-
-    // Wandelt den MIDI Data1-Wert in einen Notennamen und eine Oktave um.
+    
+    // UpdateScore als globale Funktion, verfügbar über window.updateScore
+    window.updateScore = function() {
+      var scoreElem = document.getElementById("score");
+      var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
+      scoreElem.textContent = "Score: " + percent + "%";
+    };
+    
+    // Funktion zur Umrechnung des MIDI Data1-Werts in Notennamen und Oktave.
     function midiNoteToName(noteNumber) {
       var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
       var octave = Math.floor(noteNumber / 12) - 1;
       var noteName = noteNames[noteNumber % 12];
       return { note: noteName, octave: octave };
     }
-
-    // Globale Funktion, die von Swift (über evaluateJavaScript) aufgerufen wird.
-    // Diese Funktion vergleicht den umgerechneten Data1-Wert mit der aktuell erwarteten Note.
+    
+    // Globale Funktion, die von Swift (via evaluateJavaScript) aufgerufen wird.
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
       document.getElementById("nativeLog").textContent =
          "MIDI Nachricht: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
-      // Verarbeite nur Note-On (Status 144-159 und velocity > 0)
+      // Verarbeite nur Note-On Nachrichten (Status 144-159, velocity > 0)
       if (status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         console.log("Umgewandelte Note:", midiInfo);
@@ -79,7 +85,7 @@
             document.getElementById("nativeLog").textContent += " - Falsch!";
           }
           totalAttempts++;
-          updateScore();
+          window.updateScore();
           seriesCounter++;
           if (seriesCounter >= seriesLength) {
             generateSeries();
@@ -87,26 +93,19 @@
         }
       }
     };
-
-    // Aktualisiert den Score im UI.
-    function updateScore() {
-      var scoreElem = document.getElementById("score");
-      var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
-      scoreElem.textContent = "Score: " + percent + "%";
-    }
-
-    // Generiert eine neue Serie erwarteter Noten.
+    
+    // Generiert eine neue Serie erwarteter Noten. Hier exemplarisch eine zufällige Note aus der Range ["c","d","e","f","g"].
     function generateSeries() {
       currentSeries = [];
       seriesCounter = 0;
-      seriesLength = 1; // Für diesen Test: eine Note
+      seriesLength = 1;  // Für diesen Test: eine Note
       var rangeNotes = ["c", "d", "e", "f", "g"];
       var randomIndex = Math.floor(Math.random() * rangeNotes.length);
-      // Beispiel: Erwartete Note: zufällig aus der Range, Oktave 4, Clef: treble
+      // Erwartete Note: zufällig, Oktave 4, Clef "treble"
       currentSeries.push({ note: rangeNotes[randomIndex], octave: 4, clef: "treble", color: "black" });
       drawSeries();
     }
-
+    
     // Zeichnet die aktuelle Notenserie mithilfe von VexFlow.
     function drawSeries() {
       var notationDiv = document.getElementById("notation");
@@ -131,56 +130,11 @@
       new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
       voice.draw(context, stave);
     }
-
-    // Erzeuge beim Laden der Seite initial eine Serie.
+    
+    // Initiale Generierung beim Laden der Seite.
     document.addEventListener("DOMContentLoaded", function() {
       generateSeries();
     });
-  </script>
-  <script>
-    // Globale Funktion updateScore definieren
-    window.updateScore = function() {
-      var scoreElem = document.getElementById("score");
-      var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
-      scoreElem.textContent = "Score: " + percent + "%";
-    };
-
-    // Restliche globale Variablen und Funktionen...
-    var totalAttempts = 0;
-    var correctAnswers = 0;
-    var currentSeries = [];
-    var seriesCounter = 0;
-    var seriesLength = 1;
-
-    function midiNoteToName(noteNumber) {
-      var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
-      var octave = Math.floor(noteNumber / 12) - 1;
-      var noteName = noteNames[noteNumber % 12];
-      return { note: noteName, octave: octave };
-    }
-
-    window.handleMIDIMessage = function(status, data1, data2) {
-      console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
-      // ... Deine Logik, die updateScore() aufruft ...
-      if (status >= 144 && status < 160 && data2 > 0) {
-        var midiInfo = midiNoteToName(data1);
-        if (seriesCounter < currentSeries.length) {
-          var expected = currentSeries[seriesCounter];
-          if (midiInfo.note === expected.note && midiInfo.octave === expected.octave) {
-            correctAnswers++;
-            expected.color = "green";
-          } else {
-            expected.color = "red";
-          }
-          totalAttempts++;
-          // updateScore wird hier jetzt gefunden, weil sie global deklariert ist.
-          window.updateScore();
-          seriesCounter++;
-        }
-      }
-    };
-
-    // Beispiel: Initiale Aufruf von generateSeries, drawSeries usw.
   </script>
 </body>
 </html>
