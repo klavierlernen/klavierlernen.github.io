@@ -1,3 +1,5 @@
+<!DOCTYPE html>
+<html>
 <head>
   <meta charset="UTF-8">
   <title>Notentraining</title>
@@ -29,10 +31,9 @@
   </style>
 </head>
 <body>
-  <!-- MIDI-Statusanzeige -->
   <div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
   <h1>Notentraining</h1>
-  <!-- Range-, Handmodus- und Level-Auswahl -->
+  <!-- Hier folgen deine Auswahl-Elemente -->
   <div id="rangeSelector">
     <span id="range-c" style="cursor: pointer; font-size: 1.5em; margin: 5px;">C-Lage</span>
     <span id="range-d" style="cursor: pointer; font-size: 1.5em; margin: 5px;">D-Lage</span>
@@ -53,31 +54,29 @@
     <span id="level-3" style="cursor: pointer; font-size: 2em; margin: 5px;">3️⃣</span>
     <span id="level-random" style="cursor: pointer; font-size: 2em; margin: 5px;">🎉</span>
   </div>
-
+  
   <div id="notation"></div>
   <div id="score">Score: 0%</div>
   <div id="responseTime">🏎️ -- ms</div>
   <div id="nativeLog"></div>
 
-  <!-- VexFlow einbinden -->
+  <!-- VexFlow einbinden (nur einmal) -->
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   
   <script>
-    // Globale Variablen (jetzt im globalen Scope)
+    // Globale Variablen (sind auch für handleMIDIMessage sichtbar)
     var currentSeries = [];
     var seriesCounter = 0;
     var seriesLength = 1;
     var totalAttempts = 0;
     var correctAnswers = 0;
 
-    // Globale Funktion, die von der nativen App aufgerufen wird
+    // Globale Funktion, die von Swift aufgerufen wird.
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
       document.getElementById("nativeLog").textContent =
-         "Empfangene MIDI Nachricht: Status: " + status +
-         ", Data1: " + data1 + ", Data2: " + data2;
+         "Empfangene MIDI Nachricht: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
       
-      // Nur Note-On Nachrichten verarbeiten (Status 144–159, velocity > 0)
       if (status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         console.log("Umgewandelte Note:", midiInfo);
@@ -101,293 +100,60 @@
       }
     };
 
-    // Funktion zur Umrechnung von MIDI Data1 in Note und Oktave
+    // Wandelt den MIDI Data1-Wert in Note und Oktave um.
     function midiNoteToName(noteNumber) {
       var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
       var octave = Math.floor(noteNumber / 12) - 1;
       var noteName = noteNames[noteNumber % 12];
       return { note: noteName, octave: octave };
     }
-    
-    // Restlicher Code bleibt weitgehend unverändert
-    document.addEventListener("DOMContentLoaded", function() {
-      // Lokale Variablen für den Rest deiner Logik
-      var currentRange = "C";
-      var selectedMode = "right";
-      var level = 1;
-      var seriesLengthLocal = 1; // lokale Kopie für DOM-Logik
-      var midiAvailable = false;
 
-      var rangeNotes = {
-        "C": ["c", "d", "e", "f", "g"],
-        "D": ["d", "e", "f#", "g", "a"],
-        "F": ["f", "g", "a", "bb", "c"],
-        "G": ["g", "a", "b", "c", "d"],
-        "MC": ["c", "d", "e", "f", "g"]
-      };
+    // Beispiel-Funktionen für Score, Serien-Generierung und Zeichnen der Noten.
+    function updateScore() {
+      var scoreElem = document.getElementById("score");
+      var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
+      scoreElem.textContent = "Score: " + percent + "%";
+    }
 
-      // --- Range-Auswahl ---
-      var rangeC = document.getElementById("range-c");
-      var rangeD = document.getElementById("range-d");
-      var rangeF = document.getElementById("range-f");
-      var rangeG = document.getElementById("range-g");
-      var rangeMC = document.getElementById("range-mc");
+    function generateSeries() {
+      currentSeries = [];
+      seriesCounter = 0;
+      seriesLength = 1; // Für den Test nur eine Note
+      var rangeNotes = ["c", "d", "e", "f", "g"];
+      var randomIndex = Math.floor(Math.random() * rangeNotes.length);
+      // Beispiel: Erwartete Note: zufällig aus der Range, Oktave 4, Clef: treble
+      currentSeries.push({ note: rangeNotes[randomIndex], octave: 4, clef: "treble", color: "black" });
+      drawSeries();
+    }
 
-      rangeC.addEventListener("click", function() {
-        currentRange = "C";
-        document.querySelector("h1").textContent = "C-Lage";
-        setActiveRange("range-c");
-        generateSeries();
-      });
-      rangeD.addEventListener("click", function() {
-        currentRange = "D";
-        document.querySelector("h1").textContent = "D-Lage";
-        setActiveRange("range-d");
-        generateSeries();
-      });
-      rangeF.addEventListener("click", function() {
-        currentRange = "F";
-        document.querySelector("h1").textContent = "F-Lage";
-        setActiveRange("range-f");
-        generateSeries();
-      });
-      rangeG.addEventListener("click", function() {
-        currentRange = "G";
-        document.querySelector("h1").textContent = "G-Lage";
-        setActiveRange("range-g");
-        generateSeries();
-      });
-      rangeMC.addEventListener("click", function() {
-        currentRange = "MC";
-        document.querySelector("h1").textContent = "Mittlere C-Lage";
-        setActiveRange("range-mc");
-        generateSeries();
-      });
-
-      function setActiveRange(activeId) {
-        [rangeC, rangeD, rangeF, rangeG, rangeMC].forEach(function(elem) {
-          elem.classList.remove("active-range");
-          elem.classList.add("inactive-range");
-        });
-        document.getElementById(activeId).classList.remove("inactive-range");
-        document.getElementById(activeId).classList.add("active-range");
-      }
-      setActiveRange("range-c");
-
-      // --- Handmodus-Auswahl ---
-      var modeLeft = document.getElementById("mode-left");
-      var modeRight = document.getElementById("mode-right");
-      var modeBoth = document.getElementById("mode-both");
-
-      modeLeft.addEventListener("click", function() {
-        selectedMode = "left";
-        setActiveModeIcon("left");
-        generateSeries();
-      });
-      modeRight.addEventListener("click", function() {
-        selectedMode = "right";
-        setActiveModeIcon("right");
-        generateSeries();
-      });
-      modeBoth.addEventListener("click", function() {
-        selectedMode = "both";
-        setActiveModeIcon("both");
-        generateSeries();
-      });
-
-      function setActiveModeIcon(mode) {
-        modeLeft.classList.add("inactive-mode");
-        modeRight.classList.add("inactive-mode");
-        modeBoth.classList.add("inactive-mode");
-        modeLeft.classList.remove("active-mode");
-        modeRight.classList.remove("active-mode");
-        modeBoth.classList.remove("active-mode");
-        if (mode === "left") {
-          modeLeft.classList.remove("inactive-mode");
-          modeLeft.classList.add("active-mode");
-        } else if (mode === "right") {
-          modeRight.classList.remove("inactive-mode");
-          modeRight.classList.add("active-mode");
-        } else if (mode === "both") {
-          modeBoth.classList.remove("inactive-mode");
-          modeBoth.classList.add("active-mode");
-        }
-      }
-
-      // --- Level-Auswahl ---
-      var level1 = document.getElementById("level-1");
-      var level2 = document.getElementById("level-2");
-      var level3 = document.getElementById("level-3");
-      var levelRandom = document.getElementById("level-random");
-
-      level1.addEventListener("click", function() {
-        level = 1;
-        seriesLengthLocal = 1;
-        seriesCounter = 0;
-        setActiveLevel("1");
-        generateSeries();
-      });
-      level2.addEventListener("click", function() {
-        level = 2;
-        seriesLengthLocal = 5;
-        seriesCounter = 0;
-        setActiveLevel("2");
-        generateSeries();
-      });
-      level3.addEventListener("click", function() {
-        level = 3;
-        seriesLengthLocal = 10;
-        seriesCounter = 0;
-        setActiveLevel("3");
-        generateSeries();
-      });
-      levelRandom.addEventListener("click", function() {
-        var ranges = ["C", "D", "F", "G", "MC"];
-        var randomRange = ranges[Math.floor(Math.random() * ranges.length)];
-        currentRange = randomRange;
-        var headerText = "";
-        var activeId = "";
-        switch(randomRange) {
-          case "C":
-            headerText = "C-Lage";
-            activeId = "range-c";
-            break;
-          case "D":
-            headerText = "D-Lage";
-            activeId = "range-d";
-            break;
-          case "F":
-            headerText = "F-Lage";
-            activeId = "range-f";
-            break;
-          case "G":
-            headerText = "G-Lage";
-            activeId = "range-g";
-            break;
-          case "MC":
-            headerText = "Mittlere C-Lage";
-            activeId = "range-mc";
-            break;
-        }
-        document.querySelector("h1").textContent = headerText;
-        setActiveRange(activeId);
-        generateSeries();
-      });
-
-      function setActiveLevel(lvl) {
-        level1.classList.add("inactive-level");
-        level2.classList.add("inactive-level");
-        level3.classList.add("inactive-level");
-        level1.classList.remove("active-level");
-        level2.classList.remove("active-level");
-        level3.classList.remove("active-level");
-        if (lvl === "1") {
-          level1.classList.remove("inactive-level");
-          level1.classList.add("active-level");
-        } else if (lvl === "2") {
-          level2.classList.remove("inactive-level");
-          level2.classList.add("active-level");
-        } else if (lvl === "3") {
-          level3.classList.remove("inactive-level");
-          level3.classList.add("active-level");
-        }
-      }
-
-      // --- VexFlow und Anzeige ---
-      var VF = Vex.Flow;
+    function drawSeries() {
       var notationDiv = document.getElementById("notation");
-      var scoreDiv = document.getElementById("score");
-      var responseDiv = document.getElementById("responseTime");
-
-      function drawSeries() {
-        notationDiv.innerHTML = "";
-        var usedWidth = 80 * seriesLengthLocal + 20;
-        var renderer = new VF.Renderer(notationDiv, VF.Renderer.Backends.SVG);
-        renderer.resize(usedWidth, 200);
-        var context = renderer.getContext();
-        var stave = new VF.Stave(10, 40, usedWidth - 20);
+      notationDiv.innerHTML = "";
+      var usedWidth = 80 * seriesLength + 20;
+      var renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
+      renderer.resize(usedWidth, 200);
+      var context = renderer.getContext();
+      var stave = new Vex.Flow.Stave(10, 40, usedWidth - 20);
+      if (currentSeries.length > 0) {
         stave.addClef(currentSeries[0].clef).setContext(context).draw();
-        var staveNotes = currentSeries.map(function(item) {
-          return new VF.StaveNote({
-            clef: item.clef,
-            keys: [item.note + "/" + item.octave],
-            duration: "q"
-          }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
-        });
-        var voice = new VF.Voice({ num_beats: seriesLengthLocal, beat_value: 4 });
-        staveNotes.forEach(function(note) { voice.addTickable(note); });
-        new VF.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
-        voice.draw(context, stave);
       }
+      var staveNotes = currentSeries.map(function(item) {
+        return new Vex.Flow.StaveNote({
+          clef: item.clef,
+          keys: [item.note + "/" + item.octave],
+          duration: "q"
+        }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
+      });
+      var voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
+      staveNotes.forEach(function(note) { voice.addTickable(note); });
+      new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
+      voice.draw(context, stave);
+    }
 
-      function updateScore() {
-        var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
-        scoreDiv.textContent = "Score: " + percent + "%";
-      }
-
-      function generateSeries() {
-        currentSeries = [];
-        seriesCounter = 0;
-        seriesLength = seriesLengthLocal;
-        var notes = rangeNotes[currentRange];
-        if (level < 3) {
-          for (var i = 0; i < seriesLength; i++) {
-            var note = notes[Math.floor(Math.random() * notes.length)];
-            var clef, octave;
-            if (selectedMode === "right") {
-              clef = "treble";
-              octave = 4;
-            } else if (selectedMode === "left") {
-              clef = "bass";
-              octave = 3;
-            } else if (selectedMode === "both") {
-              clef = Math.random() < 0.5 ? "treble" : "bass";
-              octave = (clef === "treble") ? 4 : 3;
-            }
-            currentSeries.push({ note: note, octave: octave, clef: clef, color: "black" });
-          }
-        } else {
-          var currentIndex = Math.floor(Math.random() * notes.length);
-          var clef, octave;
-          if (selectedMode === "right") {
-            clef = "treble";
-            octave = 4;
-          } else if (selectedMode === "left") {
-            clef = "bass";
-            octave = 3;
-          } else if (selectedMode === "both") {
-            clef = Math.random() < 0.5 ? "treble" : "bass";
-            octave = (clef === "treble") ? 4 : 3;
-          }
-          currentSeries.push({ note: notes[currentIndex], octave: octave, clef: clef, color: "black" });
-          for (var i = 1; i < seriesLength; i++) {
-            var intervals = [1, 2, 3, 4];
-            var interval = intervals[Math.floor(Math.random() * intervals.length)];
-            var direction = Math.random() < 0.5 ? 1 : -1;
-            if (currentIndex + direction * interval < 0 || currentIndex + direction * interval >= notes.length) {
-              direction *= -1;
-            }
-            currentIndex = currentIndex + direction * interval;
-            if (selectedMode === "right") {
-              clef = "treble";
-              octave = 4;
-            } else if (selectedMode === "left") {
-              clef = "bass";
-              octave = 3;
-            } else if (selectedMode === "both") {
-              clef = Math.random() < 0.5 ? "treble" : "bass";
-              octave = (clef === "treble") ? 4 : 3;
-            }
-            currentSeries.push({ note: notes[currentIndex], octave: octave, clef: clef, color: "black" });
-          }
-        }
-        drawSeries();
-        noteStartTime = Date.now();
-      }
-
-      // Initiale Generierung
+    // Initiale Serien-Generierung beim Laden der Seite
+    document.addEventListener("DOMContentLoaded", function() {
       generateSeries();
     });
   </script>
-  <script src="https://unpkg.com/vexflow/releases/vexflow-min.js"></script>
 </body>
+</html>
