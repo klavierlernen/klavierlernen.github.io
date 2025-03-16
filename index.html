@@ -1,91 +1,43 @@
-<!DOCTYPE html>
-<html lang="en" >
-<head>
-  <meta charset="UTF-8">
-  <title>Untitled</title>
-  <link rel="stylesheet" href="./style.css">
-
-</head>
-  <style>
-    body {
-  font-family: sans-serif;
-  text-align: center;
-}
-
-#notation {
-  width: 820px;       /* feste Breite, passend zur maximalen Notenreihe */
-  margin: 0 auto;     /* zentriert den Container horizontal */
-  text-align: center; /* falls SVG-Inhalte inline-block sind */
-}
-
-.active-mode, .active-level {
-  opacity: 1;
-}
-
-.inactive-mode, .inactive-level {
-  opacity: 0.5;
-}
-
-.active-range {
-  font-weight: bold;
-  color: #ef7d00;
-}
-  </style>
-<body>
-<!-- partial:index.partial.html -->
-<!-- VexFlow zur Darstellung der Notation einbinden -->
-  <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
-</head>
-<body>
-  <!-- MIDI-Statusanzeige oben links -->
-<div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
-  <h1>C-Lage</h1>
-<!-- Handmodus-Auswahl -->
-<div id="modeSelector">
-  <span id="mode-left" style="cursor: pointer; font-size: 2em; margin: 5px;">✋</span>
-  <span id="mode-right" style="cursor: pointer; font-size: 2em; margin: 5px; display:inline-block; transform: scaleX(-1);">✋</span>
-  <span id="mode-both" style="cursor: pointer; font-size: 2em; margin: 5px;">🙌</span>
-</div>
-
-<!-- Level-Auswahl -->
-<div id="levelSelector">
-  <span id="level-1" style="cursor: pointer; font-size: 2em; margin: 5px;">1️⃣</span>
-  <span id="level-2" style="cursor: pointer; font-size: 2em; margin: 5px;">2️⃣</span>
-  <span id="level-3" style="cursor: pointer; font-size: 2em; margin: 5px;">3️⃣</span>
-</div>
+document.addEventListener("DOMContentLoaded", function() {
+  // --- Definition der Lagen (hier nur C-Lage) ---
+  const lagen = [
+    { name: "Mittel-C-Lage", notes: ["c", "d", "e", "f", "g"], rightOctave: 4, leftOctave: 3 }
+  ];
+  let selectedLageIndex = 0;
   
-
-<div id="notation"></div>
-<div id="score">Score: 0%</div>
-<div id="responseTime">🏎️ -- ms</div>
-  <script>
- document.addEventListener("DOMContentLoaded", function() {
-  // Array mit den natürlichen Noten der C‑Lage
-  const notes = ["c", "d", "e", "f", "g"];
-
-  // Aktuelle Serie von Noten: jedes Element { note, octave, clef, color }
-  let currentSeries = [];
-  // Index der aktuell erwarteten Note in der Serie 
-  let seriesCounter = 0;
-  // Globaler Zeitstempel, ab dem die Antwortzeit gemessen wird
-  let noteStartTime = 0;
-
-  // Standard-Handmodus:
-  // "right": rechte Hand (Violinschlüssel, Oktave 4)
-  // "left": linke Hand (Bassschlüssel, Oktave 3)
-  // "both": für jede Note zufällig zwischen beiden
+  // --- Globaler Zustand ---
+  let currentSeries = [];  // Array von { note, octave, clef, color }
+  let seriesCounter = 0;   // Index der aktuell erwarteten Note in der Serie
+  let noteStartTime = 0;   // Zeitstempel für Antwortzeit
+  
+  // Handmodus: "right", "left" oder "both"
   let selectedMode = "right";
-
-  // Standard-Level:
-  // Level 1: 1 Note, Level 2: 5 Noten, Level 3: 10 Noten
+  // Level: 1: 1 Note, 2: 5 Noten, 3: 10 Noten
   let level = 1;
   let seriesLength = 1;
-
-  // --- Handmodus-Auswahl ---
+  
+  // --- DOM-Elemente ---
+  const midiStatusDiv = document.getElementById("midiStatus");
+  
   const modeLeft = document.getElementById("mode-left");
   const modeRight = document.getElementById("mode-right");
   const modeBoth = document.getElementById("mode-both");
-
+  
+  const level1 = document.getElementById("level-1");
+  const level2 = document.getElementById("level-2");
+  const level3 = document.getElementById("level-3");
+  
+  const rangeLeft = document.getElementById("range-left");
+  const rangeRight = document.getElementById("range-right");
+  const currentRangeElem = document.getElementById("currentRange");
+  
+  const btnDlage = document.getElementById("btn-dlage");
+  
+  const notationDiv = document.getElementById("notation");
+  const scoreDiv = document.getElementById("score");
+  const responseDiv = document.getElementById("responseTime");
+  
+  // --- Handmodus-Auswahl ---
   modeLeft.addEventListener("click", function() {
     selectedMode = "left";
     setActiveModeIcon("left");
@@ -101,7 +53,7 @@
     setActiveModeIcon("both");
     generateSeries();
   });
-
+  
   function setActiveModeIcon(mode) {
     modeLeft.classList.add("inactive-mode");
     modeRight.classList.add("inactive-mode");
@@ -120,12 +72,8 @@
       modeBoth.classList.add("active-mode");
     }
   }
-
+  
   // --- Level-Auswahl ---
-  const level1 = document.getElementById("level-1");
-  const level2 = document.getElementById("level-2");
-  const level3 = document.getElementById("level-3");
-
   level1.addEventListener("click", function() {
     level = 1;
     seriesLength = 1;
@@ -147,7 +95,7 @@
     setActiveLevel("3");
     generateSeries();
   });
-
+  
   function setActiveLevel(lvl) {
     level1.classList.add("inactive-level");
     level2.classList.add("inactive-level");
@@ -166,27 +114,70 @@
       level3.classList.add("active-level");
     }
   }
-
-  // --- VexFlow und Score ---
-  const VF = Vex.Flow;
-  const notationDiv = document.getElementById("notation");
-  const scoreDiv = document.getElementById("score");
-  const responseDiv = document.getElementById("responseTime");
-
-  // Zeichnet die aktuelle Serie von Noten nebeneinander.
-  // Die Breite wird dynamisch an die Anzahl der Noten angepasst.
+  
+  // --- Lage-Auswahl im h1-Header (hier nur fix "Mittel-C-Lage") ---
+  rangeLeft.addEventListener("click", function() {
+    currentRangeElem.textContent = "Mittel-C-Lage";
+    generateSeries();
+  });
+  rangeRight.addEventListener("click", function() {
+    currentRangeElem.textContent = "Mittel-C-Lage";
+    generateSeries();
+  });
+  
+  // Falls ein Button für D-Lage existiert, kannst du diesen ergänzen
+  if(btnDlage) {
+    btnDlage.addEventListener("click", function() {
+      currentRangeElem.textContent = "D-Lage";
+      // Beispiel: Hier passt du die Oktaven an – allerdings müsstest du auch das Notenarray ändern,
+      // wenn du wirklich die D-Lage darstellen möchtest.
+      generateSeriesForD(5, 4);
+    });
+  }
+  
+  function generateSeriesForD(rightOct, leftOct) {
+    // Beispielhafter Fallback: wir verwenden ein alternatives Notenarray für D-Lage.
+    const dLage = { name: "D-Lage", notes: ["d", "e", "f#", "g", "a"], rightOctave: rightOct, leftOctave: leftOct };
+    currentSeries = [];
+    for (let i = 0; i < seriesLength; i++) {
+      let note = dLage.notes[Math.floor(Math.random() * dLage.notes.length)];
+      let clef, octave;
+      if (selectedMode === "right") {
+        clef = "treble";
+        octave = dLage.rightOctave;
+      } else if (selectedMode === "left") {
+        clef = "bass";
+        octave = dLage.leftOctave;
+      } else {
+        if (Math.random() < 0.5) {
+          clef = "treble";
+          octave = dLage.rightOctave;
+        } else {
+          clef = "bass";
+          octave = dLage.leftOctave;
+        }
+      }
+      currentSeries.push({ note: note, octave: octave, clef: clef, color: "black" });
+    }
+    drawSeries();
+    noteStartTime = Date.now();
+  }
+  
+  // Initiale Anzeige der aktuellen Lage
+  currentRangeElem.textContent = "Mittel-C-Lage";
+  
+  // --- VexFlow: Zeichnet die aktuelle Serie von Noten ---
   function drawSeries() {
     notationDiv.innerHTML = "";
-    const usedWidth = 80 * seriesLength + 20; // Dynamische Breite: 80px pro Note + 20px Padding
+    const usedWidth = 80 * seriesLength + 20;
     const renderer = new VF.Renderer(notationDiv, VF.Renderer.Backends.SVG);
     renderer.resize(usedWidth, 200);
     const context = renderer.getContext();
-
-    // Erstelle einen Stave mit der dynamischen Breite, beginnend bei x=10
+  
     const stave = new VF.Stave(10, 40, usedWidth - 20);
+    // Verwende den Schlüssel der ersten Note der Serie als Referenz
     stave.addClef(currentSeries[0].clef).setContext(context).draw();
-
-    // Erstelle StaveNotes für alle Noten der aktuellen Serie
+  
     const staveNotes = currentSeries.map(function(item) {
       return new VF.StaveNote({
         clef: item.clef,
@@ -194,13 +185,13 @@
         duration: "q"
       }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
     });
-
+  
     const voice = new VF.Voice({ num_beats: seriesLength, beat_value: 4 });
     staveNotes.forEach(note => voice.addTickable(note));
     new VF.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
     voice.draw(context, stave);
   }
-
+  
   // --- Score und Antwortzeit ---
   let totalAttempts = 0;
   let correctAnswers = 0;
@@ -208,114 +199,112 @@
     let percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
     scoreDiv.textContent = "Score: " + percent + "%";
   }
-
+  
   // --- Serien-Generierung ---
-  // Level 1 und 2: Jede Note zufällig gewählt
-  // Level 3: Eine Serie von 10 Noten, wobei die Übergänge Intervallbeziehungen (Sekunde, Terz, Quarte, Quinte) nutzen
   function generateSeries() {
     currentSeries = [];
     seriesCounter = 0;
+    const currentLage = lagen[selectedLageIndex];
     if (level < 3) {
+      // Falls "both" ausgewählt ist, wählen wir einmalig einen zufälligen Schlüssel für die gesamte Serie:
+      let fixedClef, fixedOctave;
+      if (selectedMode === "both") {
+        fixedClef = Math.random() < 0.5 ? "treble" : "bass";
+        fixedOctave = fixedClef === "treble" ? currentLage.rightOctave : currentLage.leftOctave;
+      }
       for (let i = 0; i < seriesLength; i++) {
-        let note = notes[Math.floor(Math.random() * notes.length)];
+        let note = currentLage.notes[Math.floor(Math.random() * currentLage.notes.length)];
         let clef, octave;
         if (selectedMode === "right") {
           clef = "treble";
-          octave = 4;
+          octave = currentLage.rightOctave;
         } else if (selectedMode === "left") {
           clef = "bass";
-          octave = 3;
+          octave = currentLage.leftOctave;
         } else if (selectedMode === "both") {
-          if (Math.random() < 0.5) {
-            clef = "treble";
-            octave = 4;
-          } else {
-            clef = "bass";
-            octave = 3;
-          }
+          clef = fixedClef;
+          octave = fixedOctave;
         }
         currentSeries.push({ note: note, octave: octave, clef: clef, color: "black" });
       }
     } else {
-      // Level 3: Erzeuge eine Serie mit Intervallbeziehungen
-      let currentIndex = Math.floor(Math.random() * notes.length);
+      // Level 3: Erzeuge eine Serie von 10 Noten mit Intervallbeziehungen,
+      // wobei bei "both" ein fester Schlüssel für die Serie gewählt wird.
+      let fixedClef, fixedOctave;
+      if (selectedMode === "both") {
+        fixedClef = Math.random() < 0.5 ? "treble" : "bass";
+        fixedOctave = fixedClef === "treble" ? currentLage.rightOctave : currentLage.leftOctave;
+      }
+      let currentIndex = Math.floor(Math.random() * currentLage.notes.length);
       let clef, octave;
       if (selectedMode === "right") {
         clef = "treble";
-        octave = 4;
+        octave = currentLage.rightOctave;
       } else if (selectedMode === "left") {
         clef = "bass";
-        octave = 3;
+        octave = currentLage.leftOctave;
       } else if (selectedMode === "both") {
-        if (Math.random() < 0.5) {
-          clef = "treble";
-          octave = 4;
-        } else {
-          clef = "bass";
-          octave = 3;
-        }
+        clef = fixedClef;
+        octave = fixedOctave;
       }
-      currentSeries.push({ note: notes[currentIndex], octave: octave, clef: clef, color: "black" });
-      // Erzeuge die restlichen 9 Noten
+      currentSeries.push({ note: currentLage.notes[currentIndex], octave: octave, clef: clef, color: "black" });
       for (let i = 1; i < seriesLength; i++) {
         const intervals = [1, 2, 3, 4]; // 1: Sekunde, 2: Terz, 3: Quarte, 4: Quinte
         let interval = intervals[Math.floor(Math.random() * intervals.length)];
         let direction = Math.random() < 0.5 ? 1 : -1;
-        if (currentIndex + direction * interval < 0 || currentIndex + direction * interval >= notes.length) {
+        if (currentIndex + direction * interval < 0 || currentIndex + direction * interval >= currentLage.notes.length) {
           direction *= -1;
         }
         currentIndex = currentIndex + direction * interval;
         if (selectedMode === "right") {
           clef = "treble";
-          octave = 4;
+          octave = currentLage.rightOctave;
         } else if (selectedMode === "left") {
           clef = "bass";
-          octave = 3;
+          octave = currentLage.leftOctave;
         } else if (selectedMode === "both") {
-          if (Math.random() < 0.5) {
-            clef = "treble";
-            octave = 4;
-          } else {
-            clef = "bass";
-            octave = 3;
-          }
+          clef = fixedClef;
+          octave = fixedOctave;
         }
-        currentSeries.push({ note: notes[currentIndex], octave: octave, clef: clef, color: "black" });
+        currentSeries.push({ note: currentLage.notes[currentIndex], octave: octave, clef: clef, color: "black" });
       }
     }
     drawSeries();
-    noteStartTime = Date.now(); // Startzeit setzen
+    noteStartTime = Date.now();
   }
-
+  
   // --- MIDI-Integration ---
   if (navigator.requestMIDIAccess) {
     navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
   } else {
     alert("Dein Browser unterstützt das Web MIDI API nicht.");
+    generateSeries();
   }
-
+  
   function onMIDISuccess(midiAccess) {
     console.log("MIDI ist bereit!");
+    midiStatusDiv.textContent = "🔌";
     const inputs = midiAccess.inputs.values();
     for (let input of inputs) {
       input.onmidimessage = handleMIDIMessage;
     }
     generateSeries();
   }
-
+  
   function onMIDIFailure() {
     alert("Kein Zugriff auf MIDI-Geräte möglich.");
+    midiStatusDiv.textContent = "⛔";
+    generateSeries();
   }
-
+  
   function midiNoteToName(noteNumber) {
     const noteNames = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
     let octave = Math.floor(noteNumber / 12) - 1;
     let noteName = noteNames[noteNumber % 12];
     return { noteName, octave };
   }
-
+  
   // --- Verarbeitung der MIDI-Nachrichten ---
-  // Vergleicht die aktuell erwartete Note in currentSeries[seriesCounter] mit der gespielten Note.
   function handleMIDIMessage(event) {
     console.log("MIDI-Nachricht:", event.data);
     const [status, data1, data2] = event.data;
@@ -344,71 +333,9 @@
       }, 500);
     }
   }
-
+  
   function updateScore() {
     let percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
     scoreDiv.textContent = "Score: " + percent + "%";
   }
 });
-  </script>
-  <script>
- document.addEventListener("DOMContentLoaded", function() {
-  const midiStatusDiv = document.getElementById("midiStatus");
-
-  // Diese Funktion setzt alle interaktiven Elemente (IDs, die du hier auflistest)
-  // auf "disabled" (pointer-events: none und reduzierte Opazität)
-  function disableInteractiveElements(disable) {
-    const interactiveIds = ["modeSelector", "levelSelector", "rangeHeader", "btn-dlage"];
-    interactiveIds.forEach(function(id) {
-      const elem = document.getElementById(id);
-      if (elem) {
-        if (disable) {
-          elem.style.pointerEvents = "none";
-          elem.style.opacity = "0.5";
-        } else {
-          elem.style.pointerEvents = "auto";
-          elem.style.opacity = "1";
-        }
-      }
-    });
-  }
-
-  if (navigator.requestMIDIAccess) {
-    navigator.requestMIDIAccess().then(function(midiAccess) {
-      function updateMIDIStatus() {
-        let hasInput = false;
-        // Überprüfe alle MIDI-Eingänge
-        for (let input of midiAccess.inputs.values()) {
-          console.log("MIDI Input:", input.name, input.state);
-          if (input.state === "connected") {
-            hasInput = true;
-            break;
-          }
-        }
-        if (hasInput) {
-          midiStatusDiv.textContent = "🔌";
-          disableInteractiveElements(false);
-        } else {
-          midiStatusDiv.textContent = "⛔ Keine MIDI Verbindung";
-          disableInteractiveElements(true);
-        }
-      }
-      // Status sofort prüfen und dann jede Sekunde
-      updateMIDIStatus();
-      setInterval(updateMIDIStatus, 1000);
-    }, function() {
-      midiStatusDiv.textContent = "⛔";
-      disableInteractiveElements(true);
-    });
-  } else {
-    midiStatusDiv.textContent = "⛔";
-    disableInteractiveElements(true);
-  }
-});
-  </script>  
-  
-</body>
-<!-- partial -->
-  <script src='https://unpkg.com/vexflow/releases/vexflow-min.js'></script>
-</body>
-</html>
