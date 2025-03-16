@@ -9,44 +9,19 @@
       margin: 0;
       padding: 0;
       background-color: #ffffff;
-      color: black;
       font-family: sans-serif;
       text-align: center;
-      overflow: hidden;
     }
-    /* Container für den gesamten Hauptinhalt, der später eingeblendet wird */
-    #mainContent {
-      opacity: 0;
-      transition: opacity 1s ease-in;
-    }
-    /* Welcome Overlay: Vollbild, zentriert */
-    #welcomeOverlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      color: black;
+    /* Zentriert den Inhalt */
+    body {
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      z-index: 1000;
-      animation: fadeInOut 3s forwards;
     }
-    /* Keyframes für das Ein- und Ausblenden der Begrüßungsnachricht */
-    @keyframes fadeInOut {
-      0% { opacity: 0; }
-      20% { opacity: 1; }
-      80% { opacity: 1; }
-      100% { opacity: 0; }
+    h1 {
+      margin-top: 20px;
     }
-    /* Styling der Begrüßungsnachricht */
-    #welcomeMessage {
-      font-size: 2.5em;
-      color: black;
-    }
-    /* Hauptinhalt: Notensystem, Menü, Score etc. */
     #notation {
       width: 820px;
       transform: scale(1.5);
@@ -72,9 +47,6 @@
       background: none;
       display: inline-block;
       touch-action: manipulation;
-    }
-    /* Range-Buttons: schwarzer Text */
-    #rangeSelector span {
       color: #000000;
       transition: color 0.2s;
     }
@@ -85,42 +57,79 @@
     .inactive-range {
       color: #000000;
     }
-    /* Mode- und Level-Buttons: Standardfarben (Blau) */
+    /* Mode- und Level-Buttons: ebenfalls schwarz */
     #modeSelector span, #levelSelector span {
-      color: #007bff;
-      transition: color 0.2s;
+      color: #000000;
     }
     .active-mode, .active-level {
       font-weight: bold;
-      color: #0056b3;
+      color: #000000;
     }
     .inactive-mode, .inactive-level {
-      color: #007bff;
+      color: #000000;
     }
-    /* Score, ResponseTime, Debug */
+    /* Notenname-Anzeige */
+    #noteNameDisplay {
+      margin-top: 10px;
+      font-size: 1.5em;
+      color: #000;
+    }
+    /* Score und ResponseTime */
     #score, #responseTime {
       margin-top: 10px;
       font-size: 1.2em;
     }
+    /* Debug-Ausgabe */
     #nativeLog {
       margin-top: 10px;
       font-size: 0.9em;
       color: #ffffff;
       display: none;
     }
+    /* Welcome Overlay */
+    #welcomeOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    #welcomeMessage {
+      font-size: 2.5em;
+      color: #000000;
+      margin-bottom: 20px;
+    }
+    /* MIDI Warnung im Overlay */
+    #midiWarning {
+      font-size: 1.2em;
+      color: #ff0000;
+      margin-top: 10px;
+    }
+    /* Hauptinhalt: bleibt initial versteckt */
+    #mainContent {
+      opacity: 0;
+      transition: opacity 1s ease-in;
+    }
   </style>
   
-  <!-- Globale Funktionen und Variablen im Head -->
   <script>
     // Globale Variablen
     var currentSeries = [];
     var seriesCounter = 0;
-    var seriesLength = 10; // Standard Level 3: 10 Noten
+    var seriesLength = 10; // Standardmäßig Level 3: 10 Noten
     var totalAttempts = 0;
     var correctAnswers = 0;
     var level = 3; // Standard-Level
     var selectedMode = "right"; // Standard: rechte Hand (Violinenschlüssel)
-    
+    var midiConnected = false; // Wird true, wenn das Kabel erkannt ist
+    var mainScreenShown = false; // Damit der Übergang nur einmal erfolgt
+
     // Globale Funktion updateScore
     function updateScore() {
       var scoreElem = document.getElementById("score");
@@ -128,7 +137,7 @@
       scoreElem.textContent = "Score: " + percent + "%";
     }
     window.updateScore = updateScore;
-    
+
     // Umrechnung von MIDI Data1 in Notennamen und Oktave
     function midiNoteToName(noteNumber) {
       var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
@@ -136,17 +145,47 @@
       var noteName = noteNames[noteNumber % 12];
       return { note: noteName, octave: octave };
     }
-    
-    // Globale Funktion handleMIDIMessage (wird von Swift aufgerufen)
+
+    // Funktion zum Übergang zum Hauptscreen, wenn das Kabel erkannt wurde
+    function proceedToMainScreen() {
+      if (!mainScreenShown) {
+        var welcomeOverlay = document.getElementById("welcomeOverlay");
+        welcomeOverlay.style.transition = "opacity 0.5s ease-out";
+        welcomeOverlay.style.opacity = "0";
+        setTimeout(function() {
+          welcomeOverlay.style.display = "none";
+          var mainContent = document.getElementById("mainContent");
+          mainContent.style.transition = "opacity 1s ease-in";
+          mainContent.style.opacity = "1";
+        }, 500);
+        mainScreenShown = true;
+      }
+    }
+
+    // Funktion, die von Swift aufgerufen wird, um zu signalisieren, dass das Kabel eingesteckt ist.
+    function setMidiConnected(status) {
+      midiConnected = status;
+      if (midiConnected) {
+        document.getElementById("midiWarning").style.display = "none";
+        proceedToMainScreen();
+      } else {
+        document.getElementById("midiWarning").style.display = "block";
+      }
+    }
+    window.setMidiConnected = setMidiConnected;
+
+    // Globale Funktion handleMIDIMessage, die von Swift (via evaluateJavaScript) aufgerufen wird.
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
       var nativeLog = document.getElementById("nativeLog");
       nativeLog.textContent = "MIDI: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
-      
+
+      // Wenn eine MIDI-Nachricht empfangen wird, gilt die Verbindung als aktiv
+      setMidiConnected(true);
+
       if (status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         console.log("Umgewandelte Note:", midiInfo);
-        // Aktualisiere Anzeige der aktuellen Note in Großbuchstaben (optional)
         document.getElementById("noteNameDisplay").textContent = midiInfo.note.toUpperCase() + "/" + midiInfo.octave;
         if (seriesCounter < currentSeries.length) {
           var expected = currentSeries[seriesCounter];
@@ -154,11 +193,11 @@
             correctAnswers++;
             expected.color = "green";
             nativeLog.textContent += " - Richtig!";
-            document.body.style.backgroundColor = "#d4edda"; // Grün
+            document.body.style.backgroundColor = "#d4edda";
           } else {
             expected.color = "red";
             nativeLog.textContent += " - Falsch!";
-            document.body.style.backgroundColor = "#f8d7da"; // Rot
+            document.body.style.backgroundColor = "#f8d7da";
           }
           totalAttempts++;
           window.updateScore();
@@ -176,17 +215,17 @@
   </script>
 </head>
 <body>
-  <!-- Welcome Overlay -->
+  <!-- Welcome Overlay: bleibt sichtbar, bis MIDI verbunden ist -->
   <div id="welcomeOverlay">
-      <a style="font-size: 10em;">🎹</a>
-    <strong><div id="welcomeMessage">Hallo, schön dich zu sehen!</div></strong>
+    <div id="welcomeMessage">Hallo Jan-Philipp, schön dich zu sehen! 🎹</div>
+    <div id="midiWarning">MIDI Verbindung nicht aktiv</div>
   </div>
   
-  <!-- Hauptinhalt (wird nach der Begrüßung eingeblendet) -->
+  <!-- Hauptinhalt: wird erst angezeigt, wenn die Verbindung aktiv ist -->
   <div id="mainContent" style="opacity: 0;">
     <div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
-    <h1>TRAININGSMODUS</h1>
-  
+    <h1>Notentraining</h1>
+    
     <!-- Range-Auswahl -->
     <div id="rangeSelector">
       <span id="range-c" class="active-range">C-Lage</span>
@@ -195,14 +234,14 @@
       <span id="range-g" class="inactive-range">G-Lage</span>
       <span id="range-mc" class="inactive-range">Mittlere C</span>
     </div>
-  
+    
     <!-- Handmodus-Auswahl -->
     <div id="modeSelector">
       <span id="mode-left" class="inactive-mode">✋</span>
       <span id="mode-right" class="active-mode" style="transform: scaleX(-1);">✋</span>
       <span id="mode-both" class="inactive-mode">🙌</span>
     </div>
-  
+    
     <!-- Level-Auswahl -->
     <div id="levelSelector">
       <span id="level-1" class="inactive-level">1️⃣</span>
@@ -210,11 +249,12 @@
       <span id="level-3" class="active-level">3️⃣</span>
       <span id="level-random" class="inactive-level">🎉</span>
     </div>
-  
+    
     <!-- Notensystem, Notenname, Score, ResponseTime, Debug -->
     <div id="notation"></div>
     <div id="noteNameDisplay" style="margin-top: 10px; font-size: 1.5em; color: #000;"></div>
     <div id="score">Score: 0%</div>
+    <div id="responseTime">🏎️ -- ms</div>
     <div id="nativeLog"></div>
   </div>
   
@@ -222,22 +262,10 @@
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   
   <script>
-    // Begrüßungsanimation: Nach der Animation wird das Welcome Overlay entfernt und der Hauptinhalt eingeblendet.
     document.addEventListener("DOMContentLoaded", function() {
-      // Warte, bis die Welcome-Animation (3s) beendet ist, und blendet dann den Hauptinhalt ein
-      setTimeout(function() {
-        var welcomeOverlay = document.getElementById("welcomeOverlay");
-        welcomeOverlay.style.transition = "opacity 0.5s ease-out";
-        welcomeOverlay.style.opacity = "0";
-        setTimeout(function() {
-          welcomeOverlay.style.display = "none";
-          var mainContent = document.getElementById("mainContent");
-          mainContent.style.transition = "opacity 1s ease-in";
-          mainContent.style.opacity = "1";
-        }, 500);
-      }, 3000);
+      // Die UI-Elemente werden konfiguriert, aber der Übergang zum Hauptinhalt erfolgt erst,
+      // wenn setMidiConnected(true) aufgerufen wird (also wenn das Kabel erkannt wird).
       
-      // Initiale Serien-Generierung
       generateSeries();
       
       // Konfiguration der Range-Buttons
@@ -264,7 +292,6 @@
           });
           btn.classList.remove("inactive-mode");
           btn.classList.add("active-mode");
-          // Aktualisiere selectedMode basierend auf der Button-ID (z.B. "mode-left")
           selectedMode = btn.id.split("-")[1];
           generateSeries();
         });
@@ -294,7 +321,6 @@
       });
     });
     
-    // Funktion zum Generieren einer neuen Serie erwarteter Noten.
     function generateSeries() {
       currentSeries = [];
       seriesCounter = 0;
@@ -334,7 +360,6 @@
       drawSeries();
     }
     
-    // Zeichnet die aktuelle Notenserie mithilfe von VexFlow.
     function drawSeries() {
       var notationDiv = document.getElementById("notation");
       notationDiv.innerHTML = "";
