@@ -22,10 +22,34 @@
     .inactive-mode, .inactive-level, .inactive-range {
       opacity: 0.5;
     }
+    /* Zusätzlicher Stil für native Schnittstellen und Debug-Ausgaben */
     #nativeLog {
       margin-top: 10px;
       font-size: 0.9em;
       color: gray;
+    }
+    /* Stil für die Multi-Source Anzeige */
+    #midiSourcesDisplay {
+      margin-top: 20px;
+      display: inline-block;
+      text-align: left;
+      border: 1px solid #ccc;
+      padding: 10px;
+      width: 90%;
+      max-width: 600px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #aaa;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #eee;
     }
   </style>
 </head>
@@ -59,11 +83,122 @@
   <div id="notation"></div>
   <div id="score">Score: 0%</div>
   <div id="responseTime">🏎️ -- ms</div>
+  <!-- Anzeige für native Debug-Ausgaben -->
   <div id="nativeLog"></div>
+  <!-- Anzeige der MIDI-Quellen -->
+  <div id="midiSourcesDisplay">
+    <h2>MIDI Quellen</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Quelle</th>
+          <th>Empfangene Note</th>
+          <th>Erwartete Note</th>
+          <th>Ergebnis</th>
+        </tr>
+      </thead>
+      <tbody id="midiTableBody">
+      </tbody>
+    </table>
+  </div>
 
-  <!-- VexFlow einbinden -->
+  <!-- VexFlow einbinden (einmalig!) -->
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   <script>
+    // Globales Objekt zur Verwaltung von MIDI-Quellen
+    var midiSources = {};
+
+    // Initialisiert eine neue Quelle mit einem Standard-Erwartungswert (hier: C4)
+    function initSource(sourceId) {
+      midiSources[sourceId] = {
+        expected: { note: "c", octave: 4 },
+        lastReceived: null,
+        result: "–"
+      };
+      updateMIDITable();
+    }
+
+    // Aktualisiert die HTML-Tabelle zur Anzeige der MIDI-Quellen
+    function updateMIDITable() {
+      var tbody = document.getElementById("midiTableBody");
+      tbody.innerHTML = "";
+      for (var src in midiSources) {
+        var entry = midiSources[src];
+        var tr = document.createElement("tr");
+        
+        var tdSrc = document.createElement("td");
+        tdSrc.textContent = src;
+        tr.appendChild(tdSrc);
+        
+        var tdReceived = document.createElement("td");
+        if (entry.lastReceived) {
+          tdReceived.textContent = entry.lastReceived.note.toUpperCase() + " (Oktave " + entry.lastReceived.octave + ")";
+        } else {
+          tdReceived.textContent = "–";
+        }
+        tr.appendChild(tdReceived);
+        
+        var tdExpected = document.createElement("td");
+        tdExpected.textContent = entry.expected.note.toUpperCase() + " (Oktave " + entry.expected.octave + ")";
+        tr.appendChild(tdExpected);
+        
+        var tdResult = document.createElement("td");
+        tdResult.textContent = entry.result;
+        tr.appendChild(tdResult);
+        
+        tbody.appendChild(tr);
+      }
+    }
+
+    // Wandelt den MIDI-Notenwert (Data1) in einen Notennamen und eine Oktave um.
+    function midiNoteToName(noteNumber) {
+      var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+      var octave = Math.floor(noteNumber / 12) - 1;
+      var noteName = noteNames[noteNumber % 12];
+      return { note: noteName, octave: octave };
+    }
+
+    // Globale Funktion, die von der nativen App aufgerufen wird.
+    // Neben den Standardparametern (status, data1, data2) kann ein optionaler sourceId übergeben werden.
+    window.handleMIDIMessage = function(status, data1, data2, sourceId) {
+      console.log("handleMIDIMessage:", status, data1, data2, sourceId);
+      document.getElementById("nativeLog").textContent =
+         "MIDI Nachricht: Status: " + status +
+         ", Data1: " + data1 + ", Data2: " + data2;
+      
+      // Verarbeite nur Note-On-Nachrichten (Status 144-159, velocity > 0)
+      if (status >= 144 && status < 160 && data2 > 0) {
+        var src = sourceId || "Default";
+        if (!midiSources[src]) {
+          initSource(src);
+        }
+        var midiInfo = midiNoteToName(data1);
+        midiSources[src].lastReceived = midiInfo;
+        // Vergleiche empfangene Note mit der erwarteten Note dieser Quelle
+        if (midiInfo.note === midiSources[src].expected.note &&
+            midiInfo.octave === midiSources[src].expected.octave) {
+          midiSources[src].result = "Richtig";
+        } else {
+          midiSources[src].result = "Falsch";
+        }
+        updateMIDITable();
+      } else {
+        console.log("Keine gültige Note-On Nachricht.");
+      }
+    };
+
+    // Funktion zum Senden von Nachrichten an die native Schicht (falls benötigt)
+    function sendMessageToNative(message) {
+      if (window.webkit &&
+          window.webkit.messageHandlers &&
+          window.webkit.messageHandlers.midiMessage) {
+        window.webkit.messageHandlers.midiMessage.postMessage(message);
+      } else {
+        console.log("Native Schnittstelle nicht verfügbar");
+      }
+    }
+
+    // Der bestehende Code für Notentraining (Range, Mode, Level, VexFlow etc.) bleibt erhalten.
     document.addEventListener("DOMContentLoaded", function() {
       // Globale Zustände
       let currentRange = "C";
@@ -75,6 +210,7 @@
       let noteStartTime = 0;
       let totalAttempts = 0;
       let correctAnswers = 0;
+      let midiAvailable = false;
 
       const rangeNotes = {
         "C": ["c", "d", "e", "f", "g"],
@@ -137,4 +273,214 @@
       const modeRight = document.getElementById("mode-right");
       const modeBoth = document.getElementById("mode-both");
 
-      modeLeft.addEventListener("click", function() 
+      modeLeft.addEventListener("click", function() {
+        selectedMode = "left";
+        setActiveModeIcon("left");
+        generateSeries();
+      });
+      modeRight.addEventListener("click", function() {
+        selectedMode = "right";
+        setActiveModeIcon("right");
+        generateSeries();
+      });
+      modeBoth.addEventListener("click", function() {
+        selectedMode = "both";
+        setActiveModeIcon("both");
+        generateSeries();
+      });
+
+      function setActiveModeIcon(mode) {
+        modeLeft.classList.add("inactive-mode");
+        modeRight.classList.add("inactive-mode");
+        modeBoth.classList.add("inactive-mode");
+        modeLeft.classList.remove("active-mode");
+        modeRight.classList.remove("active-mode");
+        modeBoth.classList.remove("active-mode");
+        if (mode === "left") {
+          modeLeft.classList.remove("inactive-mode");
+          modeLeft.classList.add("active-mode");
+        } else if (mode === "right") {
+          modeRight.classList.remove("inactive-mode");
+          modeRight.classList.add("active-mode");
+        } else if (mode === "both") {
+          modeBoth.classList.remove("inactive-mode");
+          modeBoth.classList.add("active-mode");
+        }
+      }
+
+      // --- Level-Auswahl ---
+      const level1 = document.getElementById("level-1");
+      const level2 = document.getElementById("level-2");
+      const level3 = document.getElementById("level-3");
+      const levelRandom = document.getElementById("level-random");
+
+      level1.addEventListener("click", function() {
+        level = 1;
+        seriesLength = 1;
+        seriesCounter = 0;
+        setActiveLevel("1");
+        generateSeries();
+      });
+      level2.addEventListener("click", function() {
+        level = 2;
+        seriesLength = 5;
+        seriesCounter = 0;
+        setActiveLevel("2");
+        generateSeries();
+      });
+      level3.addEventListener("click", function() {
+        level = 3;
+        seriesLength = 10;
+        seriesCounter = 0;
+        setActiveLevel("3");
+        generateSeries();
+      });
+      levelRandom.addEventListener("click", function() {
+        const ranges = ["C", "D", "F", "G", "MC"];
+        const randomRange = ranges[Math.floor(Math.random() * ranges.length)];
+        currentRange = randomRange;
+        let headerText = "";
+        let activeId = "";
+        switch(randomRange) {
+          case "C":
+            headerText = "C-Lage";
+            activeId = "range-c";
+            break;
+          case "D":
+            headerText = "D-Lage";
+            activeId = "range-d";
+            break;
+          case "F":
+            headerText = "F-Lage";
+            activeId = "range-f";
+            break;
+          case "G":
+            headerText = "G-Lage";
+            activeId = "range-g";
+            break;
+          case "MC":
+            headerText = "Mittlere C-Lage";
+            activeId = "range-mc";
+            break;
+        }
+        document.querySelector("h1").textContent = headerText;
+        setActiveRange(activeId);
+        generateSeries();
+      });
+
+      function setActiveLevel(lvl) {
+        level1.classList.add("inactive-level");
+        level2.classList.add("inactive-level");
+        level3.classList.add("inactive-level");
+        level1.classList.remove("active-level");
+        level2.classList.remove("active-level");
+        level3.classList.remove("active-level");
+        if (lvl === "1") {
+          level1.classList.remove("inactive-level");
+          level1.classList.add("active-level");
+        } else if (lvl === "2") {
+          level2.classList.remove("inactive-level");
+          level2.classList.add("active-level");
+        } else if (lvl === "3") {
+          level3.classList.remove("inactive-level");
+          level3.classList.add("active-level");
+        }
+      }
+
+      // --- VexFlow und Anzeige ---
+      const notationDiv = document.getElementById("notation");
+      const scoreDiv = document.getElementById("score");
+      const responseDiv = document.getElementById("responseTime");
+
+      function drawSeries() {
+        notationDiv.innerHTML = "";
+        const usedWidth = 80 * seriesLength + 20;
+        const renderer = new VF.Renderer(notationDiv, VF.Renderer.Backends.SVG);
+        renderer.resize(usedWidth, 200);
+        const context = renderer.getContext();
+        const stave = new VF.Stave(10, 40, usedWidth - 20);
+        stave.addClef(currentSeries[0].clef).setContext(context).draw();
+        const staveNotes = currentSeries.map(function(item) {
+          return new VF.StaveNote({
+            clef: item.clef,
+            keys: [item.note + "/" + item.octave],
+            duration: "q"
+          }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
+        });
+        const voice = new VF.Voice({ num_beats: seriesLength, beat_value: 4 });
+        staveNotes.forEach(note => voice.addTickable(note));
+        new VF.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
+        voice.draw(context, stave);
+      }
+
+      function updateScore() {
+        let percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
+        scoreDiv.textContent = "Score: " + percent + "%";
+      }
+
+      function generateSeries() {
+        currentSeries = [];
+        seriesCounter = 0;
+        const notes = rangeNotes[currentRange];
+        if (level < 3) {
+          for (let i = 0; i < seriesLength; i++) {
+            let note = notes[Math.floor(Math.random() * notes.length)];
+            let clef, octave;
+            if (selectedMode === "right") {
+              clef = "treble";
+              octave = 4;
+            } else if (selectedMode === "left") {
+              clef = "bass";
+              octave = 3;
+            } else if (selectedMode === "both") {
+              clef = Math.random() < 0.5 ? "treble" : "bass";
+              octave = clef === "treble" ? 4 : 3;
+            }
+            currentSeries.push({ note: note, octave: octave, clef: clef, color: "black" });
+          }
+        } else {
+          let currentIndex = Math.floor(Math.random() * notes.length);
+          let clef, octave;
+          if (selectedMode === "right") {
+            clef = "treble";
+            octave = 4;
+          } else if (selectedMode === "left") {
+            clef = "bass";
+            octave = 3;
+          } else if (selectedMode === "both") {
+            clef = Math.random() < 0.5 ? "treble" : "bass";
+            octave = clef === "treble" ? 4 : 3;
+          }
+          currentSeries.push({ note: notes[currentIndex], octave: octave, clef: clef, color: "black" });
+          for (let i = 1; i < seriesLength; i++) {
+            const intervals = [1, 2, 3, 4];
+            let interval = intervals[Math.floor(Math.random() * intervals.length)];
+            let direction = Math.random() < 0.5 ? 1 : -1;
+            if (currentIndex + direction * interval < 0 || currentIndex + direction * interval >= notes.length) {
+              direction *= -1;
+            }
+            currentIndex = currentIndex + direction * interval;
+            if (selectedMode === "right") {
+              clef = "treble";
+              octave = 4;
+            } else if (selectedMode === "left") {
+              clef = "bass";
+              octave = 3;
+            } else if (selectedMode === "both") {
+              clef = Math.random() < 0.5 ? "treble" : "bass";
+              octave = clef === "treble" ? 4 : 3;
+            }
+            currentSeries.push({ note: notes[currentIndex], octave: octave, clef: clef, color: "black" });
+          }
+        }
+        drawSeries();
+        noteStartTime = Date.now();
+      }
+
+      // Initiale Generierung
+      generateSeries();
+    });
+  </script>
+  <script src='https://unpkg.com/vexflow/releases/vexflow-min.js'></script>
+</body>
+</html>
