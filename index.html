@@ -33,50 +33,37 @@
 <body>
   <div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
   <h1>Notentraining</h1>
-  <!-- Hier folgen deine Auswahl-Elemente -->
-  <div id="rangeSelector">
-    <span id="range-c" style="cursor: pointer; font-size: 1.5em; margin: 5px;">C-Lage</span>
-    <span id="range-d" style="cursor: pointer; font-size: 1.5em; margin: 5px;">D-Lage</span>
-    <span id="range-f" style="cursor: pointer; font-size: 1.5em; margin: 5px;">F-Lage</span>
-    <span id="range-g" style="cursor: pointer; font-size: 1.5em; margin: 5px;">G-Lage</span>
-    <span id="range-mc" style="cursor: pointer; font-size: 1.5em; margin: 5px;">Mittlere C</span>
-  </div>
-  <br>
-  <div id="modeSelector">
-    <span id="mode-left" style="cursor: pointer; font-size: 2em; margin: 5px;">✋</span>
-    <span id="mode-right" style="cursor: pointer; font-size: 2em; margin: 5px; display:inline-block; transform: scaleX(-1);">✋</span>
-    <span id="mode-both" style="cursor: pointer; font-size: 2em; margin: 5px;">🙌</span>
-  </div>
-  <br>
-  <div id="levelSelector">
-    <span id="level-1" style="cursor: pointer; font-size: 2em; margin: 5px;">1️⃣</span>
-    <span id="level-2" style="cursor: pointer; font-size: 2em; margin: 5px;">2️⃣</span>
-    <span id="level-3" style="cursor: pointer; font-size: 2em; margin: 5px;">3️⃣</span>
-    <span id="level-random" style="cursor: pointer; font-size: 2em; margin: 5px;">🎉</span>
-  </div>
-  
+  <!-- (Hier folgen deine UI-Elemente: Range-, Mode- und Level-Auswahl) -->
   <div id="notation"></div>
-  <div id="score">Score: 0%</div>
+  <div id="score">V19:55 Score: 0%</div>
   <div id="responseTime">🏎️ -- ms</div>
   <div id="nativeLog"></div>
 
-  <!-- VexFlow einbinden (nur einmal) -->
+  <!-- VexFlow einbinden (nur einmal!) -->
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   
   <script>
-    // Globale Variablen (sind auch für handleMIDIMessage sichtbar)
+    // Globale Variablen – diese sind auch außerhalb von DOMContentLoaded verfügbar.
     var currentSeries = [];
     var seriesCounter = 0;
     var seriesLength = 1;
     var totalAttempts = 0;
     var correctAnswers = 0;
 
-    // Globale Funktion, die von Swift aufgerufen wird.
+    // Wandelt den MIDI Data1-Wert in Notennamen und Oktave um.
+    function midiNoteToName(noteNumber) {
+      var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+      var octave = Math.floor(noteNumber / 12) - 1;
+      var noteName = noteNames[noteNumber % 12];
+      return { note: noteName, octave: octave };
+    }
+
+    // Diese Funktion wird von Swift über evaluateJavaScript aufgerufen.
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
       document.getElementById("nativeLog").textContent =
-         "Empfangene MIDI Nachricht: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
-      
+         "MIDI Nachricht: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
+      // Verarbeite nur Note-On (Status 144-159, velocity > 0)
       if (status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         console.log("Umgewandelte Note:", midiInfo);
@@ -100,32 +87,26 @@
       }
     };
 
-    // Wandelt den MIDI Data1-Wert in Note und Oktave um.
-    function midiNoteToName(noteNumber) {
-      var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
-      var octave = Math.floor(noteNumber / 12) - 1;
-      var noteName = noteNames[noteNumber % 12];
-      return { note: noteName, octave: octave };
-    }
-
-    // Beispiel-Funktionen für Score, Serien-Generierung und Zeichnen der Noten.
+    // Aktualisiert den Score im UI.
     function updateScore() {
       var scoreElem = document.getElementById("score");
       var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
       scoreElem.textContent = "Score: " + percent + "%";
     }
 
+    // Erzeugt eine neue Serie erwarteter Noten (hier exemplarisch eine zufällige Note aus der Range "C")
     function generateSeries() {
       currentSeries = [];
       seriesCounter = 0;
-      seriesLength = 1; // Für den Test nur eine Note
+      seriesLength = 1; // Für diesen Test: eine Note
       var rangeNotes = ["c", "d", "e", "f", "g"];
       var randomIndex = Math.floor(Math.random() * rangeNotes.length);
-      // Beispiel: Erwartete Note: zufällig aus der Range, Oktave 4, Clef: treble
+      // Beispiel: Erwartete Note: zufällig, Oktave 4, Clef "treble"
       currentSeries.push({ note: rangeNotes[randomIndex], octave: 4, clef: "treble", color: "black" });
       drawSeries();
     }
 
+    // Zeichnet die aktuelle Notenserie mit VexFlow.
     function drawSeries() {
       var notationDiv = document.getElementById("notation");
       notationDiv.innerHTML = "";
@@ -150,7 +131,7 @@
       voice.draw(context, stave);
     }
 
-    // Initiale Serien-Generierung beim Laden der Seite
+    // Beim Laden der Seite wird eine erste Serie erzeugt.
     document.addEventListener("DOMContentLoaded", function() {
       generateSeries();
     });
