@@ -137,5 +137,50 @@
       generateSeries();
     });
   </script>
+  <script>
+    // Globale Funktion updateScore definieren
+    window.updateScore = function() {
+      var scoreElem = document.getElementById("score");
+      var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
+      scoreElem.textContent = "Score: " + percent + "%";
+    };
+
+    // Restliche globale Variablen und Funktionen...
+    var totalAttempts = 0;
+    var correctAnswers = 0;
+    var currentSeries = [];
+    var seriesCounter = 0;
+    var seriesLength = 1;
+
+    function midiNoteToName(noteNumber) {
+      var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+      var octave = Math.floor(noteNumber / 12) - 1;
+      var noteName = noteNames[noteNumber % 12];
+      return { note: noteName, octave: octave };
+    }
+
+    window.handleMIDIMessage = function(status, data1, data2) {
+      console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
+      // ... Deine Logik, die updateScore() aufruft ...
+      if (status >= 144 && status < 160 && data2 > 0) {
+        var midiInfo = midiNoteToName(data1);
+        if (seriesCounter < currentSeries.length) {
+          var expected = currentSeries[seriesCounter];
+          if (midiInfo.note === expected.note && midiInfo.octave === expected.octave) {
+            correctAnswers++;
+            expected.color = "green";
+          } else {
+            expected.color = "red";
+          }
+          totalAttempts++;
+          // updateScore wird hier jetzt gefunden, weil sie global deklariert ist.
+          window.updateScore();
+          seriesCounter++;
+        }
+      }
+    };
+
+    // Beispiel: Initiale Aufruf von generateSeries, drawSeries usw.
+  </script>
 </body>
 </html>
