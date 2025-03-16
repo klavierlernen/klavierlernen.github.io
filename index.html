@@ -33,44 +33,47 @@
 <body>
   <div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
   <h1>Notentraining</h1>
-  <!-- Hier können deine UI-Elemente für Range, Mode, Level eingefügt werden -->
+  <!-- Hier können deine UI-Elemente (Range, Mode, Level) folgen -->
   <div id="notation"></div>
   <div id="score">Score: 0%</div>
   <div id="responseTime">🏎️ -- ms</div>
   <div id="nativeLog"></div>
 
-  <!-- VexFlow (nur einmal einbinden) -->
+  <!-- VexFlow einbinden (nur einmal) -->
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   
   <script>
-    // Globale Variablen – im globalen Scope, damit sie auch von Swift aus zugänglich sind.
+    // Globale Variablen – diese sind für alle Funktionen verfügbar
     var currentSeries = [];
     var seriesCounter = 0;
     var seriesLength = 1;
     var totalAttempts = 0;
     var correctAnswers = 0;
     
-    // UpdateScore als globale Funktion, verfügbar über window.updateScore
-    window.updateScore = function() {
+    // Globale Funktion updateScore – wird im globalen Scope definiert
+    function updateScore() {
       var scoreElem = document.getElementById("score");
       var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
       scoreElem.textContent = "Score: " + percent + "%";
-    };
+    }
+    // Explizit auch unter window verfügbar machen:
+    window.updateScore = updateScore;
     
-    // Funktion zur Umrechnung des MIDI Data1-Werts in Notennamen und Oktave.
+    // Funktion zur Umrechnung von MIDI Data1 in Notennamen und Oktave
     function midiNoteToName(noteNumber) {
-      var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+      var noteNames = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
       var octave = Math.floor(noteNumber / 12) - 1;
       var noteName = noteNames[noteNumber % 12];
       return { note: noteName, octave: octave };
     }
     
-    // Globale Funktion, die von Swift (via evaluateJavaScript) aufgerufen wird.
+    // Globale Funktion handleMIDIMessage, die von Swift per evaluateJavaScript aufgerufen wird.
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
       document.getElementById("nativeLog").textContent =
          "MIDI Nachricht: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
-      // Verarbeite nur Note-On Nachrichten (Status 144-159, velocity > 0)
+      
+      // Nur Note-On (Status 144-159) verarbeiten, wenn velocity > 0
       if (status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         console.log("Umgewandelte Note:", midiInfo);
@@ -94,19 +97,19 @@
       }
     };
     
-    // Generiert eine neue Serie erwarteter Noten. Hier exemplarisch eine zufällige Note aus der Range ["c","d","e","f","g"].
+    // Funktion zum Generieren einer neuen Serie erwarteter Noten (Beispiel: eine zufällige Note aus der Range ["c", "d", "e", "f", "g"])
     function generateSeries() {
       currentSeries = [];
       seriesCounter = 0;
-      seriesLength = 1;  // Für diesen Test: eine Note
+      seriesLength = 1; // Für diesen Test wird eine Note erwartet
       var rangeNotes = ["c", "d", "e", "f", "g"];
       var randomIndex = Math.floor(Math.random() * rangeNotes.length);
-      // Erwartete Note: zufällig, Oktave 4, Clef "treble"
+      // Beispiel: Erwartete Note: zufällig gewählt, Oktave 4, Clef "treble"
       currentSeries.push({ note: rangeNotes[randomIndex], octave: 4, clef: "treble", color: "black" });
       drawSeries();
     }
     
-    // Zeichnet die aktuelle Notenserie mithilfe von VexFlow.
+    // Funktion zum Zeichnen der aktuellen Notenserie mithilfe von VexFlow
     function drawSeries() {
       var notationDiv = document.getElementById("notation");
       notationDiv.innerHTML = "";
@@ -131,7 +134,7 @@
       voice.draw(context, stave);
     }
     
-    // Initiale Generierung beim Laden der Seite.
+    // Initiale Serien-Generierung, sobald die Seite geladen ist.
     document.addEventListener("DOMContentLoaded", function() {
       generateSeries();
     });
