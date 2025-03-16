@@ -4,49 +4,53 @@
   <meta charset="UTF-8">
   <title>Notentraining 2129</title>
   <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
+    html, body {
+      height: 100%;
       margin: 0;
       padding: 0;
-      transition: background-color 0.5s;
       background-color: #ffffff;
+      font-family: sans-serif;
+      text-align: center;
+    }
+    /* Zentriert den Body-Inhalt vertikal und horizontal */
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
     }
     h1 {
       margin-top: 20px;
     }
-      
+    /* Notationsbereich */
     #notation {
-        width: 820px;
-        transform: scale(1.5);
-        text-align: center;
-        margin-left: 40px;
-      
+      width: 820px;
+      transform: scale(1.5);
+      text-align: center;
+      margin: 20px auto;
+      /* Kein Rahmen, keine Hintergrundfarbe */
+      border: none;
+      padding: 10px;
+      box-sizing: border-box;
     }
-      
-      #notation:focus {
-        outline: none !important;
-        -webkit-focus-ring-color: none !important;
-      }
-    /* Styling der Buttons */
+    /* Button-Container */
     #rangeSelector, #modeSelector, #levelSelector {
       margin: 10px auto;
     }
-      #rangeSelector span,
-      #modeSelector span,
-      #levelSelector span {
-        cursor: pointer;
-        font-size: 2em;             /* Größere Schrift für Touch */
-        margin: 8px;
-        padding: 16px 20px;         /* Mehr Innenabstand für eine größere Klickfläche */
-        border: none;
-        background: none;
-        color: #007bff;
-        transition: color 0.2s;
-        display: inline-block;
-        touch-action: manipulation; /* Optimiert das Touch-Verhalten */
-      }
-    /* Range: schwarzer Text */
+    /* Basis-Styling für alle Buttons */
+    #rangeSelector span,
+    #modeSelector span,
+    #levelSelector span {
+      cursor: pointer;
+      font-size: 2em;             /* Für Touch größer */
+      margin: 8px;
+      padding: 16px 20px;         /* Größere Klickfläche */
+      border: none;               /* Kein Rahmen */
+      background: none;           /* Kein Hintergrund */
+      display: inline-block;
+      touch-action: manipulation; /* Optimiert Touch */
+    }
+    /* Range-Buttons: Text in Schwarz */
     #rangeSelector span {
       color: #000000;
       transition: color 0.2s;
@@ -58,7 +62,7 @@
     .inactive-range {
       color: #000000;
     }
-    /* Mode und Level: Standardfarben */
+    /* Mode- und Level-Buttons: Standardfarben (Blau) */
     #modeSelector span, #levelSelector span {
       color: #007bff;
       transition: color 0.2s;
@@ -74,7 +78,7 @@
     #nativeLog {
       margin-top: 10px;
       font-size: 0.9em;
-      color: white;
+      color: #ffffff; /* Falls ausgeblendet, kannst du display: none setzen */
       display: none;
     }
     #score, #responseTime {
@@ -88,10 +92,11 @@
     // Globale Variablen – diese Variablen sind im globalen Scope verfügbar.
     var currentSeries = [];
     var seriesCounter = 0;
-    var seriesLength = 10; // Standardmäßig 10 Noten (Level 3)
+    var seriesLength = 10; // Standardmäßig Level 3: 10 Noten
     var totalAttempts = 0;
     var correctAnswers = 0;
-    var level = 3; // Standard: Level 3 (10 Noten)
+    var level = 3; // Standard: Level 3
+    var selectedMode = "right"; // Standard: rechte Hand (Violinenschlüssel)
 
     // Globale Funktion updateScore
     function updateScore() {
@@ -100,7 +105,7 @@
       scoreElem.textContent = "Score: " + percent + "%";
     }
     window.updateScore = updateScore;
-
+    
     // Umrechnung von MIDI Data1 in Notennamen und Oktave
     function midiNoteToName(noteNumber) {
       var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
@@ -108,14 +113,14 @@
       var noteName = noteNames[noteNumber % 12];
       return { note: noteName, octave: octave };
     }
-
-    // Globale Funktion handleMIDIMessage, die von Swift (via evaluateJavaScript) aufgerufen wird.
+    
+    // Globale Funktion, die von Swift (via evaluateJavaScript) aufgerufen wird.
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
       var nativeLog = document.getElementById("nativeLog");
       nativeLog.textContent = "MIDI: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
       
-      // Nur Note-On Nachrichten verarbeiten (Status 144-159 und velocity > 0)
+      // Verarbeite nur Note-On (Status 144-159, velocity > 0)
       if (status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         console.log("Umgewandelte Note:", midiInfo);
@@ -135,7 +140,6 @@
           window.updateScore();
           seriesCounter++;
           drawSeries();
-          // Wenn alle Noten abgearbeitet wurden, neue Serie nach 1 Sekunde erzeugen und Hintergrund zurücksetzen.
           if (seriesCounter >= seriesLength) {
             setTimeout(function() {
               document.body.style.backgroundColor = "#ffffff";
@@ -148,8 +152,7 @@
   </script>
 </head>
 <body>
-    
-  
+  <div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
   <h1>Notentraining</h1>
   
   <!-- Range-Auswahl -->
@@ -186,12 +189,11 @@
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   
   <script>
-    // Event Listener: DOMContentLoaded – konfiguriert die UI-Elemente.
+    // Konfiguration der UI-Elemente – ausgeführt nach DOMContentLoaded
     document.addEventListener("DOMContentLoaded", function() {
-      // Initiale Serien-Generierung
       generateSeries();
       
-      // Konfiguration der Range-Buttons (Text in Schwarz)
+      // Konfiguration der Range-Buttons
       var rangeButtons = document.querySelectorAll("#rangeSelector span");
       rangeButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -215,6 +217,8 @@
           });
           btn.classList.remove("inactive-mode");
           btn.classList.add("active-mode");
+          // Aktualisiere selectedMode basierend auf der Button-ID (z.B. "mode-left")
+          selectedMode = btn.id.split("-")[1];
           generateSeries();
         });
       });
@@ -253,20 +257,39 @@
       } else if (level === 2) {
         seriesLength = 5;
       } else if (level === 3) {
-        seriesLength = 7;
+        seriesLength = 10;
       } else if (level === "random") {
-        seriesLength = Math.floor(Math.random() * 5) + 0;
+        seriesLength = Math.floor(Math.random() * 10) + 1;
       }
       var rangeNotes = ["c", "d", "e", "f", "g"];
       for (var i = 0; i < seriesLength; i++) {
         var randomIndex = Math.floor(Math.random() * rangeNotes.length);
-        // Für diesen Test: Alle Noten in Oktave 4, Clef "treble"
-        currentSeries.push({ note: rangeNotes[randomIndex], octave: 4, clef: "treble", color: "black" });
+        // Wähle Clef basierend auf selectedMode
+        var clef, octave;
+        if (selectedMode === "left") {
+          clef = "bass";
+          octave = 3;
+        } else if (selectedMode === "right") {
+          clef = "treble";
+          octave = 4;
+        } else if (selectedMode === "both") {
+          if (Math.random() < 0.5) {
+            clef = "treble";
+            octave = 4;
+          } else {
+            clef = "bass";
+            octave = 3;
+          }
+        } else {
+          clef = "treble";
+          octave = 4;
+        }
+        currentSeries.push({ note: rangeNotes[randomIndex], octave: octave, clef: clef, color: "black" });
       }
       drawSeries();
     }
     
-    // Zeichnet die aktuelle Notenserie mithilfe von VexFlow.
+    // Zeichnet die aktuelle Notenserie mit VexFlow.
     function drawSeries() {
       var notationDiv = document.getElementById("notation");
       notationDiv.innerHTML = "";
