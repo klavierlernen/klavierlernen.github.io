@@ -22,30 +22,69 @@
       background-color: #121212;
       color: #e0e0e0;
     }
-    /* Notationsbereich optimiert für scharfe SVG-Grafiken */
+    /* Container für Einhand-Notation (800px x 200px) */
     #notation {
+      display: none; /* wird nur im Einhand-Modus genutzt */
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       width: 100%;
-      max-width: 820px;
+      max-width: 800px;
       padding: 10px;
       box-sizing: border-box;
       z-index: 1;
     }
-    #notation svg {
+    /* Container für beidhändige Notensysteme:
+       Feste Höhe: 200px + 5px Abstand + 200px = 405px.
+       Der Container wird zentriert und die Systeme werden linksbündig angeordnet. */
+    #notationContainer {
+      display: none; /* wird nur im "both"-Modus genutzt */
+      position: fixed;
+      width: 100%;
+      max-width: 800px;
+      height: 405px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    /* Die beiden Notationsbereiche im Container */
+    #notationTreble, #notationBass {
+      width: 100%;
+      max-width: 800px;
+      margin: 0;
+    }
+    /* Abstand zwischen den beiden Systemen: 5px unter dem oberen System */
+    #notationTreble { margin-bottom: 5px; }
+    
+    /* SVG-Optimierung für scharfe Darstellung */
+    #notation svg, #notationTreble svg, #notationBass svg {
       width: 100%;
       height: auto;
       shape-rendering: crispEdges;
     }
-    #notation svg * {
+    #notation svg *,
+    #notationTreble svg *,
+    #notationBass svg * {
       vector-effect: non-scaling-stroke;
     }
+    /* Im Dark Mode: Alle SVG-Elemente (außer farbiger Markierung) weiß */
+    body.dark-mode #notation svg *,
+    body.dark-mode #notationTreble svg *,
+    body.dark-mode #notationBass svg * {
+      stroke: #ffffff !important;
+      fill: #ffffff !important;
+    }
+    
     /* Motivationsfenster – etwas höher positioniert */
     #motivationOverlay {
       position: fixed;
-      top: 30%;
+      top: 20%;
       left: 50%;
       transform: translate(-50%, -50%);
       z-index: 15;
@@ -56,20 +95,15 @@
       text-shadow: 1px 1px 2px rgba(255,255,255,0.7);
     }
     @keyframes floatFade {
-      0% {
-        transform: translate(-50%, -50%) translateY(20px);
-        opacity: 0;
-      }
+      0% { transform: translate(-50%, -50%) translateY(20px); opacity: 0; }
       20% { opacity: 1; }
       80% { opacity: 1; }
-      100% {
-        transform: translate(-50%, -50%) translateY(-20px);
-        opacity: 0;
-      }
+      100% { transform: translate(-50%, -50%) translateY(-20px); opacity: 0; }
     }
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
     }
+    
     /* Hauptinhalt (UI) */
     #mainContent {
       position: relative;
@@ -79,6 +113,7 @@
       padding-bottom: 50px;
     }
     h1 { margin: 20px 0; }
+    
     /* Einstellungen-Menü */
     #settingsPanel {
       position: fixed;
@@ -116,6 +151,7 @@
       background: rgba(0, 0, 0, 0.1);
       border-radius: 10px;
     }
+    
     /* Score & Time */
     #topRightInfo {
       position: fixed;
@@ -127,8 +163,10 @@
       z-index: 10;
     }
     body.dark-mode #topRightInfo { color: #e0e0e0; }
-    /* Lage-Button */
+    
+    /* Lage-Button – wird nur im Einhand-Modus angezeigt */
     #clefTitle {
+      display: block;
       position: fixed;
       left: 50%;
       bottom: 30px;
@@ -148,6 +186,7 @@
       border-color: #ffffff;
       color: #ffffff;
     }
+    
     /* Notenname-Anzeige */
     #noteNameDisplay {
       margin-top: 10px;
@@ -155,6 +194,7 @@
       color: #000;
     }
     body.dark-mode #noteNameDisplay { color: #e0e0e0; }
+    
     /* Welcome Overlay */
     #welcomeOverlay {
       position: fixed;
@@ -177,48 +217,40 @@
       margin-bottom: 20px;
     }
     body.dark-mode #welcomeMessage { color: #e0e0e0; }
-    /* Fallback-Button für Laptoptastatur/Maus */
-    #simulateButton {
-      position: fixed;
-      bottom: 10px;
-      right: 10px;
-      padding: 10px 15px;
-      font-size: 1em;
-      cursor: pointer;
-      z-index: 20;
-    }
   </style>
   
   <script>
     // Globale Variablen
-    var currentSeries = [];
+    var currentSeriesSingle = []; // Für Einhand-Modus
+    var currentSeriesTreble = []; // Für beidhändig – Treble
+    var currentSeriesBass = [];   // Für beidhändig – Bass
     var seriesCounter = 0;
-    var seriesLength = 5; // Level 3: 5 Noten
+    var seriesLength = 5; // Anzahl Noten pro System
     var totalAttempts = 0;
     var correctAnswers = 0;
     var level = 3;
-    var selectedMode = "right"; // "left", "right" oder "both"
+    // selectedMode: "left", "right" oder "both"
+    var selectedMode = "both";
     var rangeArray = ["C", "D", "F", "G", "MC"];
     var currentRangeIndex = 0;
     var currentRange = rangeArray[currentRangeIndex];
     var soundEnabled = true;
     var firstNotePlayed = false;
-    // Zähler für korrekt gespielte Noten und Schwellenwert für die nächste Motivation
+    // Für Motivationsnachrichten
     var correctNoteCount = 0;
     var nextMotivationThreshold = getRandomThreshold();
+    // Bei "both": Aktuelle Phase ("treble" oder "bass")
+    var currentPhase = "treble";
     
     // Gibt einen zufälligen Schwellenwert zwischen 2 und 5 zurück
     function getRandomThreshold() {
       return Math.floor(Math.random() * 4) + 2;
     }
     
-    // Motivationsbotschaften
     var motivationMessages = ["Klasse!", "Super!", "Sehr Gut!", "Strike!", "Prima!", "Genial!", "Weiter so!"];
     
-    // Tone.js Synthesizer
     var synth = new Tone.Synth().toDestination();
     
-    // Notenarrays
     var rangeNotes = {
       "C": ["c", "d", "e", "f", "g"],
       "D": ["d", "e", "f#", "g", "a"],
@@ -241,7 +273,7 @@
       return { note: noteName, octave: octave };
     }
     
-    // Hier kannst du deine Korrektheitslogik einfügen – momentan immer true
+    // Hier kannst du deine Logik zur Notenkorrektheit anpassen – derzeit immer true
     function isNoteCorrect(midiInfo) {
       return true;
     }
@@ -258,7 +290,7 @@
       }, 500);
     }
     
-    // MIDI-Handler: Spielt Note ab, markiert die zugehörige Note farblich und zeigt ggf. Motivation
+    // Bei Eingabe: Markiere die aktuelle Note farblich, zeige ggf. Motivation und setze den Seitenhintergrund temporär
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage:", status, data1, data2);
       if (soundEnabled && status >= 144 && status < 160 && data2 > 0) {
@@ -267,18 +299,68 @@
         synth.triggerAttackRelease(pitch, "8n");
         document.getElementById("noteNameDisplay").textContent = pitch;
         
-        // Notenfarbmarkierung: Wenn korrekt, markiere grün, sonst rot
-        if (seriesCounter < currentSeries.length) {
-          if (!firstNotePlayed) {
-            // Beim allerersten Mal immer "Los geht's!"
-            currentSeries[seriesCounter].color = "black"; // Standardfarbe
-          } else if (isNoteCorrect(midiInfo)) {
-            currentSeries[seriesCounter].color = "green";
-          } else {
-            currentSeries[seriesCounter].color = "red";
+        var isCorrect = isNoteCorrect(midiInfo);
+        
+        // Hintergrundfarbe setzen (temporär)
+        var originalBg = document.body.classList.contains("dark-mode") ? "#121212" : "#ffffff";
+        document.body.style.backgroundColor = isCorrect ? "green" : "red";
+        setTimeout(function(){
+          document.body.style.backgroundColor = originalBg;
+        },1500);
+        
+        // Einhand-Modus
+        if (selectedMode !== "both") {
+          if (seriesCounter < currentSeriesSingle.length) {
+            if (!firstNotePlayed) {
+              currentSeriesSingle[seriesCounter].color = "black";
+            } else if (isCorrect) {
+              currentSeriesSingle[seriesCounter].color = "green";
+            } else {
+              currentSeriesSingle[seriesCounter].color = "red";
+            }
+            seriesCounter++;
+            drawSeries();
           }
-          seriesCounter++;
-          drawSeries();
+          // Wenn alle Noten abgefragt wurden, generiere eine neue Serie
+          if (seriesCounter >= currentSeriesSingle.length) {
+            generateSeries();
+          }
+        }
+        // Beidhändig
+        else {
+          if (currentPhase === "treble") {
+            if (seriesCounter < currentSeriesTreble.length) {
+              if (!firstNotePlayed) {
+                currentSeriesTreble[seriesCounter].color = "black";
+              } else if (isCorrect) {
+                currentSeriesTreble[seriesCounter].color = "green";
+              } else {
+                currentSeriesTreble[seriesCounter].color = "red";
+              }
+              seriesCounter++;
+              drawSeries();
+            }
+            if (seriesCounter >= currentSeriesTreble.length) {
+              currentPhase = "bass";
+              seriesCounter = 0;
+              drawSeries();
+              return;
+            }
+          } else if (currentPhase === "bass") {
+            if (seriesCounter < currentSeriesBass.length) {
+              if (isCorrect) {
+                currentSeriesBass[seriesCounter].color = "green";
+              } else {
+                currentSeriesBass[seriesCounter].color = "red";
+              }
+              seriesCounter++;
+              drawSeries();
+            }
+            if (seriesCounter >= currentSeriesBass.length) {
+              generateSeries();
+              return;
+            }
+          }
         }
     
         if (!firstNotePlayed) {
@@ -286,7 +368,7 @@
           firstNotePlayed = true;
           correctNoteCount = 0;
           nextMotivationThreshold = getRandomThreshold();
-        } else if (isNoteCorrect(midiInfo)) {
+        } else if (isCorrect) {
           correctNoteCount++;
           if (correctNoteCount >= nextMotivationThreshold) {
             showMotivation();
@@ -308,63 +390,136 @@
     }
     
     function generateSeries() {
-      currentSeries = [];
       seriesCounter = 0;
-      if (level === 1) { seriesLength = 1; }
-      else if (level === 2) { seriesLength = 3; }
-      else if (level === 3) { seriesLength = 5; }
-      else if (level === "random") { seriesLength = Math.floor(Math.random() * 5) + 1; }
-      var notes = rangeNotes[currentRange];
-      for (var i = 0; i < seriesLength; i++) {
-        var randomIndex = Math.floor(Math.random() * notes.length);
-        var clef, octave;
-        if (selectedMode === "left") { clef = "bass"; octave = 3; }
-        else if (selectedMode === "right") { clef = "treble"; octave = 4; }
-        else if (selectedMode === "both") {
-          if (Math.random() < 0.5) { clef = "treble"; octave = 4; }
-          else { clef = "bass"; octave = 3; }
-        } else { clef = "treble"; octave = 4; }
-        // Standardfarbe ist schwarz – spätere Eingaben können diese überschreiben
-        currentSeries.push({ note: notes[randomIndex], octave: octave, clef: clef, color: "black" });
+      firstNotePlayed = false;
+      correctNoteCount = 0;
+      nextMotivationThreshold = getRandomThreshold();
+      
+      if (selectedMode !== "both") {
+        currentSeriesSingle = [];
+        for (var i = 0; i < seriesLength; i++) {
+          var randomIndex = Math.floor(Math.random() * rangeNotes[currentRange].length);
+          var clef = selectedMode === "left" ? "bass" : "treble";
+          var octave = selectedMode === "left" ? 3 : 4;
+          currentSeriesSingle.push({ note: rangeNotes[currentRange][randomIndex], octave: octave, clef: clef, color: "black" });
+        }
+        currentPhase = "single";
+        drawSeries();
+      } else {
+        currentSeriesTreble = [];
+        currentSeriesBass = [];
+        for (var i = 0; i < seriesLength; i++) {
+          var randomIndexT = Math.floor(Math.random() * rangeNotes[currentRange].length);
+          var randomIndexB = Math.floor(Math.random() * rangeNotes[currentRange].length);
+          currentSeriesTreble.push({ note: rangeNotes[currentRange][randomIndexT], octave: 4, clef: "treble", color: "black" });
+          currentSeriesBass.push({ note: rangeNotes[currentRange][randomIndexB], octave: 3, clef: "bass", color: "black" });
+        }
+        currentPhase = "treble";
+        drawSeries();
       }
-      drawSeries();
     }
     
     function drawSeries() {
-      var notationDiv = document.getElementById("notation");
-      notationDiv.innerHTML = "";
-      
-      // Auflösung anpassen für scharfe Darstellung
-      var ratio = window.devicePixelRatio || 1;
-      var baseWidth = 820;
-      var width = baseWidth * ratio;
-      var height = 200 * ratio;
-      
-      var renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
-      renderer.resize(width, height);
-      
-      var svg = notationDiv.querySelector("svg");
-      if (svg) {
-        svg.setAttribute("width", baseWidth);
-        svg.setAttribute("height", 200);
+      if (selectedMode !== "both") {
+        var notationDiv = document.getElementById("notation");
+        notationDiv.style.display = "block";
+        document.getElementById("notationContainer").style.display = "none";
+        notationDiv.innerHTML = "";
+        var ratio = window.devicePixelRatio || 1;
+        var baseWidth = 800;
+        var width = baseWidth * ratio;
+        var height = 200 * ratio;
+        var renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
+        renderer.resize(width, height);
+        var svg = notationDiv.querySelector("svg");
+        if (svg) {
+          svg.setAttribute("width", baseWidth);
+          svg.setAttribute("height", 200);
+        }
+        var context = renderer.getContext();
+        var stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
+        if (currentSeriesSingle.length > 0) {
+          stave.addClef(currentSeriesSingle[0].clef).setContext(context).draw();
+        }
+        var staveNotes = currentSeriesSingle.map(function(item) {
+          return new Vex.Flow.StaveNote({
+            clef: item.clef,
+            keys: [item.note + "/" + item.octave],
+            duration: "q"
+          }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
+        });
+        var voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
+        staveNotes.forEach(function(note) { voice.addTickable(note); });
+        new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
+        voice.draw(context, stave);
+      } else {
+        var container = document.getElementById("notationContainer");
+        container.style.display = "flex";
+        container.style.alignItems = "flex-start"; // Systeme linksbündig
+        container.innerHTML = "";
+        var notationTreble = document.createElement("div");
+        notationTreble.id = "notationTreble";
+        var notationBass = document.createElement("div");
+        notationBass.id = "notationBass";
+        container.appendChild(notationTreble);
+        container.appendChild(notationBass);
+    
+        // Zeichne Treble-System
+        notationTreble.innerHTML = "";
+        var ratio = window.devicePixelRatio || 1;
+        var baseWidth = 800;
+        var width = baseWidth * ratio;
+        var height = 200 * ratio;
+        var rendererT = new Vex.Flow.Renderer(notationTreble, Vex.Flow.Renderer.Backends.SVG);
+        rendererT.resize(width, height);
+        var svgT = notationTreble.querySelector("svg");
+        if (svgT) {
+          svgT.setAttribute("width", baseWidth);
+          svgT.setAttribute("height", 200);
+        }
+        var contextT = rendererT.getContext();
+        var staveT = new Vex.Flow.Stave(10, 40, baseWidth - 20);
+        if (currentSeriesTreble.length > 0) {
+          staveT.addClef("treble").setContext(contextT).draw();
+        }
+        var staveNotesT = currentSeriesTreble.map(function(item) {
+          return new Vex.Flow.StaveNote({
+            clef: "treble",
+            keys: [item.note + "/" + item.octave],
+            duration: "q"
+          }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
+        });
+        var voiceT = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
+        staveNotesT.forEach(function(note) { voiceT.addTickable(note); });
+        new Vex.Flow.Formatter().joinVoices([voiceT]).format([voiceT], staveT.getWidth() - 20);
+        voiceT.draw(contextT, staveT);
+    
+        // Zeichne Bass-System
+        notationBass.innerHTML = "";
+        var rendererB = new Vex.Flow.Renderer(notationBass, Vex.Flow.Renderer.Backends.SVG);
+        rendererB.resize(width, height);
+        var svgB = notationBass.querySelector("svg");
+        if (svgB) {
+          svgB.setAttribute("width", baseWidth);
+          svgB.setAttribute("height", 200);
+        }
+        var contextB = rendererB.getContext();
+        var staveB = new Vex.Flow.Stave(10, 40, baseWidth - 20);
+        if (currentSeriesBass.length > 0) {
+          staveB.addClef("bass").setContext(contextB).draw();
+        }
+        var staveNotesB = currentSeriesBass.map(function(item) {
+          return new Vex.Flow.StaveNote({
+            clef: "bass",
+            keys: [item.note + "/" + item.octave],
+            duration: "q"
+          }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
+        });
+        var voiceB = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
+        staveNotesB.forEach(function(note) { voiceB.addTickable(note); });
+        new Vex.Flow.Formatter().joinVoices([voiceB]).format([voiceB], staveB.getWidth() - 20);
+        voiceB.draw(contextB, staveB);
       }
-      
-      var context = renderer.getContext();
-      var stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
-      if (currentSeries.length > 0) {
-        stave.addClef(currentSeries[0].clef).setContext(context).draw();
-      }
-      var staveNotes = currentSeries.map(function(item) {
-        return new Vex.Flow.StaveNote({
-          clef: item.clef,
-          keys: [item.note + "/" + item.octave],
-          duration: "q"
-        }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
-      });
-      var voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
-      staveNotes.forEach(function(note) { voice.addTickable(note); });
-      new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
-      voice.draw(context, stave);
     }
     
     function cycleRange() {
@@ -411,7 +566,7 @@
       <div id="handSettings">
         <span id="mode-left" class="inactive-mode">✋</span>
         <span id="mode-right" class="active-mode" style="transform: scaleX(-1);">✋</span>
-        <span id="mode-both" class="inactive-mode">🙌</span>
+        <span id="mode-both" class="active-mode">🙌</span>
       </div>
       <div id="levelSettings">
         <span id="level-1" class="inactive-level">1️⃣</span>
@@ -425,17 +580,16 @@
       </div>
     </div>
     
-    <!-- Notationsbereich -->
+    <!-- Notationsbereich für Einhand -->
     <div id="notation"></div>
+    <!-- Container für Beidhändig -->
+    <div id="notationContainer"></div>
     
-    <!-- Lage-Button -->
+    <!-- Lage-Button (nur im Einhand-Modus) -->
     <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
     
     <!-- Notenname-Anzeige -->
     <div id="noteNameDisplay" style="position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%); font-size: 1.5em;"></div>
-    
-    <!-- Fallback-Button für Laptop-Eingaben -->
-    <button id="simulateButton" onclick="handleMIDIMessage(144, 60, 127)">Simuliere Note</button>
     
     <!-- Debug-Ausgabe -->
     <div id="nativeLog"></div>
