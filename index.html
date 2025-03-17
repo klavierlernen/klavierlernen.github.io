@@ -228,7 +228,7 @@
     var seriesLength = 5; // Anzahl Noten pro System
     var totalAttempts = 0;
     var correctAnswers = 0;
-    var level = 3;
+    var level = 3; // Standard-Level
     // selectedMode: "left", "right" oder "both"
     var selectedMode = "both";
     var rangeArray = ["C", "D", "F", "G", "MC"];
@@ -273,9 +273,38 @@
       return { note: noteName, octave: octave };
     }
     
-    // Hier kannst du deine Logik zur Notenkorrektheit anpassen – derzeit immer true
+    // Angepasste MIDI-Bewertung unter Berücksichtigung enharmonischer Äquivalenz und Schwierigkeitslevel
     function isNoteCorrect(midiInfo) {
-      return true;
+      var expected;
+      if (selectedMode !== "both") {
+        expected = currentSeriesSingle[seriesCounter];
+      } else {
+        if (currentPhase === "treble") {
+          expected = currentSeriesTreble[seriesCounter];
+        } else if (currentPhase === "bass") {
+          expected = currentSeriesBass[seriesCounter];
+        }
+      }
+      if (!expected) return false;
+      
+      // Normalisiere beide Noten (in Kleinbuchstaben)
+      var playedNote = midiInfo.note.toLowerCase();
+      var expectedNote = expected.note.toLowerCase();
+      // Falls erwartete Note "bb" ist, akzeptiere auch "a#" als gleichwertig
+      if (expectedNote === "bb" && playedNote === "a#") {
+        playedNote = expectedNote;
+      }
+      
+      if (level === 1 || level === 3) {
+        // Exakter Vergleich: Note UND Oktave
+        return (playedNote === expectedNote && midiInfo.octave === expected.octave);
+      } else if (level === 2) {
+        // Nur Notenbuchstabe wird verglichen, Oktave ignoriert
+        return (playedNote === expectedNote);
+      } else if (level === "random") {
+        return Math.random() < 0.5;
+      }
+      return false;
     }
     
     function proceedToMainScreen() {
@@ -306,44 +335,20 @@
         document.getElementById("noteNameDisplay").textContent = pitch;
         
         var isCorrect = isNoteCorrect(midiInfo);
-        // Setze den Seitenhintergrund temporär grün (korrekt) oder rot (falsch)
-        var originalBg = document.body.classList.contains("dark-mode") ? "#121212" : "#ffffff";
-        document.body.style.backgroundColor = isCorrect ? "green" : "red";
-        setTimeout(function(){
-          document.body.style.backgroundColor = originalBg;
-        },1500);
         
-        // Einhand-Modus
+        // Setze die Farbe anhand des Ergebnisses: Grün = korrekt, Rot = falsch
         if (selectedMode !== "both") {
-          if (seriesCounter < currentSeriesSingle.length) {
-            if (!firstNotePlayed) {
-              currentSeriesSingle[seriesCounter].color = "black";
-            } else if (isCorrect) {
-              currentSeriesSingle[seriesCounter].color = "green";
-            } else {
-              currentSeriesSingle[seriesCounter].color = "red";
-            }
-            seriesCounter++;
-            drawSeries();
-          }
+          currentSeriesSingle[seriesCounter].color = isCorrect ? "green" : "red";
+          seriesCounter++;
+          drawSeries();
           if (seriesCounter >= currentSeriesSingle.length) {
             generateSeries();
           }
-        }
-        // Beidhändig
-        else {
+        } else {
           if (currentPhase === "treble") {
-            if (seriesCounter < currentSeriesTreble.length) {
-              if (!firstNotePlayed) {
-                currentSeriesTreble[seriesCounter].color = "black";
-              } else if (isCorrect) {
-                currentSeriesTreble[seriesCounter].color = "green";
-              } else {
-                currentSeriesTreble[seriesCounter].color = "red";
-              }
-              seriesCounter++;
-              drawSeries();
-            }
+            currentSeriesTreble[seriesCounter].color = isCorrect ? "green" : "red";
+            seriesCounter++;
+            drawSeries();
             if (seriesCounter >= currentSeriesTreble.length) {
               currentPhase = "bass";
               seriesCounter = 0;
@@ -351,15 +356,9 @@
               return;
             }
           } else if (currentPhase === "bass") {
-            if (seriesCounter < currentSeriesBass.length) {
-              if (isCorrect) {
-                currentSeriesBass[seriesCounter].color = "green";
-              } else {
-                currentSeriesBass[seriesCounter].color = "red";
-              }
-              seriesCounter++;
-              drawSeries();
-            }
+            currentSeriesBass[seriesCounter].color = isCorrect ? "green" : "red";
+            seriesCounter++;
+            drawSeries();
             if (seriesCounter >= currentSeriesBass.length) {
               generateSeries();
               return;
@@ -367,6 +366,7 @@
           }
         }
     
+        // Motivationsanzeige
         if (!firstNotePlayed) {
           showMotivation("Los geht's!");
           firstNotePlayed = true;
@@ -461,7 +461,7 @@
         container.style.display = "flex";
         container.style.alignItems = "flex-start"; // Systeme linksbündig
         container.innerHTML = "";
-        // Erstelle genau zwei Divs für Treble und Bass
+        // Erstelle zwei Divs für Treble und Bass
         var notationTreble = document.createElement("div");
         notationTreble.id = "notationTreble";
         var notationBass = document.createElement("div");
@@ -569,8 +569,9 @@
     <!-- Einstellungen-Menü -->
     <div id="settingsPanel" class="expanded">
       <div id="handSettings">
+        <!-- Nur der "both"-Modus ist initial aktiv -->
         <span id="mode-left" class="inactive-mode">✋</span>
-        <span id="mode-right" class="active-mode" style="transform: scaleX(-1);">✋</span>
+        <span id="mode-right" class="inactive-mode" style="transform: scaleX(-1);">✋</span>
         <span id="mode-both" class="active-mode">🙌</span>
       </div>
       <div id="levelSettings">
@@ -605,6 +606,7 @@
       setTimeout(function() { proceedToMainScreen(); }, 3000);
       generateSeries();
       
+      // Hand-Modus-Buttons
       var modeButtons = document.querySelectorAll("#handSettings span");
       modeButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -619,6 +621,7 @@
         });
       });
       
+      // Level-Buttons
       var levelButtons = document.querySelectorAll("#levelSettings span");
       levelButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -636,6 +639,7 @@
         });
       });
       
+      // Sound- und Dark-Mode-Toggle
       var soundToggle = document.getElementById("soundToggle");
       soundToggle.addEventListener("click", function() {
         soundEnabled = !soundEnabled;
@@ -650,6 +654,7 @@
       setupFadeOnHover(document.getElementById("settingsPanel"));
       setupFadeOnHover(document.getElementById("clefTitle"));
       
+      // Zum Testen: Leertaste löst ein MIDI-Signal aus
       document.addEventListener("keydown", function(event) {
         if (event.code === "Space") {
           handleMIDIMessage(144, 60, 127);
