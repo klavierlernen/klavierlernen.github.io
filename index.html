@@ -259,7 +259,7 @@
     function cycleRange() {
       currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
       currentRange = rangeArray[currentRangeIndex];
-      document.getElementById("clefTitle").textContent = "Aktuelle Lage: " + currentRange + "-Lage";
+      document.getElementById("clefTitle").textContent = "" + currentRange + "-Lage";
       generateSeries();
     }
   </script>
