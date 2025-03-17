@@ -150,13 +150,7 @@
       "MC": ["c", "d", "e", "f", "g"]
     };
 
-    // Globale Funktion updateScore
-    function updateScore() {
-      var scoreElem = document.getElementById("topRightInfo");
-      var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
-      scoreElem.innerHTML = "Score: " + percent + "%<br>" + "Time: " + Date.now();
-    }
-    window.updateScore = updateScore;
+    
 
     // Umrechnung von MIDI Data1 in Notennamen und Oktave
     function midiNoteToName(noteNumber) {
