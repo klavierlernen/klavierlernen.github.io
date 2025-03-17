@@ -18,12 +18,10 @@
       text-align: center;
       transition: background-color 0.3s, color 0.3s;
     }
-    /* Dark-Mode: Standardfarben ändern */
     body.dark-mode {
       background-color: #121212;
       color: #e0e0e0;
     }
-    
     /* Notensystem – Fixiert, sodass seine Mitte immer im Mittelpunkt liegt */
     #notation {
       position: fixed;
@@ -35,12 +33,42 @@
       box-sizing: border-box;
       z-index: 1;
     }
-    /* Im Dark Mode: Das komplette Notensystem (Schlüssel, Linien, Noten, Texte, etc.) wird weiß dargestellt */
     body.dark-mode #notation svg * {
       stroke: #ffffff !important;
       fill: #ffffff !important;
     }
-    
+    /* Motivationsfenster – etwas höher positioniert, zentriert über dem Notensystem */
+    #motivationOverlay {
+      position: fixed;
+      top: 30%;  /* etwas höher positioniert */
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 15;
+      pointer-events: none;
+      opacity: 0;
+      font-size: 2em;
+      color: #000000;  /* Text in Schwarz */
+      text-shadow: 1px 1px 2px rgba(255,255,255,0.7);
+    }
+    @keyframes floatFade {
+      0% {
+        transform: translate(-50%, -50%) translateY(20px);
+        opacity: 0;
+      }
+      20% {
+        opacity: 1;
+      }
+      80% {
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-50%, -50%) translateY(-20px);
+        opacity: 0;
+      }
+    }
+    .animate-motivation {
+      animation: floatFade 2.5s ease-out forwards;
+    }
     /* Hauptinhalt (UI) – liegt über dem Notensystem */
     #mainContent {
       position: relative;
@@ -49,11 +77,8 @@
       transition: opacity 1s ease-in;
       padding-bottom: 50px;
     }
-    h1 {
-      margin: 20px 0;
-    }
-    
-    /* Linkes Menü: Einstellungen */
+    h1 { margin: 20px 0; }
+    /* Einstellungen-Menü */
     #settingsPanel {
       position: fixed;
       left: 30px;
@@ -68,12 +93,10 @@
       z-index: 10;
       transition: background 0.3s, border-color 0.3s, color 0.3s;
     }
-    /* Dark-Mode: Menüs mit schwarzem Hintergrund und weißem Rahmen */
     body.dark-mode #settingsPanel {
       background: #000000;
       border-color: #ffffff;
     }
-    /* Einstellungen: Buttons (nur Emojis) – minimaler Abstand */
     #settingsPanel span {
       display: block;
       cursor: pointer;
@@ -85,28 +108,17 @@
       border: none;
       transition: background 0.2s, opacity 0.2s;
     }
-    /* Standard: aktive Optionen voll sichtbar, inaktive 50% */
-    .active-mode, .active-level {
-      opacity: 1;
-    }
-    .inactive-mode, .inactive-level {
-      opacity: 0.5;
-    }
-    /* Dark Mode: Buttons im Menü in Weiß */
-    body.dark-mode #settingsPanel span {
-      color: #ffffff;
-    }
+    .active-mode, .active-level { opacity: 1; }
+    .inactive-mode, .inactive-level { opacity: 0.5; }
+    body.dark-mode #settingsPanel span { color: #ffffff; }
     #settingsPanel span:hover {
       background: rgba(0, 0, 0, 0.1);
       border-radius: 10px;
     }
-    /* Zusätzlich: Klasse "faded" setzt die gesamte Gruppe auf 50% */
+    /* Faded-Zustand für Menü und Lage-Button */
     #settingsPanel.faded span,
-    #clefTitle.faded {
-      opacity: 0.5 !important;
-    }
-    
-    /* Obere rechte Ecke: Score und ResponseTime */
+    #clefTitle.faded { opacity: 0.5 !important; }
+    /* Score & Time */
     #topRightInfo {
       position: fixed;
       top: 10px;
@@ -116,11 +128,8 @@
       color: #000;
       z-index: 10;
     }
-    body.dark-mode #topRightInfo {
-      color: #e0e0e0;
-    }
-    
-    /* Lage-Button: Fixiert am unteren Bildschirmrand, mittig */
+    body.dark-mode #topRightInfo { color: #e0e0e0; }
+    /* Lage-Button */
     #clefTitle {
       position: fixed;
       left: 50%;
@@ -136,23 +145,18 @@
       z-index: 10;
       transition: all 0.5s ease, opacity 0.2s;
     }
-    /* Dark-Mode: Lage-Button mit schwarzem Hintergrund und weißem Rahmen */
     body.dark-mode #clefTitle {
       background: #000000;
       border-color: #ffffff;
       color: #ffffff;
     }
-    
     /* Notenname-Anzeige */
     #noteNameDisplay {
       margin-top: 10px;
       font-size: 1.5em;
       color: #000;
     }
-    body.dark-mode #noteNameDisplay {
-      color: #e0e0e0;
-    }
-    
+    body.dark-mode #noteNameDisplay { color: #e0e0e0; }
     /* Welcome Overlay */
     #welcomeOverlay {
       position: fixed;
@@ -168,17 +172,13 @@
       z-index: 1000;
       transition: background-color 0.3s;
     }
-    body.dark-mode #welcomeOverlay {
-      background-color: #121212;
-    }
+    body.dark-mode #welcomeOverlay { background-color: #121212; }
     #welcomeMessage {
       font-size: 2.5em;
       color: #000;
       margin-bottom: 20px;
     }
-    body.dark-mode #welcomeMessage {
-      color: #e0e0e0;
-    }
+    body.dark-mode #welcomeMessage { color: #e0e0e0; }
   </style>
   
   <script>
@@ -188,18 +188,30 @@
     var seriesLength = 5; // Level 3: 5 Noten
     var totalAttempts = 0;
     var correctAnswers = 0;
-    // Level: 1 = 1 Note, 2 = 3 Noten, 3 = 5 Noten
     var level = 3;
     var selectedMode = "right"; // "left", "right" oder "both"
     var rangeArray = ["C", "D", "F", "G", "MC"];
     var currentRangeIndex = 0;
     var currentRange = rangeArray[currentRangeIndex];
-    var soundEnabled = true; // Ton ist an
+    var soundEnabled = true;
+    // Variable, um zu prüfen, ob bereits eine Note gespielt wurde
+    var firstNotePlayed = false;
+    // Zähler für korrekt gespielte Noten und Schwellenwert für die nächste Motivation
+    var correctNoteCount = 0;
+    var nextMotivationThreshold = getRandomThreshold();
+
+    // Funktion, die einen zufälligen Schwellenwert zwischen 2 und 5 (korrekten Noten) zurückgibt
+    function getRandomThreshold() {
+      return Math.floor(Math.random() * 4) + 2; // 2,3,4 oder 5
+    }
+
+    // Motivationsbotschaften
+    var motivationMessages = ["Klasse!", "Super!", "Sehr Gut!", "Strike!", "Prima!", "Genial!", "Weiter so!"];
 
     // Tone.js Synthesizer
     var synth = new Tone.Synth().toDestination();
 
-    // Objekt mit Notenarrays für die Lagen
+    // Notenarrays für Lagen
     var rangeNotes = {
       "C": ["c", "d", "e", "f", "g"],
       "D": ["d", "e", "f#", "g", "a"],
@@ -208,7 +220,7 @@
       "MC": ["c", "d", "e", "f", "g"]
     };
 
-    // Globale Funktion updateScore
+    // Aktualisiere den Score
     function updateScore() {
       var scoreElem = document.getElementById("topRightInfo");
       var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
@@ -216,7 +228,7 @@
     }
     window.updateScore = updateScore;
 
-    // Umrechnung von MIDI Data1 in Notennamen und Oktave
+    // MIDI-Note zu Namen umrechnen
     function midiNoteToName(noteNumber) {
       var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
       var octave = Math.floor(noteNumber / 12) - 1;
@@ -224,7 +236,13 @@
       return { note: noteName, octave: octave };
     }
 
-    // Übergang vom Welcome Overlay zum Hauptinhalt
+    // Prüft, ob eine Note korrekt ist. Hier kannst du deine Logik einfügen.
+    function isNoteCorrect(midiInfo) {
+      // Beispiel: Hier wird angenommen, dass alle Noten korrekt sind.
+      return true;
+    }
+
+    // Übergang vom Welcome Overlay
     function proceedToMainScreen() {
       var welcomeOverlay = document.getElementById("welcomeOverlay");
       welcomeOverlay.style.transition = "opacity 0.5s ease-out";
@@ -237,56 +255,68 @@
       }, 500);
     }
 
-    // Globale Funktion handleMIDIMessage – spielt den Ton ab, wenn eine Note gespielt wird
+    // MIDI-Handler: Spielt Note ab, blendet Menü/Lage-Button aus und zeigt Motivation
     window.handleMIDIMessage = function(status, data1, data2) {
-      console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
+      console.log("handleMIDIMessage:", status, data1, data2);
       if (soundEnabled && status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         var pitch = midiInfo.note.toUpperCase() + midiInfo.octave;
         synth.triggerAttackRelease(pitch, "8n");
         document.getElementById("noteNameDisplay").textContent = midiInfo.note.toUpperCase() + "/" + midiInfo.octave;
         
-        // Wenn eine Note gespielt wird: Füge "faded" zur Menügruppe und zum Lage-Button hinzu
+        // Menü und Lage-Button ausgrauen
         document.getElementById("settingsPanel").classList.add("faded");
         document.getElementById("clefTitle").classList.add("faded");
+
+        // Beim ersten Mal immer "Los geht's!" anzeigen
+        if (!firstNotePlayed) {
+          showMotivation("Los geht's!");
+          firstNotePlayed = true;
+          // Zurücksetzen des korrekten Notenzählers und Schwellenwert neu generieren
+          correctNoteCount = 0;
+          nextMotivationThreshold = getRandomThreshold();
+        }
+        // Nur, wenn die Note korrekt ist, Zähler erhöhen und ggf. Motivation anzeigen
+        else if (isNoteCorrect(midiInfo)) {
+          correctNoteCount++;
+          if (correctNoteCount >= nextMotivationThreshold) {
+            showMotivation();
+            correctNoteCount = 0;
+            nextMotivationThreshold = getRandomThreshold();
+          }
+        }
       }
     };
 
-    // Generiert eine neue Notenserie basierend auf Level, Range und Handmodus
+    // Motivationsbotschaft anzeigen
+    function showMotivation(customMessage) {
+      var motivationDiv = document.getElementById("motivationOverlay");
+      var message = customMessage || motivationMessages[Math.floor(Math.random() * motivationMessages.length)];
+      motivationDiv.textContent = message;
+      motivationDiv.classList.add("animate-motivation");
+      setTimeout(function() {
+        motivationDiv.classList.remove("animate-motivation");
+      }, 2500);
+    }
+
+    // Notenserie generieren
     function generateSeries() {
       currentSeries = [];
       seriesCounter = 0;
-      if (level === 1) {
-        seriesLength = 1;
-      } else if (level === 2) {
-        seriesLength = 3;
-      } else if (level === 3) {
-        seriesLength = 5;
-      } else if (level === "random") {
-        seriesLength = Math.floor(Math.random() * 5) + 1;
-      }
+      if (level === 1) { seriesLength = 1; }
+      else if (level === 2) { seriesLength = 3; }
+      else if (level === 3) { seriesLength = 5; }
+      else if (level === "random") { seriesLength = Math.floor(Math.random() * 5) + 1; }
       var notes = rangeNotes[currentRange];
       for (var i = 0; i < seriesLength; i++) {
         var randomIndex = Math.floor(Math.random() * notes.length);
         var clef, octave;
-        if (selectedMode === "left") {
-          clef = "bass";
-          octave = 3;
-        } else if (selectedMode === "right") {
-          clef = "treble";
-          octave = 4;
-        } else if (selectedMode === "both") {
-          if (Math.random() < 0.5) {
-            clef = "treble";
-            octave = 4;
-          } else {
-            clef = "bass";
-            octave = 3;
-          }
-        } else {
-          clef = "treble";
-          octave = 4;
-        }
+        if (selectedMode === "left") { clef = "bass"; octave = 3; }
+        else if (selectedMode === "right") { clef = "treble"; octave = 4; }
+        else if (selectedMode === "both") {
+          if (Math.random() < 0.5) { clef = "treble"; octave = 4; }
+          else { clef = "bass"; octave = 3; }
+        } else { clef = "treble"; octave = 4; }
         currentSeries.push({ note: notes[randomIndex], octave: octave, clef: clef, color: "black" });
       }
       drawSeries();
@@ -316,7 +346,7 @@
       voice.draw(context, stave);
     }
 
-    // Beim Klick auf den Lage-Button wird zur nächsten Lage zyklisch gewechselt
+    // Wechsel der Lage
     function cycleRange() {
       currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
       currentRange = rangeArray[currentRangeIndex];
@@ -324,12 +354,12 @@
       generateSeries();
     }
 
-    // Dark-Mode Toggle: Schaltet die "dark-mode"-Klasse am Body
+    // Dark-Mode Toggle
     function toggleDarkMode() {
       document.body.classList.toggle("dark-mode");
     }
 
-    // Hilfsfunktion, um "faded" wieder anzupassen, wenn die Maus in den Bereich fährt
+    // Hover-Effekt: Entferne oder füge "faded" hinzu
     function setupFadeOnHover(element) {
       element.addEventListener("mouseenter", function() {
         element.classList.remove("faded");
@@ -346,9 +376,12 @@
     <div id="welcomeMessage">Hallo, schön dich zu sehen!</div>
   </div>
   
+  <!-- Motivationsfenster -->
+  <div id="motivationOverlay"></div>
+  
   <!-- Hauptinhalt -->
   <div id="mainContent" style="opacity: 0;">
-    <!-- Linkes Menü: Einstellungen -->
+    <!-- Einstellungen-Menü -->
     <div id="settingsPanel" class="expanded">
       <div id="handSettings">
         <span id="mode-left" class="inactive-mode">✋</span>
@@ -363,15 +396,14 @@
       </div>
       <div id="soundSettings">
         <span id="soundToggle">🔊</span>
-        <!-- Dark-Mode Toggle Button -->
         <span id="darkModeToggle">🌙</span>
       </div>
     </div>
     
-    <!-- Notationsbereich, fixiert in der Mitte -->
+    <!-- Notationsbereich -->
     <div id="notation"></div>
     
-    <!-- Lage-Button: Fixiert am unteren Bildschirmrand, mittig -->
+    <!-- Lage-Button -->
     <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
     
     <!-- Notenname-Anzeige -->
@@ -383,14 +415,9 @@
   
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-      // Automatischer Übergang vom Welcome Overlay zum Hauptinhalt nach 3 Sekunden
-      setTimeout(function() {
-        proceedToMainScreen();
-      }, 3000);
-      
+      setTimeout(function() { proceedToMainScreen(); }, 3000);
       generateSeries();
       
-      // Konfiguration der Handmodus-Buttons im Menü
       var modeButtons = document.querySelectorAll("#handSettings span");
       modeButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -405,7 +432,6 @@
         });
       });
       
-      // Konfiguration der Level-Buttons im Menü
       var levelButtons = document.querySelectorAll("#levelSettings span");
       levelButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -415,37 +441,28 @@
           });
           btn.classList.remove("inactive-level");
           btn.classList.add("active-level");
-          if (btn.id === "level-1") {
-            level = 1;
-          } else if (btn.id === "level-2") {
-            level = 2;
-          } else if (btn.id === "level-3") {
-            level = 3;
-          } else if (btn.id === "level-random") {
-            level = "random";
-          }
+          if (btn.id === "level-1") { level = 1; }
+          else if (btn.id === "level-2") { level = 2; }
+          else if (btn.id === "level-3") { level = 3; }
+          else if (btn.id === "level-random") { level = "random"; }
           generateSeries();
         });
       });
       
-      // Sound Toggle
       var soundToggle = document.getElementById("soundToggle");
       soundToggle.addEventListener("click", function() {
         soundEnabled = !soundEnabled;
         soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
       });
       
-      // Dark-Mode Toggle
       var darkModeToggle = document.getElementById("darkModeToggle");
       darkModeToggle.addEventListener("click", function() {
         toggleDarkMode();
       });
-
-      // Füge "faded"-Effekt per Hover hinzu
+      
       setupFadeOnHover(document.getElementById("settingsPanel"));
       setupFadeOnHover(document.getElementById("clefTitle"));
       
-      // Event-Listener für die Leertaste (MIDI-Signal bei Space)
       document.addEventListener("keydown", function(event) {
         if (event.code === "Space") {
           handleMIDIMessage(144, 60, 127);
