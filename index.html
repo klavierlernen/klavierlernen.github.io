@@ -34,7 +34,6 @@
       box-sizing: border-box;
       z-index: 1;
     }
-    /* SVG scharf rendern */
     #notation svg {
       width: 100%;
       height: auto;
@@ -43,7 +42,6 @@
     #notation svg * {
       vector-effect: non-scaling-stroke;
     }
-    
     /* Motivationsfenster – etwas höher positioniert */
     #motivationOverlay {
       position: fixed;
@@ -72,8 +70,7 @@
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
     }
-    
-    /* Hauptinhalt (UI) – liegt über dem Notensystem */
+    /* Hauptinhalt (UI) */
     #mainContent {
       position: relative;
       z-index: 10;
@@ -82,7 +79,6 @@
       padding-bottom: 50px;
     }
     h1 { margin: 20px 0; }
-    
     /* Einstellungen-Menü */
     #settingsPanel {
       position: fixed;
@@ -131,7 +127,6 @@
       z-index: 10;
     }
     body.dark-mode #topRightInfo { color: #e0e0e0; }
-    
     /* Lage-Button */
     #clefTitle {
       position: fixed;
@@ -153,7 +148,6 @@
       border-color: #ffffff;
       color: #ffffff;
     }
-    
     /* Notenname-Anzeige */
     #noteNameDisplay {
       margin-top: 10px;
@@ -161,7 +155,6 @@
       color: #000;
     }
     body.dark-mode #noteNameDisplay { color: #e0e0e0; }
-    
     /* Welcome Overlay */
     #welcomeOverlay {
       position: fixed;
@@ -184,6 +177,16 @@
       margin-bottom: 20px;
     }
     body.dark-mode #welcomeMessage { color: #e0e0e0; }
+    /* Fallback-Button für Laptoptastatur/Maus */
+    #simulateButton {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      padding: 10px 15px;
+      font-size: 1em;
+      cursor: pointer;
+      z-index: 20;
+    }
   </style>
   
   <script>
@@ -238,7 +241,7 @@
       return { note: noteName, octave: octave };
     }
     
-    // Hier kannst du deine Korrektheitslogik einfügen
+    // Hier kannst du deine Korrektheitslogik einfügen – momentan immer true
     function isNoteCorrect(midiInfo) {
       return true;
     }
@@ -255,17 +258,28 @@
       }, 500);
     }
     
-    // MIDI-Handler: Spielt Note ab und zeigt ggf. Motivation (nur bei korrekter Note)
+    // MIDI-Handler: Spielt Note ab, markiert die zugehörige Note farblich und zeigt ggf. Motivation
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage:", status, data1, data2);
       if (soundEnabled && status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         var pitch = midiInfo.note.toUpperCase() + midiInfo.octave;
         synth.triggerAttackRelease(pitch, "8n");
-        document.getElementById("noteNameDisplay").textContent = midiInfo.note.toUpperCase() + "/" + midiInfo.octave;
+        document.getElementById("noteNameDisplay").textContent = pitch;
         
-        // Hinweis: Hier wurde die automatische Ausblendung der Menüs entfernt.
-        // Die Menüs bleiben im normalen Zustand.
+        // Notenfarbmarkierung: Wenn korrekt, markiere grün, sonst rot
+        if (seriesCounter < currentSeries.length) {
+          if (!firstNotePlayed) {
+            // Beim allerersten Mal immer "Los geht's!"
+            currentSeries[seriesCounter].color = "black"; // Standardfarbe
+          } else if (isNoteCorrect(midiInfo)) {
+            currentSeries[seriesCounter].color = "green";
+          } else {
+            currentSeries[seriesCounter].color = "red";
+          }
+          seriesCounter++;
+          drawSeries();
+        }
     
         if (!firstNotePlayed) {
           showMotivation("Los geht's!");
@@ -310,6 +324,7 @@
           if (Math.random() < 0.5) { clef = "treble"; octave = 4; }
           else { clef = "bass"; octave = 3; }
         } else { clef = "treble"; octave = 4; }
+        // Standardfarbe ist schwarz – spätere Eingaben können diese überschreiben
         currentSeries.push({ note: notes[randomIndex], octave: octave, clef: clef, color: "black" });
       }
       drawSeries();
@@ -319,7 +334,7 @@
       var notationDiv = document.getElementById("notation");
       notationDiv.innerHTML = "";
       
-      // Auflösung anpassen
+      // Auflösung anpassen für scharfe Darstellung
       var ratio = window.devicePixelRatio || 1;
       var baseWidth = 820;
       var width = baseWidth * ratio;
@@ -363,7 +378,7 @@
       document.body.classList.toggle("dark-mode");
     }
     
-    // Für Maus und Touch
+    // Für Maus und Touch – passt die Opacity an
     function setupFadeOnHover(element) {
       element.addEventListener("mouseenter", function() {
         element.classList.remove("faded");
@@ -418,6 +433,9 @@
     
     <!-- Notenname-Anzeige -->
     <div id="noteNameDisplay" style="position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%); font-size: 1.5em;"></div>
+    
+    <!-- Fallback-Button für Laptop-Eingaben -->
+    <button id="simulateButton" onclick="handleMIDIMessage(144, 60, 127)">Simuliere Note</button>
     
     <!-- Debug-Ausgabe -->
     <div id="nativeLog"></div>
