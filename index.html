@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Notentraining</title>
   <!-- Tone.js laden -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.37/Tone.js"></script>
@@ -14,7 +15,6 @@
       padding: 0;
       background-color: #ffffff;
       font-family: sans-serif;
-      position: relative;
       text-align: center;
       transition: background-color 0.3s, color 0.3s;
     }
@@ -22,32 +22,39 @@
       background-color: #121212;
       color: #e0e0e0;
     }
-    /* Notensystem – Fixiert, sodass seine Mitte immer im Mittelpunkt liegt */
+    /* Notationsbereich optimiert für scharfe SVG-Grafiken */
     #notation {
       position: fixed;
       top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%) scale(2);
-      width: 820px;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      max-width: 820px;
       padding: 10px;
       box-sizing: border-box;
       z-index: 1;
     }
-    body.dark-mode #notation svg * {
-      stroke: #ffffff !important;
-      fill: #ffffff !important;
+    /* SVG scharf rendern */
+    #notation svg {
+      width: 100%;
+      height: auto;
+      shape-rendering: crispEdges;
     }
-    /* Motivationsfenster – etwas höher positioniert, zentriert über dem Notensystem */
+    #notation svg * {
+      vector-effect: non-scaling-stroke;
+    }
+    
+    /* Motivationsfenster – etwas höher positioniert */
     #motivationOverlay {
       position: fixed;
-      top: 30%;  /* etwas höher positioniert */
+      top: 30%;
       left: 50%;
       transform: translate(-50%, -50%);
       z-index: 15;
       pointer-events: none;
       opacity: 0;
       font-size: 2em;
-      color: #000000;  /* Text in Schwarz */
+      color: #000000;
       text-shadow: 1px 1px 2px rgba(255,255,255,0.7);
     }
     @keyframes floatFade {
@@ -55,12 +62,8 @@
         transform: translate(-50%, -50%) translateY(20px);
         opacity: 0;
       }
-      20% {
-        opacity: 1;
-      }
-      80% {
-        opacity: 1;
-      }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
       100% {
         transform: translate(-50%, -50%) translateY(-20px);
         opacity: 0;
@@ -69,7 +72,8 @@
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
     }
-    /* Hauptinhalt (UI) – liegt über dem Notensystem */
+    
+    /* Hauptinhalt (UI) */
     #mainContent {
       position: relative;
       z-index: 10;
@@ -78,6 +82,7 @@
       padding-bottom: 50px;
     }
     h1 { margin: 20px 0; }
+    
     /* Einstellungen-Menü */
     #settingsPanel {
       position: fixed;
@@ -115,9 +120,10 @@
       background: rgba(0, 0, 0, 0.1);
       border-radius: 10px;
     }
-    /* Faded-Zustand für Menü und Lage-Button */
+    /* Faded-Zustand */
     #settingsPanel.faded span,
     #clefTitle.faded { opacity: 0.5 !important; }
+    
     /* Score & Time */
     #topRightInfo {
       position: fixed;
@@ -129,6 +135,7 @@
       z-index: 10;
     }
     body.dark-mode #topRightInfo { color: #e0e0e0; }
+    
     /* Lage-Button */
     #clefTitle {
       position: fixed;
@@ -150,6 +157,7 @@
       border-color: #ffffff;
       color: #ffffff;
     }
+    
     /* Notenname-Anzeige */
     #noteNameDisplay {
       margin-top: 10px;
@@ -157,6 +165,7 @@
       color: #000;
     }
     body.dark-mode #noteNameDisplay { color: #e0e0e0; }
+    
     /* Welcome Overlay */
     #welcomeOverlay {
       position: fixed;
@@ -194,24 +203,23 @@
     var currentRangeIndex = 0;
     var currentRange = rangeArray[currentRangeIndex];
     var soundEnabled = true;
-    // Variable, um zu prüfen, ob bereits eine Note gespielt wurde
     var firstNotePlayed = false;
     // Zähler für korrekt gespielte Noten und Schwellenwert für die nächste Motivation
     var correctNoteCount = 0;
     var nextMotivationThreshold = getRandomThreshold();
-
-    // Funktion, die einen zufälligen Schwellenwert zwischen 2 und 5 (korrekten Noten) zurückgibt
+    
+    // Gibt einen zufälligen Schwellenwert zwischen 2 und 5 zurück
     function getRandomThreshold() {
-      return Math.floor(Math.random() * 4) + 2; // 2,3,4 oder 5
+      return Math.floor(Math.random() * 4) + 2;
     }
-
+    
     // Motivationsbotschaften
     var motivationMessages = ["Klasse!", "Super!", "Sehr Gut!", "Strike!", "Prima!", "Genial!", "Weiter so!"];
-
+    
     // Tone.js Synthesizer
     var synth = new Tone.Synth().toDestination();
-
-    // Notenarrays für Lagen
+    
+    // Notenarrays
     var rangeNotes = {
       "C": ["c", "d", "e", "f", "g"],
       "D": ["d", "e", "f#", "g", "a"],
@@ -219,30 +227,26 @@
       "G": ["g", "a", "b", "c", "d"],
       "MC": ["c", "d", "e", "f", "g"]
     };
-
-    // Aktualisiere den Score
+    
     function updateScore() {
       var scoreElem = document.getElementById("topRightInfo");
       var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
       scoreElem.innerHTML = "Score: " + percent + "%<br>" + "Time: " + Date.now();
     }
     window.updateScore = updateScore;
-
-    // MIDI-Note zu Namen umrechnen
+    
     function midiNoteToName(noteNumber) {
       var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
       var octave = Math.floor(noteNumber / 12) - 1;
       var noteName = noteNames[noteNumber % 12];
       return { note: noteName, octave: octave };
     }
-
-    // Prüft, ob eine Note korrekt ist. Hier kannst du deine Logik einfügen.
+    
+    // Hier kannst du deine Korrektheitslogik einfügen
     function isNoteCorrect(midiInfo) {
-      // Beispiel: Hier wird angenommen, dass alle Noten korrekt sind.
       return true;
     }
-
-    // Übergang vom Welcome Overlay
+    
     function proceedToMainScreen() {
       var welcomeOverlay = document.getElementById("welcomeOverlay");
       welcomeOverlay.style.transition = "opacity 0.5s ease-out";
@@ -254,8 +258,8 @@
         mainContent.style.opacity = "1";
       }, 500);
     }
-
-    // MIDI-Handler: Spielt Note ab, blendet Menü/Lage-Button aus und zeigt Motivation
+    
+    // MIDI-Handler: Spielt Note ab und zeigt ggf. Motivation (nur bei korrekter Note)
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage:", status, data1, data2);
       if (soundEnabled && status >= 144 && status < 160 && data2 > 0) {
@@ -267,17 +271,13 @@
         // Menü und Lage-Button ausgrauen
         document.getElementById("settingsPanel").classList.add("faded");
         document.getElementById("clefTitle").classList.add("faded");
-
-        // Beim ersten Mal immer "Los geht's!" anzeigen
+    
         if (!firstNotePlayed) {
           showMotivation("Los geht's!");
           firstNotePlayed = true;
-          // Zurücksetzen des korrekten Notenzählers und Schwellenwert neu generieren
           correctNoteCount = 0;
           nextMotivationThreshold = getRandomThreshold();
-        }
-        // Nur, wenn die Note korrekt ist, Zähler erhöhen und ggf. Motivation anzeigen
-        else if (isNoteCorrect(midiInfo)) {
+        } else if (isNoteCorrect(midiInfo)) {
           correctNoteCount++;
           if (correctNoteCount >= nextMotivationThreshold) {
             showMotivation();
@@ -287,8 +287,7 @@
         }
       }
     };
-
-    // Motivationsbotschaft anzeigen
+    
     function showMotivation(customMessage) {
       var motivationDiv = document.getElementById("motivationOverlay");
       var message = customMessage || motivationMessages[Math.floor(Math.random() * motivationMessages.length)];
@@ -298,8 +297,7 @@
         motivationDiv.classList.remove("animate-motivation");
       }, 2500);
     }
-
-    // Notenserie generieren
+    
     function generateSeries() {
       currentSeries = [];
       seriesCounter = 0;
@@ -321,15 +319,28 @@
       }
       drawSeries();
     }
-
+    
     function drawSeries() {
       var notationDiv = document.getElementById("notation");
       notationDiv.innerHTML = "";
-      var usedWidth = 80 * seriesLength + 20;
+      
+      // Auflösung anpassen
+      var ratio = window.devicePixelRatio || 1;
+      var baseWidth = 820;
+      var width = baseWidth * ratio;
+      var height = 200 * ratio;
+      
       var renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
-      renderer.resize(usedWidth, 200);
+      renderer.resize(width, height);
+      
+      var svg = notationDiv.querySelector("svg");
+      if (svg) {
+        svg.setAttribute("width", baseWidth);
+        svg.setAttribute("height", 200);
+      }
+      
       var context = renderer.getContext();
-      var stave = new Vex.Flow.Stave(10, 40, usedWidth - 20);
+      var stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
       if (currentSeries.length > 0) {
         stave.addClef(currentSeries[0].clef).setContext(context).draw();
       }
@@ -345,26 +356,30 @@
       new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
       voice.draw(context, stave);
     }
-
-    // Wechsel der Lage
+    
     function cycleRange() {
       currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
       currentRange = rangeArray[currentRangeIndex];
       document.getElementById("clefTitle").textContent = currentRange + "-Lage";
       generateSeries();
     }
-
-    // Dark-Mode Toggle
+    
     function toggleDarkMode() {
       document.body.classList.toggle("dark-mode");
     }
-
-    // Hover-Effekt: Entferne oder füge "faded" hinzu
+    
+    // Für Maus und Touch
     function setupFadeOnHover(element) {
       element.addEventListener("mouseenter", function() {
         element.classList.remove("faded");
       });
       element.addEventListener("mouseleave", function() {
+        element.classList.add("faded");
+      });
+      element.addEventListener("touchstart", function() {
+        element.classList.remove("faded");
+      });
+      element.addEventListener("touchend", function() {
         element.classList.add("faded");
       });
     }
