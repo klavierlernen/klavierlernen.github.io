@@ -17,16 +17,15 @@
       position: relative;
       text-align: center;
     }
-    /* Notensystem – in der Mitte, weiter unten */
+    /* Notensystem – Fixiert so, dass seine Mitte immer im Mittelpunkt des Bildschirms liegt */
     #notation {
-      width: 1000px;
-      transform: scale(1.5);
-      text-align: center;
-      margin: 120px auto 10px auto; /* 120px Abstand oben, 10px Abstand unten */
-      border: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(1.5);
+      width: 820px;
       padding: 10px;
       box-sizing: border-box;
-      position: relative;
       z-index: 1;
     }
     /* Hauptinhalt (UI) – liegt über dem Notensystem */
@@ -35,12 +34,12 @@
       z-index: 10;
       opacity: 0;
       transition: opacity 1s ease-in;
-      padding-bottom: 50px; /* Erzeugt Abstand, sodass das Notensystem 10px über dem Lage-Button endet */
+      padding-bottom: 50px;
     }
     h1 {
       margin: 20px 0;
     }
-    /* Linkes Menü: Einstellungen – schmal, fixiert links */
+    /* Linkes Menü: Einstellungen */
     #settingsPanel {
       position: fixed;
       left: 30px;
@@ -54,7 +53,7 @@
       display: inline-block;
       z-index: 10;
     }
-    /* In settingsPanel: Die Buttons (nur Emojis) – minimaler Extra-Abstand */
+    /* Einstellungen: Die Buttons (nur Emojis) – minimaler Extra-Abstand */
     #settingsPanel span {
       display: block;
       cursor: pointer;
@@ -81,7 +80,7 @@
       color: #000;
       z-index: 10;
     }
-    /* Lage-Button: fixiert am unteren Bildschirmrand, mittig, mit identischem Rahmen und Hintergrund */
+    /* Lage-Button: Fixiert am unteren Bildschirmrand, mittig, mit identischem Styling wie das Menü */
     #clefTitle {
       position: fixed;
       left: 50%;
@@ -97,7 +96,7 @@
       z-index: 10;
       transition: all 0.5s ease;
     }
-    /* Notenname-Anzeige (unter Notensystem) */
+    /* Notenname-Anzeige (optional) */
     #noteNameDisplay {
       margin-top: 10px;
       font-size: 1.5em;
@@ -259,7 +258,7 @@
     function cycleRange() {
       currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
       currentRange = rangeArray[currentRangeIndex];
-      document.getElementById("clefTitle").textContent = "" + currentRange + "-Lage";
+      document.getElementById("clefTitle").textContent = currentRange + "-Lage";
       generateSeries();
     }
   </script>
@@ -290,10 +289,10 @@
       </div>
     </div>
     
-    <!-- Notationsbereich in der Mitte -->
+    <!-- Notationsbereich, fixiert in der Mitte -->
     <div id="notation"></div>
     
-    <!-- Lage-Button fixiert am unteren Bildschirmrand, mittig -->
+    <!-- Lage-Button, fixiert am unteren Bildschirmrand, mittig -->
     <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
     
     <!-- Obere rechte Ecke: Score und ResponseTime -->
@@ -303,7 +302,7 @@
     </div>
     
     <!-- Notenname-Anzeige -->
-    <div id="noteNameDisplay" style="margin-top: 10px; font-size: 1.5em; color: #000;"></div>
+    <div id="noteNameDisplay" style="position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%); font-size: 1.5em; color: #000;"></div>
     
     <!-- Debug-Ausgabe -->
     <div id="nativeLog"></div>
