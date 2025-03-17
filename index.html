@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Notentraining 8888</title>
+  <title>Notentraining</title>
   <!-- Tone.js laden -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.37/Tone.js"></script>
   <!-- VexFlow laden -->
@@ -16,8 +16,15 @@
       font-family: sans-serif;
       position: relative;
       text-align: center;
+      transition: background-color 0.3s, color 0.3s;
     }
-    /* Notensystem – Fixiert so, dass seine Mitte immer im Mittelpunkt des Bildschirms liegt */
+    /* Dark-Mode: Standardfarben ändern */
+    body.dark-mode {
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+    
+    /* Notensystem – Fixiert, sodass seine Mitte immer im Mittelpunkt liegt */
     #notation {
       position: fixed;
       top: 50%;
@@ -28,6 +35,12 @@
       box-sizing: border-box;
       z-index: 1;
     }
+    /* Im Dark Mode: Das komplette Notensystem (Schlüssel, Linien, Noten, Texte, etc.) wird weiß dargestellt */
+    body.dark-mode #notation svg * {
+      stroke: #ffffff !important;
+      fill: #ffffff !important;
+    }
+    
     /* Hauptinhalt (UI) – liegt über dem Notensystem */
     #mainContent {
       position: relative;
@@ -39,6 +52,7 @@
     h1 {
       margin: 20px 0;
     }
+    
     /* Linkes Menü: Einstellungen */
     #settingsPanel {
       position: fixed;
@@ -52,8 +66,14 @@
       box-sizing: border-box;
       display: inline-block;
       z-index: 10;
+      transition: background 0.3s, border-color 0.3s, color 0.3s;
     }
-    /* Einstellungen: Die Buttons (nur Emojis) – minimaler Extra-Abstand */
+    /* Dark-Mode: Menüs mit schwarzem Hintergrund und weißem Rahmen */
+    body.dark-mode #settingsPanel {
+      background: #000000;
+      border-color: #ffffff;
+    }
+    /* Einstellungen: Buttons (nur Emojis) – minimaler Abstand */
     #settingsPanel span {
       display: block;
       cursor: pointer;
@@ -63,13 +83,29 @@
       text-align: center;
       background: none;
       border: none;
-      color: #000;
-      transition: background 0.2s;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    /* Standard: aktive Optionen voll sichtbar, inaktive 50% */
+    .active-mode, .active-level {
+      opacity: 1;
+    }
+    .inactive-mode, .inactive-level {
+      opacity: 0.5;
+    }
+    /* Dark Mode: Buttons im Menü in Weiß */
+    body.dark-mode #settingsPanel span {
+      color: #ffffff;
     }
     #settingsPanel span:hover {
       background: rgba(0, 0, 0, 0.1);
       border-radius: 10px;
     }
+    /* Zusätzlich: Klasse "faded" setzt die gesamte Gruppe auf 50% */
+    #settingsPanel.faded span,
+    #clefTitle.faded {
+      opacity: 0.5 !important;
+    }
+    
     /* Obere rechte Ecke: Score und ResponseTime */
     #topRightInfo {
       position: fixed;
@@ -80,7 +116,11 @@
       color: #000;
       z-index: 10;
     }
-    /* Lage-Button: Fixiert am unteren Bildschirmrand, mittig, mit identischem Styling wie das Menü */
+    body.dark-mode #topRightInfo {
+      color: #e0e0e0;
+    }
+    
+    /* Lage-Button: Fixiert am unteren Bildschirmrand, mittig */
     #clefTitle {
       position: fixed;
       left: 50%;
@@ -94,14 +134,25 @@
       color: #000;
       cursor: pointer;
       z-index: 10;
-      transition: all 0.5s ease;
+      transition: all 0.5s ease, opacity 0.2s;
     }
-    /* Notenname-Anzeige (optional) */
+    /* Dark-Mode: Lage-Button mit schwarzem Hintergrund und weißem Rahmen */
+    body.dark-mode #clefTitle {
+      background: #000000;
+      border-color: #ffffff;
+      color: #ffffff;
+    }
+    
+    /* Notenname-Anzeige */
     #noteNameDisplay {
       margin-top: 10px;
       font-size: 1.5em;
       color: #000;
     }
+    body.dark-mode #noteNameDisplay {
+      color: #e0e0e0;
+    }
+    
     /* Welcome Overlay */
     #welcomeOverlay {
       position: fixed;
@@ -115,11 +166,18 @@
       justify-content: center;
       align-items: center;
       z-index: 1000;
+      transition: background-color 0.3s;
+    }
+    body.dark-mode #welcomeOverlay {
+      background-color: #121212;
     }
     #welcomeMessage {
       font-size: 2.5em;
       color: #000;
       margin-bottom: 20px;
+    }
+    body.dark-mode #welcomeMessage {
+      color: #e0e0e0;
     }
   </style>
   
@@ -150,7 +208,13 @@
       "MC": ["c", "d", "e", "f", "g"]
     };
 
-    
+    // Globale Funktion updateScore
+    function updateScore() {
+      var scoreElem = document.getElementById("topRightInfo");
+      var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
+      scoreElem.innerHTML = "Score: " + percent + "%<br>" + "Time: " + Date.now();
+    }
+    window.updateScore = updateScore;
 
     // Umrechnung von MIDI Data1 in Notennamen und Oktave
     function midiNoteToName(noteNumber) {
@@ -181,6 +245,10 @@
         var pitch = midiInfo.note.toUpperCase() + midiInfo.octave;
         synth.triggerAttackRelease(pitch, "8n");
         document.getElementById("noteNameDisplay").textContent = midiInfo.note.toUpperCase() + "/" + midiInfo.octave;
+        
+        // Wenn eine Note gespielt wird: Füge "faded" zur Menügruppe und zum Lage-Button hinzu
+        document.getElementById("settingsPanel").classList.add("faded");
+        document.getElementById("clefTitle").classList.add("faded");
       }
     };
 
@@ -255,12 +323,27 @@
       document.getElementById("clefTitle").textContent = currentRange + "-Lage";
       generateSeries();
     }
+
+    // Dark-Mode Toggle: Schaltet die "dark-mode"-Klasse am Body
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+    }
+
+    // Hilfsfunktion, um "faded" wieder anzupassen, wenn die Maus in den Bereich fährt
+    function setupFadeOnHover(element) {
+      element.addEventListener("mouseenter", function() {
+        element.classList.remove("faded");
+      });
+      element.addEventListener("mouseleave", function() {
+        element.classList.add("faded");
+      });
+    }
   </script>
 </head>
 <body>
   <!-- Welcome Overlay -->
   <div id="welcomeOverlay">
-    <div id="welcomeMessage">Hallo!</div>
+    <div id="welcomeMessage">Hallo, schön dich zu sehen!</div>
   </div>
   
   <!-- Hauptinhalt -->
@@ -280,17 +363,19 @@
       </div>
       <div id="soundSettings">
         <span id="soundToggle">🔊</span>
+        <!-- Dark-Mode Toggle Button -->
+        <span id="darkModeToggle">🌙</span>
       </div>
     </div>
     
     <!-- Notationsbereich, fixiert in der Mitte -->
     <div id="notation"></div>
     
-    <!-- Lage-Button, fixiert am unteren Bildschirmrand, mittig -->
+    <!-- Lage-Button: Fixiert am unteren Bildschirmrand, mittig -->
     <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
     
     <!-- Notenname-Anzeige -->
-    <div id="noteNameDisplay" style="position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%); font-size: 1.5em; color: #000;"></div>
+    <div id="noteNameDisplay" style="position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%); font-size: 1.5em;"></div>
     
     <!-- Debug-Ausgabe -->
     <div id="nativeLog"></div>
@@ -305,7 +390,7 @@
       
       generateSeries();
       
-      // Handmodus-Buttons in settingsPanel konfigurieren
+      // Konfiguration der Handmodus-Buttons im Menü
       var modeButtons = document.querySelectorAll("#handSettings span");
       modeButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -320,7 +405,7 @@
         });
       });
       
-      // Level-Buttons in settingsPanel konfigurieren
+      // Konfiguration der Level-Buttons im Menü
       var levelButtons = document.querySelectorAll("#levelSettings span");
       levelButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
@@ -343,11 +428,29 @@
         });
       });
       
-      // Sound Toggle konfigurieren
+      // Sound Toggle
       var soundToggle = document.getElementById("soundToggle");
       soundToggle.addEventListener("click", function() {
         soundEnabled = !soundEnabled;
         soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
+      });
+      
+      // Dark-Mode Toggle
+      var darkModeToggle = document.getElementById("darkModeToggle");
+      darkModeToggle.addEventListener("click", function() {
+        toggleDarkMode();
+      });
+
+      // Füge "faded"-Effekt per Hover hinzu
+      setupFadeOnHover(document.getElementById("settingsPanel"));
+      setupFadeOnHover(document.getElementById("clefTitle"));
+      
+      // Event-Listener für die Leertaste (MIDI-Signal bei Space)
+      document.addEventListener("keydown", function(event) {
+        if (event.code === "Space") {
+          handleMIDIMessage(144, 60, 127);
+          console.log("Leertaste gedrückt: MIDI Signal gesendet.");
+        }
       });
     });
   </script>
