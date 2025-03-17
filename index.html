@@ -73,7 +73,7 @@
       animation: floatFade 2.5s ease-out forwards;
     }
     
-    /* Hauptinhalt (UI) */
+    /* Hauptinhalt (UI) – liegt über dem Notensystem */
     #mainContent {
       position: relative;
       z-index: 10;
@@ -120,10 +120,6 @@
       background: rgba(0, 0, 0, 0.1);
       border-radius: 10px;
     }
-    /* Faded-Zustand */
-    #settingsPanel.faded span,
-    #clefTitle.faded { opacity: 0.5 !important; }
-    
     /* Score & Time */
     #topRightInfo {
       position: fixed;
@@ -268,9 +264,8 @@
         synth.triggerAttackRelease(pitch, "8n");
         document.getElementById("noteNameDisplay").textContent = midiInfo.note.toUpperCase() + "/" + midiInfo.octave;
         
-        // Menü und Lage-Button ausgrauen
-        document.getElementById("settingsPanel").classList.add("faded");
-        document.getElementById("clefTitle").classList.add("faded");
+        // Hinweis: Hier wurde die automatische Ausblendung der Menüs entfernt.
+        // Die Menüs bleiben im normalen Zustand.
     
         if (!firstNotePlayed) {
           showMotivation("Los geht's!");
