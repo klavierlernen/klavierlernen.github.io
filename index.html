@@ -2,7 +2,9 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Notentraining 2235</title>
+  <title>Notentraining 2129</title>
+  <!-- Tone.js Bibliothek laden -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.37/Tone.js"></script>
   <style>
     html, body {
       height: 100%;
@@ -57,7 +59,7 @@
     .inactive-range {
       color: #000000;
     }
-    /* Mode- und Level-Buttons: ebenfalls schwarz */
+    /* Mode- und Level-Buttons */
     #modeSelector span, #levelSelector span {
       color: #000000;
     }
@@ -110,11 +112,25 @@
       font-size: 1.2em;
       color: #ff0000;
       margin-top: 10px;
+      display: block;
     }
-    /* Hauptinhalt: bleibt initial versteckt */
+    /* Hauptinhalt: wird erst eingeblendet, wenn MIDI aktiv ist */
     #mainContent {
       opacity: 0;
       transition: opacity 1s ease-in;
+    }
+    /* Sound Toggle Button neben Level-Auswahl */
+    #soundToggle {
+      cursor: pointer;
+      font-size: 2em;
+      margin: 8px;
+      padding: 16px 20px;
+      border: none;
+      background: none;
+      color: #000000;
+      transition: color 0.2s;
+      display: inline-block;
+      touch-action: manipulation;
     }
   </style>
   
@@ -127,9 +143,13 @@
     var correctAnswers = 0;
     var level = 3; // Standard-Level
     var selectedMode = "right"; // Standard: rechte Hand (Violinenschlüssel)
-    var midiConnected = false; // Wird true, wenn das Kabel erkannt ist
+    var midiConnected = false; // Wird true, wenn das Kabel erkannt wird
     var mainScreenShown = false; // Damit der Übergang nur einmal erfolgt
-
+    var soundEnabled = true; // Ton ist standardmäßig an
+    
+    // Erstelle einen Tone.js Synthesizer
+    var synth = new Tone.Synth().toDestination();
+    
     // Globale Funktion updateScore
     function updateScore() {
       var scoreElem = document.getElementById("score");
@@ -137,7 +157,7 @@
       scoreElem.textContent = "Score: " + percent + "%";
     }
     window.updateScore = updateScore;
-
+    
     // Umrechnung von MIDI Data1 in Notennamen und Oktave
     function midiNoteToName(noteNumber) {
       var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
@@ -145,8 +165,8 @@
       var noteName = noteNames[noteNumber % 12];
       return { note: noteName, octave: octave };
     }
-
-    // Funktion zum Übergang zum Hauptscreen, wenn das Kabel erkannt wurde
+    
+    // Funktion zum Übergang zum Hauptscreen, wenn das Kabel erkannt ist
     function proceedToMainScreen() {
       if (!mainScreenShown) {
         var welcomeOverlay = document.getElementById("welcomeOverlay");
@@ -161,7 +181,7 @@
         mainScreenShown = true;
       }
     }
-
+    
     // Funktion, die von Swift aufgerufen wird, um zu signalisieren, dass das Kabel eingesteckt ist.
     function setMidiConnected(status) {
       midiConnected = status;
@@ -173,20 +193,26 @@
       }
     }
     window.setMidiConnected = setMidiConnected;
-
+    
     // Globale Funktion handleMIDIMessage, die von Swift (via evaluateJavaScript) aufgerufen wird.
     window.handleMIDIMessage = function(status, data1, data2) {
       console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
       var nativeLog = document.getElementById("nativeLog");
       nativeLog.textContent = "MIDI: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
-
-      // Wenn eine MIDI-Nachricht empfangen wird, gilt die Verbindung als aktiv
+      
+      // Sobald eine MIDI-Nachricht empfangen wird, gilt die Verbindung als aktiv
       setMidiConnected(true);
-
+      
       if (status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         console.log("Umgewandelte Note:", midiInfo);
         document.getElementById("noteNameDisplay").textContent = midiInfo.note.toUpperCase() + "/" + midiInfo.octave;
+        // Spiele den Ton, wenn Sound aktiviert ist
+        if (soundEnabled) {
+          var pitch = midiInfo.note.toUpperCase() + midiInfo.octave;
+          // Nutze Tone.js, um die Note abzuspielen (8n = Achtelnote)
+          synth.triggerAttackRelease(pitch, "8n");
+        }
         if (seriesCounter < currentSeries.length) {
           var expected = currentSeries[seriesCounter];
           if (midiInfo.note === expected.note && midiInfo.octave === expected.octave) {
@@ -215,16 +241,16 @@
   </script>
 </head>
 <body>
-  <!-- Welcome Overlay: bleibt sichtbar, bis MIDI verbunden ist -->
+  <!-- Welcome Overlay -->
   <div id="welcomeOverlay">
-    <div id="welcomeMessage">Hallo, schön dich zu sehen!</div>
-    <div id="midiWarning">MIDI Verbindung nicht aktiv. Bitte verbinde das Kabel und öffne die App erneut</div>
+    <div id="welcomeMessage">Hallo Jan-Philipp, schön dich zu sehen! 🎹</div>
+    <div id="midiWarning">MIDI Verbindung nicht aktiv</div>
   </div>
   
-  <!-- Hauptinhalt: wird erst angezeigt, wenn die Verbindung aktiv ist -->
+  <!-- Hauptinhalt (wird erst eingeblendet, wenn MIDI-Verbindung aktiv ist) -->
   <div id="mainContent" style="opacity: 0;">
     <div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
-    <h1>TRAININGSMODUS</h1>
+    <h1>Notentraining</h1>
     
     <!-- Range-Auswahl -->
     <div id="rangeSelector">
@@ -242,12 +268,13 @@
       <span id="mode-both" class="inactive-mode">🙌</span>
     </div>
     
-    <!-- Level-Auswahl -->
+    <!-- Level-Auswahl plus Sound-Toggle nebenan -->
     <div id="levelSelector">
       <span id="level-1" class="inactive-level">1️⃣</span>
       <span id="level-2" class="inactive-level">2️⃣</span>
       <span id="level-3" class="active-level">3️⃣</span>
       <span id="level-random" class="inactive-level">🎉</span>
+      <span id="soundToggle">🔊</span>
     </div>
     
     <!-- Notensystem, Notenname, Score, ResponseTime, Debug -->
@@ -263,10 +290,20 @@
   
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-      // Die UI-Elemente werden konfiguriert, aber der Übergang zum Hauptinhalt erfolgt erst,
-      // wenn setMidiConnected(true) aufgerufen wird (also wenn das Kabel erkannt wird).
+      // Sound-Toggle konfigurieren
+      var soundToggle = document.getElementById("soundToggle");
+      soundToggle.addEventListener("click", function() {
+        soundEnabled = !soundEnabled;
+        // Aktualisiere das Icon: 🔊 für an, 🔇 für aus
+        soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
+      });
       
-      generateSeries();
+      // Falls innerhalb von 0 ms (sofort) keine MIDI-Daten erkannt wurden, bleibt die Warnung sichtbar.
+      setTimeout(function() {
+        if (!midiConnected) {
+          document.getElementById("midiWarning").style.display = "block";
+        }
+      }, 0);
       
       // Konfiguration der Range-Buttons
       var rangeButtons = document.querySelectorAll("#rangeSelector span");
@@ -298,7 +335,7 @@
       });
       
       // Konfiguration der Level-Buttons
-      var levelButtons = document.querySelectorAll("#levelSelector span");
+      var levelButtons = document.querySelectorAll("#levelSelector span:not(#soundToggle)");
       levelButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
           levelButtons.forEach(function(b) {
