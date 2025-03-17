@@ -229,8 +229,8 @@
     var totalAttempts = 0;
     var correctAnswers = 0;
     var level = 3; // Standard-Level
-    // selectedMode: "left", "right" oder "both"
-    var selectedMode = "both";
+    // Standardmodus: linke Hand in der C Lage
+    var selectedMode = "left";
     var rangeArray = ["C", "D", "F", "G", "MC"];
     var currentRangeIndex = 0;
     var currentRange = rangeArray[currentRangeIndex];
@@ -569,10 +569,10 @@
     <!-- Einstellungen-Menü -->
     <div id="settingsPanel" class="expanded">
       <div id="handSettings">
-        <!-- Nur der "both"-Modus ist initial aktiv -->
-        <span id="mode-left" class="inactive-mode">✋</span>
+        <!-- Standard: linke Hand (active) -->
+        <span id="mode-left" class="active-mode">✋</span>
         <span id="mode-right" class="inactive-mode" style="transform: scaleX(-1);">✋</span>
-        <span id="mode-both" class="active-mode">🙌</span>
+        <span id="mode-both" class="inactive-mode">🙌</span>
       </div>
       <div id="levelSettings">
         <span id="level-1" class="inactive-level">1️⃣</span>
