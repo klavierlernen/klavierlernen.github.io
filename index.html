@@ -22,60 +22,47 @@
       background-color: #121212;
       color: #e0e0e0;
     }
-    /* Container für Einhand-Notation (800px x 200px) */
-    #notation {
-      display: none; /* wird nur im Einhand-Modus genutzt */
+    /* Container für Notation (Einhand und Beidhändig) */
+    #notation, #notationContainer {
+      display: none;
       position: fixed;
-      top: 50%;
       left: 50%;
-      transform: translate(-50%, -50%);
-      width: 100%;
-      max-width: 800px;
+      transform: translateX(-50%);
+      max-width: 1200px;
       padding: 10px;
       box-sizing: border-box;
       z-index: 1;
-      
-      
     }
-    /* Container für beidhändige Notensysteme:
-       Feste Höhe: 200px + 5px Abstand + 200px = 405px.
-       Container wird zentriert und die Systeme werden linksbündig angeordnet. */
-    #notationContainer {
-      display: none; /* wird nur im "both"-Modus genutzt */
-      position: fixed;
-      width: 100%;
-      max-width: 800px;
-      height: 405px;
+    #notation {
       top: 50%;
-      left: 50%;
       transform: translate(-50%, -50%);
-      z-index: 1;
+      width: 100%;
+    }
+    #notationContainer {
+      top: 50%;
+      transform: translate(-50%, -50%);
+      height: 405px;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
       justify-content: center;
     }
-    /* Die beiden Notationsbereiche im Container */
     #notationTreble, #notationBass {
       width: 100%;
-      max-width: 800px;
+      max-width: 1200px;
       margin: 0;
     }
-    /* Abstand zwischen den beiden Systemen: 5px unter dem oberen System */
     #notationTreble { margin-bottom: 5px; }
     
-    /* SVG-Optimierung für scharfe Darstellung */
+    /* SVG-Optimierung */
     #notation svg, #notationTreble svg, #notationBass svg {
       width: 100%;
       height: auto;
       shape-rendering: crispEdges;
     }
-    #notation svg *,
-    #notationTreble svg *,
-    #notationBass svg * {
+    #notation svg *, #notationTreble svg *, #notationBass svg * {
       vector-effect: non-scaling-stroke;
     }
-    /* Im Dark Mode: Alle SVG-Elemente (außer farbiger Markierung) weiß */
     body.dark-mode #notation svg *,
     body.dark-mode #notationTreble svg *,
     body.dark-mode #notationBass svg * {
@@ -83,7 +70,7 @@
       fill: #ffffff !important;
     }
     
-    /* Motivationsfenster – etwas höher positioniert */
+    /* Motivationsfenster */
     #motivationOverlay {
       position: fixed;
       top: 20%;
@@ -106,17 +93,16 @@
       animation: floatFade 2.5s ease-out forwards;
     }
     
-    /* Hauptinhalt (UI) */
+    /* Hauptinhalt */
     #mainContent {
       position: relative;
       z-index: 10;
       opacity: 0;
-      transition: opacity 1s ease-in;
+      transition: opacity 0.5s ease-in;
       padding-bottom: 50px;
     }
-    h1 { margin: 20px 0; }
     
-    /* Einstellungen-Menü */
+    /* Kombiniertes Einstellungen-Menü als Spalte */
     #settingsPanel {
       position: fixed;
       left: 30px;
@@ -125,9 +111,11 @@
       background: #ffffff;
       border: 3px solid #000;
       border-radius: 20px;
-      padding: 5px;
+      padding: 10px;
       box-sizing: border-box;
-      display: inline-block;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       z-index: 10;
       transition: background 0.3s, border-color 0.3s, color 0.3s;
     }
@@ -139,16 +127,13 @@
       display: block;
       cursor: pointer;
       font-size: 1.8em;
-      margin: 4px 0;
+      margin: 8px 0;
       padding: 2px;
       text-align: center;
       background: none;
       border: none;
       transition: background 0.2s, opacity 0.2s;
     }
-    .active-mode, .active-level { opacity: 1; }
-    .inactive-mode, .inactive-level { opacity: 0.5; }
-    body.dark-mode #settingsPanel span { color: #ffffff; }
     #settingsPanel span:hover {
       background: rgba(0, 0, 0, 0.1);
       border-radius: 10px;
@@ -166,7 +151,7 @@
     }
     body.dark-mode #topRightInfo { color: #e0e0e0; }
     
-    /* Lage-Button – wird nur im Einhand-Modus angezeigt */
+    /* Lage-Button (nur im Einhand-Modus) */
     #clefTitle {
       display: block;
       position: fixed;
@@ -181,7 +166,7 @@
       color: #000;
       cursor: pointer;
       z-index: 10;
-      transition: all 0.5s ease, opacity 0.2s;
+      transition: all 0.5s ease;
     }
     body.dark-mode #clefTitle {
       background: #000000;
@@ -210,7 +195,7 @@
       justify-content: center;
       align-items: center;
       z-index: 1000;
-      transition: background-color 0.3s;
+      transition: opacity 0.5s ease-out;
     }
     body.dark-mode #welcomeOverlay { background-color: #121212; }
     #welcomeMessage {
@@ -219,38 +204,61 @@
       margin-bottom: 20px;
     }
     body.dark-mode #welcomeMessage { color: #e0e0e0; }
+    
+    /* Klasse zum Verbergen */
+    .hidden {
+      display: none !important;
+    }
+    
+    /* Alternativ: CSS-Zoom-Effekt (statt Größenanpassung im JS)
+    #notation, #notationContainer {
+      transform: scale(1.5);
+      transform-origin: center center;
+    }
+    */
   </style>
   
   <script>
     // Globale Variablen
-    var currentSeriesSingle = []; // Für Einhand-Modus
-    var currentSeriesTreble = []; // Für beidhändig – Treble
-    var currentSeriesBass = [];   // Für beidhändig – Bass
+    var currentSeriesSingle = [];
+    var currentSeriesTreble = [];
+    var currentSeriesBass = [];
     var seriesCounter = 0;
-    var seriesLength = 5; // Anzahl Noten pro System
+    var seriesLength = 5;
     var totalAttempts = 0;
     var correctAnswers = 0;
-    var level = 3; // Standard-Level
-    // Standardmodus: linke Hand in der C Lage
-    var selectedMode = "left";
+    
+    // Einstellungen für Hand und Level (kombiniert)
+    var handOptions = [
+      { mode: "left", symbol: "✋" },
+      { mode: "right", symbol: "✋", flip: true },
+      { mode: "both", symbol: "🙌" }
+    ];
+    var levelOptions = [
+      { level: 1, symbol: "1️⃣" },
+      { level: 2, symbol: "2️⃣" },
+      { level: 3, symbol: "3️⃣" },
+      { level: "random", symbol: "🎉" }
+    ];
+    var currentHandIndex = 0;
+    var currentLevelIndex = 2;
+    var selectedMode = handOptions[currentHandIndex].mode;
+    var level = levelOptions[currentLevelIndex].level;
+    
     var rangeArray = ["C", "D", "F", "G", "MC"];
     var currentRangeIndex = 0;
     var currentRange = rangeArray[currentRangeIndex];
     var soundEnabled = true;
     var firstNotePlayed = false;
-    // Für Motivationsnachrichten
     var correctNoteCount = 0;
     var nextMotivationThreshold = getRandomThreshold();
-    // Bei "both": Aktuelle Phase ("treble" oder "bass")
     var currentPhase = "treble";
     
-    // Gibt einen zufälligen Schwellenwert zwischen 2 und 5 zurück
     function getRandomThreshold() {
       return Math.floor(Math.random() * 4) + 2;
     }
     
     var motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
-    
     var synth = new Tone.Synth().toDestination();
     
     var rangeNotes = {
@@ -264,7 +272,7 @@
     function updateScore() {
       var scoreElem = document.getElementById("topRightInfo");
       var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
-      scoreElem.innerHTML = "Score: " + percent + "%<br>" + "Time: " + Date.now();
+      scoreElem.innerHTML = "Score: " + percent + "%<br>Time: " + Date.now();
     }
     window.updateScore = updateScore;
     
@@ -275,33 +283,21 @@
       return { note: noteName, octave: octave };
     }
     
-    // Angepasste MIDI-Bewertung unter Berücksichtigung enharmonischer Äquivalenz und Schwierigkeitslevel
     function isNoteCorrect(midiInfo) {
       var expected;
       if (selectedMode !== "both") {
         expected = currentSeriesSingle[seriesCounter];
       } else {
-        if (currentPhase === "treble") {
-          expected = currentSeriesTreble[seriesCounter];
-        } else if (currentPhase === "bass") {
-          expected = currentSeriesBass[seriesCounter];
-        }
+        expected = currentPhase === "treble" ? currentSeriesTreble[seriesCounter] : currentSeriesBass[seriesCounter];
       }
       if (!expected) return false;
-      
-      // Normalisiere beide Noten (in Kleinbuchstaben)
       var playedNote = midiInfo.note.toLowerCase();
       var expectedNote = expected.note.toLowerCase();
-      // Falls erwartete Note "bb" ist, akzeptiere auch "a#" als gleichwertig
-      if (expectedNote === "bb" && playedNote === "a#") {
-        playedNote = expectedNote;
-      }
+      if (expectedNote === "bb" && playedNote === "a#") { playedNote = expectedNote; }
       
       if (level === 1 || level === 3) {
-        // Exakter Vergleich: Note UND Oktave
         return (playedNote === expectedNote && midiInfo.octave === expected.octave);
       } else if (level === 2) {
-        // Nur Notenbuchstabe wird verglichen, Oktave ignoriert
         return (playedNote === expectedNote);
       } else if (level === "random") {
         return Math.random() < 0.5;
@@ -309,21 +305,17 @@
       return false;
     }
     
+    // Blendet das Overlay aus und zeigt den Hauptinhalt an.
     function proceedToMainScreen() {
       var welcomeOverlay = document.getElementById("welcomeOverlay");
-      welcomeOverlay.style.transition = "opacity 0.5s ease-out";
       welcomeOverlay.style.opacity = "0";
       setTimeout(function() {
-        welcomeOverlay.style.display = "none";
-        var mainContent = document.getElementById("mainContent");
-        mainContent.style.transition = "opacity 1s ease-in";
-        mainContent.style.opacity = "1";
+        welcomeOverlay.classList.add("hidden");
+        document.getElementById("mainContent").style.opacity = "1";
       }, 500);
     }
     
-    // Verbesserte MIDI-Überprüfung: Nutzt Bitmasken, um sicher Note-On (0x90 bis 0x9F) zu erkennen.
     window.handleMIDIMessage = function(status, data1, data2) {
-      // Falls status ein Event-Objekt ist
       if (status && status.data) {
         data1 = status.data[1];
         data2 = status.data[2];
@@ -335,17 +327,13 @@
         var pitch = midiInfo.note.toUpperCase() + midiInfo.octave;
         synth.triggerAttackRelease(pitch, "8n");
         document.getElementById("noteNameDisplay").textContent = pitch;
-        
         var isCorrect = isNoteCorrect(midiInfo);
         
-        // Setze die Farbe anhand des Ergebnisses: Grün = korrekt, Rot = falsch
         if (selectedMode !== "both") {
           currentSeriesSingle[seriesCounter].color = isCorrect ? "green" : "red";
           seriesCounter++;
           drawSeries();
-          if (seriesCounter >= currentSeriesSingle.length) {
-            generateSeries();
-          }
+          if (seriesCounter >= currentSeriesSingle.length) { generateSeries(); }
         } else {
           if (currentPhase === "treble") {
             currentSeriesTreble[seriesCounter].color = isCorrect ? "green" : "red";
@@ -357,18 +345,14 @@
               drawSeries();
               return;
             }
-          } else if (currentPhase === "bass") {
+          } else {
             currentSeriesBass[seriesCounter].color = isCorrect ? "green" : "red";
             seriesCounter++;
             drawSeries();
-            if (seriesCounter >= currentSeriesBass.length) {
-              generateSeries();
-              return;
-            }
+            if (seriesCounter >= currentSeriesBass.length) { generateSeries(); return; }
           }
         }
     
-        // Motivations- oder Fehleranzeige
         if (!firstNotePlayed) {
           showMotivation("🤟");
           firstNotePlayed = true;
@@ -436,16 +420,13 @@
         document.getElementById("notationContainer").style.display = "none";
         notationDiv.innerHTML = "";
         var ratio = window.devicePixelRatio || 1;
-        var baseWidth = 800;
+        var baseWidth = 1200; // Vergrößerte Breite
         var width = baseWidth * ratio;
-        var height = 200 * ratio;
+        var height = 300 * ratio; // Vergrößerte Höhe
         var renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
         renderer.resize(width, height);
         var svg = notationDiv.querySelector("svg");
-        if (svg) {
-          svg.setAttribute("width", baseWidth);
-          svg.setAttribute("height", 200);
-        }
+        if (svg) { svg.setAttribute("width", baseWidth); svg.setAttribute("height", 300); }
         var context = renderer.getContext();
         var stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
         if (currentSeriesSingle.length > 0) {
@@ -465,9 +446,8 @@
       } else {
         var container = document.getElementById("notationContainer");
         container.style.display = "flex";
-        container.style.alignItems = "flex-start"; // Systeme linksbündig
+        container.style.alignItems = "flex-start";
         container.innerHTML = "";
-        // Erstelle zwei Divs für Treble und Bass
         var notationTreble = document.createElement("div");
         notationTreble.id = "notationTreble";
         var notationBass = document.createElement("div");
@@ -475,19 +455,16 @@
         container.appendChild(notationTreble);
         container.appendChild(notationBass);
     
-        // Zeichne Treble-System
+        // Treble-System
         notationTreble.innerHTML = "";
         var ratio = window.devicePixelRatio || 1;
-        var baseWidth = 800;
+        var baseWidth = 1200; // Vergrößerte Breite
         var width = baseWidth * ratio;
-        var height = 200 * ratio;
+        var height = 300 * ratio; // Vergrößerte Höhe
         var rendererT = new Vex.Flow.Renderer(notationTreble, Vex.Flow.Renderer.Backends.SVG);
         rendererT.resize(width, height);
         var svgT = notationTreble.querySelector("svg");
-        if (svgT) {
-          svgT.setAttribute("width", baseWidth);
-          svgT.setAttribute("height", 200);
-        }
+        if (svgT) { svgT.setAttribute("width", baseWidth); svgT.setAttribute("height", 300); }
         var contextT = rendererT.getContext();
         var staveT = new Vex.Flow.Stave(10, 40, baseWidth - 20);
         if (currentSeriesTreble.length > 0) {
@@ -505,15 +482,12 @@
         new Vex.Flow.Formatter().joinVoices([voiceT]).format([voiceT], staveT.getWidth() - 20);
         voiceT.draw(contextT, staveT);
     
-        // Zeichne Bass-System
+        // Bass-System
         notationBass.innerHTML = "";
         var rendererB = new Vex.Flow.Renderer(notationBass, Vex.Flow.Renderer.Backends.SVG);
         rendererB.resize(width, height);
         var svgB = notationBass.querySelector("svg");
-        if (svgB) {
-          svgB.setAttribute("width", baseWidth);
-          svgB.setAttribute("height", 200);
-        }
+        if (svgB) { svgB.setAttribute("width", baseWidth); svgB.setAttribute("height", 300); }
         var contextB = rendererB.getContext();
         var staveB = new Vex.Flow.Stave(10, 40, baseWidth - 20);
         if (currentSeriesBass.length > 0) {
@@ -544,21 +518,73 @@
       document.body.classList.toggle("dark-mode");
     }
     
-    // Für Maus und Touch – passt die Opacity an
     function setupFadeOnHover(element) {
-      element.addEventListener("mouseenter", function() {
-        element.classList.remove("faded");
-      });
-      element.addEventListener("mouseleave", function() {
-        element.classList.add("faded");
-      });
-      element.addEventListener("touchstart", function() {
-        element.classList.remove("faded");
-      });
-      element.addEventListener("touchend", function() {
-        element.classList.add("faded");
-      });
+      element.addEventListener("mouseenter", function() { element.classList.remove("faded"); });
+      element.addEventListener("mouseleave", function() { element.classList.add("faded"); });
+      element.addEventListener("touchstart", function() { element.classList.remove("faded"); });
+      element.addEventListener("touchend", function() { element.classList.add("faded"); });
     }
+    
+    document.addEventListener("DOMContentLoaded", function() {
+      var settingsPanel = document.getElementById("settingsPanel");
+      var handToggle = document.createElement("span");
+      handToggle.id = "handToggle";
+      handToggle.textContent = handOptions[currentHandIndex].symbol;
+      if (handOptions[currentHandIndex].flip) { handToggle.style.transform = "scaleX(-1)"; }
+      settingsPanel.appendChild(handToggle);
+      
+      var levelToggle = document.createElement("span");
+      levelToggle.id = "levelToggle";
+      levelToggle.textContent = levelOptions[currentLevelIndex].symbol;
+      settingsPanel.appendChild(levelToggle);
+      
+      var soundToggle = document.createElement("span");
+      soundToggle.id = "soundToggle";
+      soundToggle.textContent = "🔊";
+      settingsPanel.appendChild(soundToggle);
+      
+      var darkModeToggle = document.createElement("span");
+      darkModeToggle.id = "darkModeToggle";
+      darkModeToggle.textContent = "🌙";
+      settingsPanel.appendChild(darkModeToggle);
+      
+      handToggle.addEventListener("click", function() {
+        currentHandIndex = (currentHandIndex + 1) % handOptions.length;
+        selectedMode = handOptions[currentHandIndex].mode;
+        handToggle.textContent = handOptions[currentHandIndex].symbol;
+        handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
+        generateSeries();
+      });
+      
+      levelToggle.addEventListener("click", function() {
+        currentLevelIndex = (currentLevelIndex + 1) % levelOptions.length;
+        level = levelOptions[currentLevelIndex].level;
+        levelToggle.textContent = levelOptions[currentLevelIndex].symbol;
+        generateSeries();
+      });
+      
+      soundToggle.addEventListener("click", function() {
+        soundEnabled = !soundEnabled;
+        soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
+      });
+      
+      darkModeToggle.addEventListener("click", function() {
+        toggleDarkMode();
+      });
+      
+      setupFadeOnHover(settingsPanel);
+      setupFadeOnHover(document.getElementById("clefTitle"));
+      
+      setTimeout(proceedToMainScreen, 3000);
+      generateSeries();
+      
+      document.addEventListener("keydown", function(event) {
+        if (event.code === "Space") {
+          handleMIDIMessage(144, 60, 127);
+          console.log("Leertaste gedrückt: MIDI Signal gesendet.");
+        }
+      });
+    });
   </script>
 </head>
 <body>
@@ -572,29 +598,7 @@
   
   <!-- Hauptinhalt -->
   <div id="mainContent" style="opacity: 0;">
-    <!-- Einstellungen-Menü -->
-    <div id="settingsPanel" class="expanded">
-      <div id="handSettings">
-        <!-- Standard: linke Hand (active) -->
-        <span id="mode-left" class="active-mode">✋</span>
-        <span id="mode-right" class="inactive-mode" style="transform: scaleX(-1);">✋</span>
-        <span id="mode-both" class="inactive-mode">🙌</span>
-      </div>
-      <br>
-      <div id="levelSettings">
-        <span id="level-1" class="inactive-level">1️⃣</span>
-        <span id="level-2" class="inactive-level">2️⃣</span>
-        <span id="level-3" class="active-level">3️⃣</span>
-        <span id="level-random" class="inactive-level">🎉</span>
-      </div>
-      <br>
-      <div id="soundSettings">
-        <span id="soundToggle">🔊</span>
-        <span id="darkModeToggle">🌙</span>
-      </div>
-    </div>
-    
-    <!-- Notationsbereich für Einhand -->
+    <!-- Notation für Einhand -->
     <div id="notation"></div>
     <!-- Container für Beidhändig -->
     <div id="notationContainer"></div>
@@ -605,71 +609,14 @@
     <!-- Notenname-Anzeige -->
     <div id="noteNameDisplay" style="position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%); font-size: 1.5em;"></div>
     
+    <!-- Score & Time -->
+    <div id="topRightInfo"></div>
+    
     <!-- Debug-Ausgabe -->
     <div id="nativeLog"></div>
   </div>
   
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      setTimeout(function() { proceedToMainScreen(); }, 3000);
-      generateSeries();
-      
-      // Hand-Modus-Buttons
-      var modeButtons = document.querySelectorAll("#handSettings span");
-      modeButtons.forEach(function(btn) {
-        btn.addEventListener("click", function() {
-          modeButtons.forEach(function(b) {
-            b.classList.remove("active-mode");
-            b.classList.add("inactive-mode");
-          });
-          btn.classList.remove("inactive-mode");
-          btn.classList.add("active-mode");
-          selectedMode = btn.id.split("-")[1];
-          generateSeries();
-        });
-      });
-      
-      // Level-Buttons
-      var levelButtons = document.querySelectorAll("#levelSettings span");
-      levelButtons.forEach(function(btn) {
-        btn.addEventListener("click", function() {
-          levelButtons.forEach(function(b) {
-            b.classList.remove("active-level");
-            b.classList.add("inactive-level");
-          });
-          btn.classList.remove("inactive-level");
-          btn.classList.add("active-level");
-          if (btn.id === "level-1") { level = 1; }
-          else if (btn.id === "level-2") { level = 2; }
-          else if (btn.id === "level-3") { level = 3; }
-          else if (btn.id === "level-random") { level = "random"; }
-          generateSeries();
-        });
-      });
-      
-      // Sound- und Dark-Mode-Toggle
-      var soundToggle = document.getElementById("soundToggle");
-      soundToggle.addEventListener("click", function() {
-        soundEnabled = !soundEnabled;
-        soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
-      });
-      
-      var darkModeToggle = document.getElementById("darkModeToggle");
-      darkModeToggle.addEventListener("click", function() {
-        toggleDarkMode();
-      });
-      
-      setupFadeOnHover(document.getElementById("settingsPanel"));
-      setupFadeOnHover(document.getElementById("clefTitle"));
-      
-      // Zum Testen: Leertaste löst ein MIDI-Signal aus
-      document.addEventListener("keydown", function(event) {
-        if (event.code === "Space") {
-          handleMIDIMessage(144, 60, 127);
-          console.log("Leertaste gedrückt: MIDI Signal gesendet.");
-        }
-      });
-    });
-  </script>
+  <!-- Einstellungen-Menü -->
+  <div id="settingsPanel"></div>
 </body>
 </html>
