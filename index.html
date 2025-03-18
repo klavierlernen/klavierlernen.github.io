@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>Notentraining</title>
   <!-- Tone.js laden -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.37/Tone.js"></script>
@@ -22,7 +22,8 @@
       background-color: #121212;
       color: #e0e0e0;
     }
-    /* Notationscontainer (Einhand und Beidhändig) – Notensystem in der absoluten Mitte */
+
+    /* Notationscontainer (Einhand und Beidhändig) – mittig positioniert */
     #notation, #notationContainer {
       display: none;
       position: fixed;
@@ -34,21 +35,25 @@
       box-sizing: border-box;
       z-index: 1;
     }
-    /* Für den beidseitigen Modus: Notensysteme mittig anordnen */
+
+    /* Bei Zweihandmodus beide Notensysteme zentriert und mit Abstand */
     #notationContainer {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      row-gap: -200px; /* Abstand zwischen Treble und Bass */
+      position: fixed;
+      top: 70%;
       height: auto;
     }
     #notationTreble, #notationBass {
       width: 100%;
       max-width: 1200px;
-      margin: 0 auto;
+      margin: 0 auto; /* Horizontale Zentrierung */
     }
     #notationTreble { margin-bottom: 5px; }
-    
+
     /* SVG-Optimierung */
     #notation svg, #notationTreble svg, #notationBass svg {
       width: 100%;
@@ -64,8 +69,8 @@
       stroke: #ffffff !important;
       fill: #ffffff !important;
     }
-    
-    /* Motivationsfenster – ohne Textschatten */
+
+    /* Motivationsfenster */
     #motivationOverlay {
       position: fixed;
       top: 20%;
@@ -87,7 +92,7 @@
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
     }
-    
+
     /* Game Over Overlay */
     #gameOverOverlay {
       position: fixed;
@@ -102,12 +107,11 @@
       font-size: 2em;
       display: none;
     }
-    /* Im Dark Mode weißen Rand hinzufügen */
     body.dark-mode #gameOverOverlay {
       border: 3px solid #ffffff;
     }
-    
-    /* Timer Container: rechte untere Ecke, vertikal zentriert */
+
+    /* Timer Container: rechte untere Ecke */
     #timerContainer {
       position: fixed;
       right: 10px;
@@ -118,7 +122,7 @@
       align-items: center;
       justify-content: center;
     }
-    
+
     /* Hauptinhalt */
     #mainContent {
       position: relative;
@@ -127,7 +131,7 @@
       transition: opacity 0.5s ease-in;
       padding-bottom: 50px;
     }
-    
+
     /* Einstellungen-Menü (links) */
     #settingsPanel {
       position: fixed;
@@ -164,7 +168,7 @@
       background: rgba(0, 0, 0, 0.1);
       border-radius: 10px;
     }
-    
+
     /* Score & Time */
     #topRightInfo {
       position: fixed;
@@ -176,7 +180,7 @@
       z-index: 10;
     }
     body.dark-mode #topRightInfo { color: #e0e0e0; }
-    
+
     /* Lage-Button (nur im Einhand-Modus) */
     #clefTitle {
       display: inline-block;
@@ -194,7 +198,7 @@
       border-color: #ffffff;
       color: #ffffff;
     }
-    
+
     /* Container für Herzen, direkt neben dem Lagenbutton */
     #heartsContainer {
       display: inline-block;
@@ -202,7 +206,7 @@
       vertical-align: middle;
       font-size: 1.5em;
     }
-    
+
     /* Notenname-Anzeige */
     #noteNameDisplay {
       margin-top: 10px;
@@ -210,7 +214,7 @@
       color: #000;
     }
     body.dark-mode #noteNameDisplay { color: #e0e0e0; }
-    
+
     /* Welcome Overlay */
     #welcomeOverlay {
       position: fixed;
@@ -233,7 +237,7 @@
       margin-bottom: 20px;
     }
     body.dark-mode #welcomeMessage { color: #e0e0e0; }
-    
+
     /* Klasse zum Verbergen */
     .hidden {
       display: none !important;
@@ -249,15 +253,15 @@
     var seriesLength = 5;
     var totalAttempts = 0;
     var correctAnswers = 0;
-    
+
     // Herz-System: insgesamt 4 Herzen
     var hearts = 4;
     function updateHeartsDisplay() {
       var heartsElem = document.getElementById("heartsContainer");
       heartsElem.textContent = "❤️".repeat(hearts);
     }
-    
-    // Timer: Startzeit beim Laden der App, bleibt auch nach Game Over bestehen
+
+    // Timer: Startzeit bleibt auch nach Game Over erhalten
     var startTime = Date.now();
     function updateTimer() {
       var elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -272,7 +276,7 @@
       document.getElementById("timerContainer").textContent = display;
     }
     setInterval(updateTimer, 1000);
-    
+
     // Variable für Spielende
     var gameOver = false;
     function endGame() {
@@ -280,9 +284,10 @@
       var gameOverOverlay = document.getElementById("gameOverOverlay");
       gameOverOverlay.textContent = "Game Over!";
       gameOverOverlay.style.display = "block";
+      // Nach 5 Sekunden Reset
       setTimeout(resetGame, 5000);
     }
-    
+
     function resetGame() {
       hearts = 4;
       gameOver = false;
@@ -296,8 +301,8 @@
       generateSeries();
       updateHeartsDisplay();
     }
-    
-    // Einstellungen für Hand und Level (kombiniert)
+
+    // Einstellungen für Hand und Level
     var handOptions = [
       { mode: "left", symbol: "✋" },
       { mode: "right", symbol: "✋", flip: true },
@@ -313,7 +318,7 @@
     var currentLevelIndex = 2;
     var selectedMode = handOptions[currentHandIndex].mode;
     var level = levelOptions[currentLevelIndex].level;
-    
+
     var rangeArray = ["C", "D", "F", "G", "MC"];
     var currentRangeIndex = 0;
     var currentRange = rangeArray[currentRangeIndex];
@@ -322,14 +327,14 @@
     var correctNoteCount = 0;
     var nextMotivationThreshold = getRandomThreshold();
     var currentPhase = "treble";
-    
+
     function getRandomThreshold() {
       return Math.floor(Math.random() * 4) + 2;
     }
-    
+
     var motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
     var synth = new Tone.Synth().toDestination();
-    
+
     var rangeNotes = {
       "C": ["c", "d", "e", "f", "g"],
       "D": ["d", "e", "f#", "g", "a"],
@@ -337,21 +342,21 @@
       "G": ["g", "a", "b", "c", "d"],
       "MC": ["c", "d", "e", "f", "g"]
     };
-    
+
     function updateScore() {
       var scoreElem = document.getElementById("topRightInfo");
       var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
       scoreElem.innerHTML = "Score: " + percent + "%<br>Time: " + Date.now();
     }
     window.updateScore = updateScore;
-    
+
     function midiNoteToName(noteNumber) {
       var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
       var octave = Math.floor(noteNumber / 12) - 1;
       var noteName = noteNames[noteNumber % 12];
       return { note: noteName, octave: octave };
     }
-    
+
     function isNoteCorrect(midiInfo) {
       var expected;
       if (selectedMode !== "both") {
@@ -360,20 +365,25 @@
         expected = currentPhase === "treble" ? currentSeriesTreble[seriesCounter] : currentSeriesBass[seriesCounter];
       }
       if (!expected) return false;
+
       var playedNote = midiInfo.note.toLowerCase();
       var expectedNote = expected.note.toLowerCase();
-      if (expectedNote === "bb" && playedNote === "a#") { playedNote = expectedNote; }
-      
+      // bb <-> a# abgleichen
+      if (expectedNote === "bb" && playedNote === "a#") {
+        playedNote = expectedNote;
+      }
+
       if (level === 1 || level === 3) {
         return (playedNote === expectedNote && midiInfo.octave === expected.octave);
       } else if (level === 2) {
         return (playedNote === expectedNote);
       } else if (level === "random") {
+        // Dummy: 50% Zufall
         return Math.random() < 0.5;
       }
       return false;
     }
-    
+
     function proceedToMainScreen() {
       var welcomeOverlay = document.getElementById("welcomeOverlay");
       welcomeOverlay.style.opacity = "0";
@@ -382,7 +392,7 @@
         document.getElementById("mainContent").style.opacity = "1";
       }, 500);
     }
-    
+
     window.handleMIDIMessage = function(status, data1, data2) {
       if (gameOver) return;
       
@@ -392,18 +402,22 @@
         status = status.data[0];
       }
       console.log("handleMIDIMessage:", status, data1, data2);
+
       if (soundEnabled && ((status & 0xF0) === 144) && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         var pitch = midiInfo.note.toUpperCase() + midiInfo.octave;
         synth.triggerAttackRelease(pitch, "8n");
         document.getElementById("noteNameDisplay").textContent = pitch;
         var isCorrect = isNoteCorrect(midiInfo);
-        
+
+        // Einhand vs. Zweihand
         if (selectedMode !== "both") {
           currentSeriesSingle[seriesCounter].color = isCorrect ? "green" : "red";
           seriesCounter++;
           drawSeries();
-          if (seriesCounter >= currentSeriesSingle.length) { generateSeries(); }
+          if (seriesCounter >= currentSeriesSingle.length) {
+            generateSeries();
+          }
         } else {
           if (currentPhase === "treble") {
             currentSeriesTreble[seriesCounter].color = isCorrect ? "green" : "red";
@@ -419,10 +433,13 @@
             currentSeriesBass[seriesCounter].color = isCorrect ? "green" : "red";
             seriesCounter++;
             drawSeries();
-            if (seriesCounter >= currentSeriesBass.length) { generateSeries(); return; }
+            if (seriesCounter >= currentSeriesBass.length) {
+              generateSeries();
+              return;
+            }
           }
         }
-    
+
         if (!firstNotePlayed) {
           showMotivation("🤟");
           firstNotePlayed = true;
@@ -448,7 +465,7 @@
         }
       }
     };
-    
+
     function showMotivation(customMessage) {
       var motivationDiv = document.getElementById("motivationOverlay");
       var message = customMessage || motivationMessages[Math.floor(Math.random() * motivationMessages.length)];
@@ -458,51 +475,78 @@
         motivationDiv.classList.remove("animate-motivation");
       }, 2500);
     }
-    
+
     function generateSeries() {
       seriesCounter = 0;
       firstNotePlayed = false;
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
-      
+
       if (selectedMode !== "both") {
+        // Einhand: nur ein Array
         currentSeriesSingle = [];
         for (var i = 0; i < seriesLength; i++) {
           var randomIndex = Math.floor(Math.random() * rangeNotes[currentRange].length);
-          var clef = selectedMode === "left" ? "bass" : "treble";
-          var octave = selectedMode === "left" ? 3 : 4;
-          currentSeriesSingle.push({ note: rangeNotes[currentRange][randomIndex], octave: octave, clef: clef, color: "black" });
+          var clef = (selectedMode === "left") ? "bass" : "treble";
+          var octave = (selectedMode === "left") ? 3 : 4;
+          currentSeriesSingle.push({
+            note: rangeNotes[currentRange][randomIndex],
+            octave: octave,
+            clef: clef,
+            color: "black"
+          });
         }
         currentPhase = "single";
         drawSeries();
       } else {
+        // Zweihand: Treble- & Bass-Array
         currentSeriesTreble = [];
         currentSeriesBass = [];
         for (var i = 0; i < seriesLength; i++) {
           var randomIndexT = Math.floor(Math.random() * rangeNotes[currentRange].length);
           var randomIndexB = Math.floor(Math.random() * rangeNotes[currentRange].length);
-          currentSeriesTreble.push({ note: rangeNotes[currentRange][randomIndexT], octave: 4, clef: "treble", color: "black" });
-          currentSeriesBass.push({ note: rangeNotes[currentRange][randomIndexB], octave: 3, clef: "bass", color: "black" });
+          currentSeriesTreble.push({
+            note: rangeNotes[currentRange][randomIndexT],
+            octave: 4,
+            clef: "treble",
+            color: "black"
+          });
+          currentSeriesBass.push({
+            note: rangeNotes[currentRange][randomIndexB],
+            octave: 3,
+            clef: "bass",
+            color: "black"
+          });
         }
         currentPhase = "treble";
         drawSeries();
       }
     }
-    
+
     function drawSeries() {
+      var notationDiv = document.getElementById("notation");
+      var container = document.getElementById("notationContainer");
+
       if (selectedMode !== "both") {
-        var notationDiv = document.getElementById("notation");
+        // Einhand
         notationDiv.style.display = "block";
-        document.getElementById("notationContainer").style.display = "none";
-        notationDiv.innerHTML = "";
+        notationDiv.innerHTML = "";         // Altinhalte entfernen
+        container.style.display = "none";
+        container.innerHTML = "";           // Altinhalte entfernen
+
         var ratio = window.devicePixelRatio || 1;
         var baseWidth = 800;
         var width = baseWidth * ratio;
         var height = 300 * ratio;
         var renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
         renderer.resize(width, height);
+
         var svg = notationDiv.querySelector("svg");
-        if (svg) { svg.setAttribute("width", baseWidth); svg.setAttribute("height", 300); }
+        if (svg) {
+          svg.setAttribute("width", baseWidth);
+          svg.setAttribute("height", 300);
+        }
+
         var context = renderer.getContext();
         var stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
         if (currentSeriesSingle.length > 0) {
@@ -513,33 +557,44 @@
             clef: item.clef,
             keys: [item.note + "/" + item.octave],
             duration: "q"
-          }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
+          }).setStyle({
+            fillStyle: item.color,
+            strokeStyle: item.color
+          });
         });
+
         var voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
-        staveNotes.forEach(function(note) { voice.addTickable(note); });
+        staveNotes.forEach(function(note) {
+          voice.addTickable(note);
+        });
+
         new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
         voice.draw(context, stave);
+
       } else {
-        var container = document.getElementById("notationContainer");
+        // Zweihand
         container.style.display = "flex";
-        container.innerHTML = "";
-        var notationTreble = document.createElement("div");
-        notationTreble.id = "notationTreble";
-        var notationBass = document.createElement("div");
-        notationBass.id = "notationBass";
-        container.appendChild(notationTreble);
-        container.appendChild(notationBass);
-    
-        // Treble-System
-        notationTreble.innerHTML = "";
+        container.innerHTML = "";           // Altinhalte entfernen
+        notationDiv.style.display = "none";
+        notationDiv.innerHTML = "";         // Altinhalte entfernen
+
         var ratio = window.devicePixelRatio || 1;
         var baseWidth = 800;
         var width = baseWidth * ratio;
         var height = 300 * ratio;
+
+        // Oberes System (Treble)
+        var notationTreble = document.createElement("div");
+        notationTreble.id = "notationTreble";
+        container.appendChild(notationTreble);
+
         var rendererT = new Vex.Flow.Renderer(notationTreble, Vex.Flow.Renderer.Backends.SVG);
         rendererT.resize(width, height);
         var svgT = notationTreble.querySelector("svg");
-        if (svgT) { svgT.setAttribute("width", baseWidth); svgT.setAttribute("height", 300); }
+        if (svgT) {
+          svgT.setAttribute("width", baseWidth);
+          svgT.setAttribute("height", 300);
+        }
         var contextT = rendererT.getContext();
         var staveT = new Vex.Flow.Stave(10, 40, baseWidth - 20);
         if (currentSeriesTreble.length > 0) {
@@ -550,19 +605,30 @@
             clef: "treble",
             keys: [item.note + "/" + item.octave],
             duration: "q"
-          }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
+          }).setStyle({
+            fillStyle: item.color,
+            strokeStyle: item.color
+          });
         });
         var voiceT = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
-        staveNotesT.forEach(function(note) { voiceT.addTickable(note); });
+        staveNotesT.forEach(function(note) {
+          voiceT.addTickable(note);
+        });
         new Vex.Flow.Formatter().joinVoices([voiceT]).format([voiceT], staveT.getWidth() - 20);
         voiceT.draw(contextT, staveT);
-    
-        // Bass-System
-        notationBass.innerHTML = "";
+
+        // Unteres System (Bass)
+        var notationBass = document.createElement("div");
+        notationBass.id = "notationBass";
+        container.appendChild(notationBass);
+
         var rendererB = new Vex.Flow.Renderer(notationBass, Vex.Flow.Renderer.Backends.SVG);
         rendererB.resize(width, height);
         var svgB = notationBass.querySelector("svg");
-        if (svgB) { svgB.setAttribute("width", baseWidth); svgB.setAttribute("height", 300); }
+        if (svgB) {
+          svgB.setAttribute("width", baseWidth);
+          svgB.setAttribute("height", 300);
+        }
         var contextB = rendererB.getContext();
         var staveB = new Vex.Flow.Stave(10, 40, baseWidth - 20);
         if (currentSeriesBass.length > 0) {
@@ -573,56 +639,63 @@
             clef: "bass",
             keys: [item.note + "/" + item.octave],
             duration: "q"
-          }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
+          }).setStyle({
+            fillStyle: item.color,
+            strokeStyle: item.color
+          });
         });
         var voiceB = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
-        staveNotesB.forEach(function(note) { voiceB.addTickable(note); });
+        staveNotesB.forEach(function(note) {
+          voiceB.addTickable(note);
+        });
         new Vex.Flow.Formatter().joinVoices([voiceB]).format([voiceB], staveB.getWidth() - 20);
         voiceB.draw(contextB, staveB);
       }
     }
-    
+
     function cycleRange() {
       currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
       currentRange = rangeArray[currentRangeIndex];
       document.getElementById("clefTitle").textContent = currentRange + "-Lage";
       generateSeries();
     }
-    
+
     function toggleDarkMode() {
       document.body.classList.toggle("dark-mode");
     }
-    
+
     function setupFadeOnHover(element) {
       element.addEventListener("mouseenter", function() { element.classList.remove("faded"); });
       element.addEventListener("mouseleave", function() { element.classList.add("faded"); });
       element.addEventListener("touchstart", function() { element.classList.remove("faded"); });
       element.addEventListener("touchend", function() { element.classList.add("faded"); });
     }
-    
+
     document.addEventListener("DOMContentLoaded", function() {
       var settingsPanel = document.getElementById("settingsPanel");
       var handToggle = document.createElement("span");
       handToggle.id = "handToggle";
       handToggle.textContent = handOptions[currentHandIndex].symbol;
-      if (handOptions[currentHandIndex].flip) { handToggle.style.transform = "scaleX(-1)"; }
+      if (handOptions[currentHandIndex].flip) {
+        handToggle.style.transform = "scaleX(-1)";
+      }
       settingsPanel.appendChild(handToggle);
-      
+
       var levelToggle = document.createElement("span");
       levelToggle.id = "levelToggle";
       levelToggle.textContent = levelOptions[currentLevelIndex].symbol;
       settingsPanel.appendChild(levelToggle);
-      
+
       var soundToggle = document.createElement("span");
       soundToggle.id = "soundToggle";
       soundToggle.textContent = "🔊";
       settingsPanel.appendChild(soundToggle);
-      
+
       var darkModeToggle = document.createElement("span");
       darkModeToggle.id = "darkModeToggle";
       darkModeToggle.textContent = "🌙";
       settingsPanel.appendChild(darkModeToggle);
-      
+
       handToggle.addEventListener("click", function() {
         currentHandIndex = (currentHandIndex + 1) % handOptions.length;
         selectedMode = handOptions[currentHandIndex].mode;
@@ -630,31 +703,32 @@
         handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
         generateSeries();
       });
-      
+
       levelToggle.addEventListener("click", function() {
         currentLevelIndex = (currentLevelIndex + 1) % levelOptions.length;
         level = levelOptions[currentLevelIndex].level;
         levelToggle.textContent = levelOptions[currentLevelIndex].symbol;
         generateSeries();
       });
-      
+
       soundToggle.addEventListener("click", function() {
         soundEnabled = !soundEnabled;
         soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
       });
-      
+
       darkModeToggle.addEventListener("click", function() {
         toggleDarkMode();
       });
-      
+
       setupFadeOnHover(settingsPanel);
       setupFadeOnHover(document.getElementById("clefTitle"));
-      
-      // Initiale Anzeige: Willkommen-Bildschirm, Serien, Herzen
+
+      // Willkommensbildschirm ausblenden und Spiel starten
       setTimeout(proceedToMainScreen, 3000);
       generateSeries();
       updateHeartsDisplay();
-      
+
+      // Debug: Leertaste simuliert MIDI-Note
       document.addEventListener("keydown", function(event) {
         if (event.code === "Space") {
           handleMIDIMessage(144, 60, 127);
@@ -669,39 +743,39 @@
   <div id="welcomeOverlay">
     <div id="welcomeMessage">Hallo, schön dich zu sehen!<br>V23:45</div>
   </div>
-  
+
   <!-- Game Over Overlay -->
   <div id="gameOverOverlay"></div>
-  
+
   <!-- Motivationsfenster -->
   <div id="motivationOverlay"></div>
-  
+
   <!-- Timer Container -->
   <div id="timerContainer"></div>
-  
+
   <!-- Hauptinhalt -->
   <div id="mainContent" style="opacity: 0;">
-    <!-- Notation für Einhand -->
+    <!-- Notation (Einhand) -->
     <div id="notation"></div>
-    <!-- Container für Beidhändig -->
+    <!-- Container (Zweihand) -->
     <div id="notationContainer"></div>
-    
-    <!-- Lage-Button und Herzen (nebeneinander, mittig ausgerichtet) -->
+
+    <!-- Lage-Button & Herzen -->
     <div style="position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); display: flex; align-items: center;">
       <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
       <div id="heartsContainer" style="margin-left: 10px;"></div>
     </div>
-    
+
     <!-- Notenname-Anzeige -->
     <div id="noteNameDisplay" style="position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%); font-size: 1.5em;"></div>
-    
+
     <!-- Score & Time -->
     <div id="topRightInfo"></div>
-    
+
     <!-- Debug-Ausgabe -->
     <div id="nativeLog"></div>
   </div>
-  
+
   <!-- Einstellungen-Menü -->
   <div id="settingsPanel"></div>
 </body>
