@@ -22,12 +22,12 @@
       background-color: #121212;
       color: #e0e0e0;
     }
-    /* Container für Notation (Einhand und Beidhändig) – zentriert */
+    /* Notationscontainer (Einhand und Beidhändig) – Notensystem in der absoluten Mitte */
     #notation, #notationContainer {
       display: none;
       position: fixed;
       left: 50%;
-      top: 50%;
+      top: 75%;
       transform: translate(-50%, -50%);
       max-width: 800px;
       padding: 10px;
@@ -128,7 +128,7 @@
       padding-bottom: 50px;
     }
     
-    /* Kombiniertes Einstellungen-Menü als Spalte */
+    /* Einstellungen-Menü (links) */
     #settingsPanel {
       position: fixed;
       left: 30px;
@@ -280,12 +280,10 @@
       var gameOverOverlay = document.getElementById("gameOverOverlay");
       gameOverOverlay.textContent = "Game Over!";
       gameOverOverlay.style.display = "block";
-      // Nach 5 Sekunden Spiel zurücksetzen (Timer bleibt erhalten)
       setTimeout(resetGame, 5000);
     }
     
     function resetGame() {
-      // Zurücksetzen der Spielvariablen (ohne Timer)
       hearts = 4;
       gameOver = false;
       seriesCounter = 0;
@@ -376,7 +374,6 @@
       return false;
     }
     
-    // Blendet das Welcome Overlay aus und zeigt den Hauptinhalt an.
     function proceedToMainScreen() {
       var welcomeOverlay = document.getElementById("welcomeOverlay");
       welcomeOverlay.style.opacity = "0";
