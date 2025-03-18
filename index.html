@@ -22,35 +22,30 @@
       background-color: #121212;
       color: #e0e0e0;
     }
-    /* Container für Notation (Einhand und Beidhändig) */
+    /* Container für Notation (Einhand und Beidhändig) – zentriert */
     #notation, #notationContainer {
       display: none;
       position: fixed;
       left: 50%;
-      transform: translateX(-50%);
+      top: 50%;
+      transform: translate(-50%, -50%);
       max-width: 800px;
       padding: 10px;
       box-sizing: border-box;
       z-index: 1;
     }
-    #notation {
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: 100%;
-    }
+    /* Für den beidseitigen Modus: Notensysteme mittig anordnen */
     #notationContainer {
-      top: 50%;
-      transform: translate(-50%, -50%);
-      height: 405px;
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
+      align-items: center;
       justify-content: center;
+      height: auto;
     }
     #notationTreble, #notationBass {
       width: 100%;
       max-width: 1200px;
-      margin: 0;
+      margin: 0 auto;
     }
     #notationTreble { margin-bottom: 5px; }
     
@@ -70,7 +65,7 @@
       fill: #ffffff !important;
     }
     
-    /* Motivationsfenster */
+    /* Motivationsfenster – ohne Textschatten */
     #motivationOverlay {
       position: fixed;
       top: 20%;
@@ -81,7 +76,7 @@
       opacity: 0;
       font-size: 2em;
       color: #000000;
-      text-shadow: 1px 1px 2px rgba(255,255,255,0.7);
+      text-shadow: none;
     }
     @keyframes floatFade {
       0% { transform: translate(-50%, -50%) translateY(20px); opacity: 0; }
@@ -91,6 +86,37 @@
     }
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
+    }
+    
+    /* Game Over Overlay */
+    #gameOverOverlay {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+      background: rgba(0,0,0,0.8);
+      color: #ffffff;
+      padding: 30px;
+      border-radius: 15px;
+      font-size: 2em;
+      display: none;
+    }
+    /* Im Dark Mode weißen Rand hinzufügen */
+    body.dark-mode #gameOverOverlay {
+      border: 3px solid #ffffff;
+    }
+    
+    /* Timer Container: rechte untere Ecke, vertikal zentriert */
+    #timerContainer {
+      position: fixed;
+      right: 10px;
+      bottom: 30px;
+      font-size: 1.5em;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     
     /* Hauptinhalt */
@@ -153,11 +179,7 @@
     
     /* Lage-Button (nur im Einhand-Modus) */
     #clefTitle {
-      display: block;
-      position: fixed;
-      left: 50%;
-      bottom: 30px;
-      transform: translateX(-50%);
+      display: inline-block;
       background: #ffffff;
       border: 3px solid #000;
       border-radius: 20px;
@@ -165,13 +187,20 @@
       font-size: 1.5em;
       color: #000;
       cursor: pointer;
-      z-index: 10;
       transition: all 0.5s ease;
     }
     body.dark-mode #clefTitle {
       background: #000000;
       border-color: #ffffff;
       color: #ffffff;
+    }
+    
+    /* Container für Herzen, direkt neben dem Lagenbutton */
+    #heartsContainer {
+      display: inline-block;
+      margin-left: 10px;
+      vertical-align: middle;
+      font-size: 1.5em;
     }
     
     /* Notenname-Anzeige */
@@ -209,13 +238,6 @@
     .hidden {
       display: none !important;
     }
-    
-    /* Alternativ: CSS-Zoom-Effekt (statt Größenanpassung im JS)
-    #notation, #notationContainer {
-      transform: scale(1.5);
-      transform-origin: center center;
-    }
-    */
   </style>
   
   <script>
@@ -227,6 +249,55 @@
     var seriesLength = 5;
     var totalAttempts = 0;
     var correctAnswers = 0;
+    
+    // Herz-System: insgesamt 4 Herzen
+    var hearts = 4;
+    function updateHeartsDisplay() {
+      var heartsElem = document.getElementById("heartsContainer");
+      heartsElem.textContent = "❤️".repeat(hearts);
+    }
+    
+    // Timer: Startzeit beim Laden der App, bleibt auch nach Game Over bestehen
+    var startTime = Date.now();
+    function updateTimer() {
+      var elapsed = Math.floor((Date.now() - startTime) / 1000);
+      var display;
+      if (elapsed < 60) {
+        display = elapsed + " s";
+      } else {
+        var hours = Math.floor(elapsed / 3600);
+        var minutes = Math.floor((elapsed % 3600) / 60);
+        display = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
+      }
+      document.getElementById("timerContainer").textContent = display;
+    }
+    setInterval(updateTimer, 1000);
+    
+    // Variable für Spielende
+    var gameOver = false;
+    function endGame() {
+      gameOver = true;
+      var gameOverOverlay = document.getElementById("gameOverOverlay");
+      gameOverOverlay.textContent = "Game Over!";
+      gameOverOverlay.style.display = "block";
+      // Nach 5 Sekunden Spiel zurücksetzen (Timer bleibt erhalten)
+      setTimeout(resetGame, 5000);
+    }
+    
+    function resetGame() {
+      // Zurücksetzen der Spielvariablen (ohne Timer)
+      hearts = 4;
+      gameOver = false;
+      seriesCounter = 0;
+      totalAttempts = 0;
+      correctAnswers = 0;
+      firstNotePlayed = false;
+      correctNoteCount = 0;
+      nextMotivationThreshold = getRandomThreshold();
+      document.getElementById("gameOverOverlay").style.display = "none";
+      generateSeries();
+      updateHeartsDisplay();
+    }
     
     // Einstellungen für Hand und Level (kombiniert)
     var handOptions = [
@@ -305,7 +376,7 @@
       return false;
     }
     
-    // Blendet das Overlay aus und zeigt den Hauptinhalt an.
+    // Blendet das Welcome Overlay aus und zeigt den Hauptinhalt an.
     function proceedToMainScreen() {
       var welcomeOverlay = document.getElementById("welcomeOverlay");
       welcomeOverlay.style.opacity = "0";
@@ -316,6 +387,8 @@
     }
     
     window.handleMIDIMessage = function(status, data1, data2) {
+      if (gameOver) return;
+      
       if (status && status.data) {
         data1 = status.data[1];
         data2 = status.data[2];
@@ -367,7 +440,13 @@
               nextMotivationThreshold = getRandomThreshold();
             }
           } else {
+            hearts = Math.max(hearts - 1, 0);
+            updateHeartsDisplay();
             showMotivation("❌");
+            if (hearts === 0) {
+              endGame();
+              return;
+            }
           }
         }
       }
@@ -420,9 +499,9 @@
         document.getElementById("notationContainer").style.display = "none";
         notationDiv.innerHTML = "";
         var ratio = window.devicePixelRatio || 1;
-        var baseWidth = 800; // Vergrößerte Breite
+        var baseWidth = 800;
         var width = baseWidth * ratio;
-        var height = 300 * ratio; // Vergrößerte Höhe
+        var height = 300 * ratio;
         var renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
         renderer.resize(width, height);
         var svg = notationDiv.querySelector("svg");
@@ -446,7 +525,6 @@
       } else {
         var container = document.getElementById("notationContainer");
         container.style.display = "flex";
-        container.style.alignItems = "flex-start";
         container.innerHTML = "";
         var notationTreble = document.createElement("div");
         notationTreble.id = "notationTreble";
@@ -458,9 +536,9 @@
         // Treble-System
         notationTreble.innerHTML = "";
         var ratio = window.devicePixelRatio || 1;
-        var baseWidth = 800; // Vergrößerte Breite
+        var baseWidth = 800;
         var width = baseWidth * ratio;
-        var height = 300 * ratio; // Vergrößerte Höhe
+        var height = 300 * ratio;
         var rendererT = new Vex.Flow.Renderer(notationTreble, Vex.Flow.Renderer.Backends.SVG);
         rendererT.resize(width, height);
         var svgT = notationTreble.querySelector("svg");
@@ -575,8 +653,10 @@
       setupFadeOnHover(settingsPanel);
       setupFadeOnHover(document.getElementById("clefTitle"));
       
+      // Initiale Anzeige: Willkommen-Bildschirm, Serien, Herzen
       setTimeout(proceedToMainScreen, 3000);
       generateSeries();
+      updateHeartsDisplay();
       
       document.addEventListener("keydown", function(event) {
         if (event.code === "Space") {
@@ -593,8 +673,14 @@
     <div id="welcomeMessage">Hallo, schön dich zu sehen!<br>V23:45</div>
   </div>
   
+  <!-- Game Over Overlay -->
+  <div id="gameOverOverlay"></div>
+  
   <!-- Motivationsfenster -->
   <div id="motivationOverlay"></div>
+  
+  <!-- Timer Container -->
+  <div id="timerContainer"></div>
   
   <!-- Hauptinhalt -->
   <div id="mainContent" style="opacity: 0;">
@@ -603,8 +689,11 @@
     <!-- Container für Beidhändig -->
     <div id="notationContainer"></div>
     
-    <!-- Lage-Button (nur im Einhand-Modus) -->
-    <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
+    <!-- Lage-Button und Herzen (nebeneinander, mittig ausgerichtet) -->
+    <div style="position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); display: flex; align-items: center;">
+      <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
+      <div id="heartsContainer" style="margin-left: 10px;"></div>
+    </div>
     
     <!-- Notenname-Anzeige -->
     <div id="noteNameDisplay" style="position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%); font-size: 1.5em;"></div>
