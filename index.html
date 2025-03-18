@@ -23,7 +23,7 @@
       color: #e0e0e0;
     }
 
-    /* Notationscontainer (Einhand und Beidhändig) – mittig positioniert */
+    /* Notationscontainer (Einhand und Zweihand) – immer in der absoluten Mitte */
     #notation, #notationContainer {
       display: none;
       position: fixed;
@@ -35,22 +35,19 @@
       box-sizing: border-box;
       z-index: 1;
     }
-
-    /* Bei Zweihandmodus beide Notensysteme zentriert und mit Abstand */
+    /* Für Zweihand: beide Systeme (Treble & Bass) im Container mit Abstand */
     #notationContainer {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      row-gap: -200px; /* Abstand zwischen Treble und Bass */
-      position: fixed;
-      top: 70%;
+      row-gap: 20px;
       height: auto;
     }
     #notationTreble, #notationBass {
       width: 100%;
       max-width: 1200px;
-      margin: 0 auto; /* Horizontale Zentrierung */
+      margin: 0 auto;
     }
     #notationTreble { margin-bottom: 5px; }
 
@@ -70,7 +67,7 @@
       fill: #ffffff !important;
     }
 
-    /* Motivationsfenster */
+    /* Motivationsfenster (ohne Textschatten) */
     #motivationOverlay {
       position: fixed;
       top: 20%;
@@ -181,7 +178,7 @@
     }
     body.dark-mode #topRightInfo { color: #e0e0e0; }
 
-    /* Lage-Button (nur im Einhand-Modus) */
+    /* Lagewechsel-Button (Einhand) */
     #clefTitle {
       display: inline-block;
       background: #ffffff;
@@ -199,7 +196,17 @@
       color: #ffffff;
     }
 
-    /* Container für Herzen, direkt neben dem Lagenbutton */
+    /* Container für den Lagewechsel-Button und Herzen */
+    #buttonContainer {
+      position: fixed;
+      left: 50%;
+      bottom: 30px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      z-index: 50;
+    }
+    /* Container für Herzen, direkt neben dem Button */
     #heartsContainer {
       display: inline-block;
       margin-left: 10px;
@@ -243,7 +250,7 @@
       display: none !important;
     }
   </style>
-  
+
   <script>
     // Globale Variablen
     var currentSeriesSingle = [];
@@ -254,14 +261,14 @@
     var totalAttempts = 0;
     var correctAnswers = 0;
 
-    // Herz-System: insgesamt 4 Herzen
+    // Herz-System: 4 Herzen
     var hearts = 4;
     function updateHeartsDisplay() {
       var heartsElem = document.getElementById("heartsContainer");
       heartsElem.textContent = "❤️".repeat(hearts);
     }
 
-    // Timer: Startzeit bleibt auch nach Game Over erhalten
+    // Timer: Startzeit bleibt erhalten, auch nach Game Over
     var startTime = Date.now();
     function updateTimer() {
       var elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -277,17 +284,15 @@
     }
     setInterval(updateTimer, 1000);
 
-    // Variable für Spielende
+    // Spielende
     var gameOver = false;
     function endGame() {
       gameOver = true;
       var gameOverOverlay = document.getElementById("gameOverOverlay");
       gameOverOverlay.textContent = "Game Over!";
       gameOverOverlay.style.display = "block";
-      // Nach 5 Sekunden Reset
       setTimeout(resetGame, 5000);
     }
-
     function resetGame() {
       hearts = 4;
       gameOver = false;
@@ -365,20 +370,16 @@
         expected = currentPhase === "treble" ? currentSeriesTreble[seriesCounter] : currentSeriesBass[seriesCounter];
       }
       if (!expected) return false;
-
       var playedNote = midiInfo.note.toLowerCase();
       var expectedNote = expected.note.toLowerCase();
-      // bb <-> a# abgleichen
       if (expectedNote === "bb" && playedNote === "a#") {
         playedNote = expectedNote;
       }
-
       if (level === 1 || level === 3) {
         return (playedNote === expectedNote && midiInfo.octave === expected.octave);
       } else if (level === 2) {
         return (playedNote === expectedNote);
       } else if (level === "random") {
-        // Dummy: 50% Zufall
         return Math.random() < 0.5;
       }
       return false;
@@ -393,88 +394,89 @@
       }, 500);
     }
 
-    window.handleMIDIMessage = function(status, data1, data2) {
-      if (gameOver) return;
-      
-      if (status && status.data) {
-        data1 = status.data[1];
-        data2 = status.data[2];
-        status = status.data[0];
-      }
-      console.log("handleMIDIMessage:", status, data1, data2);
-
-      if (soundEnabled && ((status & 0xF0) === 144) && data2 > 0) {
-        var midiInfo = midiNoteToName(data1);
-        var pitch = midiInfo.note.toUpperCase() + midiInfo.octave;
-        synth.triggerAttackRelease(pitch, "8n");
-        document.getElementById("noteNameDisplay").textContent = pitch;
-        var isCorrect = isNoteCorrect(midiInfo);
-
-        // Einhand vs. Zweihand
-        if (selectedMode !== "both") {
-          currentSeriesSingle[seriesCounter].color = isCorrect ? "green" : "red";
-          seriesCounter++;
-          drawSeries();
-          if (seriesCounter >= currentSeriesSingle.length) {
-            generateSeries();
-          }
-        } else {
-          if (currentPhase === "treble") {
-            currentSeriesTreble[seriesCounter].color = isCorrect ? "green" : "red";
-            seriesCounter++;
-            drawSeries();
-            if (seriesCounter >= currentSeriesTreble.length) {
-              currentPhase = "bass";
-              seriesCounter = 0;
-              drawSeries();
-              return;
-            }
-          } else {
-            currentSeriesBass[seriesCounter].color = isCorrect ? "green" : "red";
-            seriesCounter++;
-            drawSeries();
-            if (seriesCounter >= currentSeriesBass.length) {
-              generateSeries();
-              return;
-            }
-          }
-        }
-
-        if (!firstNotePlayed) {
-          showMotivation("🤟");
-          firstNotePlayed = true;
-          correctNoteCount = 0;
-          nextMotivationThreshold = getRandomThreshold();
-        } else {
-          if (isCorrect) {
-            correctNoteCount++;
-            if (correctNoteCount >= nextMotivationThreshold) {
-              showMotivation();
-              correctNoteCount = 0;
-              nextMotivationThreshold = getRandomThreshold();
-            }
-          } else {
-            hearts = Math.max(hearts - 1, 0);
-            updateHeartsDisplay();
-            showMotivation("❌");
-            if (hearts === 0) {
-              endGame();
-              return;
-            }
-          }
-        }
-      }
-    };
-
-    function showMotivation(customMessage) {
-      var motivationDiv = document.getElementById("motivationOverlay");
-      var message = customMessage || motivationMessages[Math.floor(Math.random() * motivationMessages.length)];
-      motivationDiv.textContent = message;
-      motivationDiv.classList.add("animate-motivation");
-      setTimeout(function() {
-        motivationDiv.classList.remove("animate-motivation");
-      }, 2500);
+    // Der Lagewechsel-Button: Wechselt die "Lage" und erzeugt neue Notation
+    function cycleRange() {
+      currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
+      currentRange = rangeArray[currentRangeIndex];
+      document.getElementById("clefTitle").textContent = currentRange + "-Lage";
+      generateSeries();
+      updateHeartsDisplay();
     }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+    }
+
+    function setupFadeOnHover(element) {
+      element.addEventListener("mouseenter", function() { element.classList.remove("faded"); });
+      element.addEventListener("mouseleave", function() { element.classList.add("faded"); });
+      element.addEventListener("touchstart", function() { element.classList.remove("faded"); });
+      element.addEventListener("touchend", function() { element.classList.add("faded"); });
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+      var settingsPanel = document.getElementById("settingsPanel");
+      var handToggle = document.createElement("span");
+      handToggle.id = "handToggle";
+      handToggle.textContent = handOptions[currentHandIndex].symbol;
+      if (handOptions[currentHandIndex].flip) {
+        handToggle.style.transform = "scaleX(-1)";
+      }
+      settingsPanel.appendChild(handToggle);
+
+      var levelToggle = document.createElement("span");
+      levelToggle.id = "levelToggle";
+      levelToggle.textContent = levelOptions[currentLevelIndex].symbol;
+      settingsPanel.appendChild(levelToggle);
+
+      var soundToggle = document.createElement("span");
+      soundToggle.id = "soundToggle";
+      soundToggle.textContent = "🔊";
+      settingsPanel.appendChild(soundToggle);
+
+      var darkModeToggle = document.createElement("span");
+      darkModeToggle.id = "darkModeToggle";
+      darkModeToggle.textContent = "🌙";
+      settingsPanel.appendChild(darkModeToggle);
+
+      handToggle.addEventListener("click", function() {
+        currentHandIndex = (currentHandIndex + 1) % handOptions.length;
+        selectedMode = handOptions[currentHandIndex].mode;
+        handToggle.textContent = handOptions[currentHandIndex].symbol;
+        handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
+        generateSeries();
+      });
+
+      levelToggle.addEventListener("click", function() {
+        currentLevelIndex = (currentLevelIndex + 1) % levelOptions.length;
+        level = levelOptions[currentLevelIndex].level;
+        levelToggle.textContent = levelOptions[currentLevelIndex].symbol;
+        generateSeries();
+      });
+
+      soundToggle.addEventListener("click", function() {
+        soundEnabled = !soundEnabled;
+        soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
+      });
+
+      darkModeToggle.addEventListener("click", function() {
+        toggleDarkMode();
+      });
+
+      setupFadeOnHover(settingsPanel);
+      setupFadeOnHover(document.getElementById("clefTitle"));
+
+      setTimeout(proceedToMainScreen, 3000);
+      generateSeries();
+      updateHeartsDisplay();
+
+      document.addEventListener("keydown", function(event) {
+        if (event.code === "Space") {
+          handleMIDIMessage(144, 60, 127);
+          console.log("Leertaste gedrückt: MIDI Signal gesendet.");
+        }
+      });
+    });
 
     function generateSeries() {
       seriesCounter = 0;
@@ -483,7 +485,6 @@
       nextMotivationThreshold = getRandomThreshold();
 
       if (selectedMode !== "both") {
-        // Einhand: nur ein Array
         currentSeriesSingle = [];
         for (var i = 0; i < seriesLength; i++) {
           var randomIndex = Math.floor(Math.random() * rangeNotes[currentRange].length);
@@ -499,7 +500,6 @@
         currentPhase = "single";
         drawSeries();
       } else {
-        // Zweihand: Treble- & Bass-Array
         currentSeriesTreble = [];
         currentSeriesBass = [];
         for (var i = 0; i < seriesLength; i++) {
@@ -528,11 +528,11 @@
       var container = document.getElementById("notationContainer");
 
       if (selectedMode !== "both") {
-        // Einhand
+        // Einhandmodus: #notation anzeigen, #notationContainer verstecken
         notationDiv.style.display = "block";
-        notationDiv.innerHTML = "";         // Altinhalte entfernen
+        notationDiv.innerHTML = "";
         container.style.display = "none";
-        container.innerHTML = "";           // Altinhalte entfernen
+        container.innerHTML = "";
 
         var ratio = window.devicePixelRatio || 1;
         var baseWidth = 800;
@@ -572,11 +572,11 @@
         voice.draw(context, stave);
 
       } else {
-        // Zweihand
+        // Zweihandmodus: #notationContainer anzeigen, #notation verstecken
         container.style.display = "flex";
-        container.innerHTML = "";           // Altinhalte entfernen
+        container.innerHTML = "";
         notationDiv.style.display = "none";
-        notationDiv.innerHTML = "";         // Altinhalte entfernen
+        notationDiv.innerHTML = "";
 
         var ratio = window.devicePixelRatio || 1;
         var baseWidth = 800;
@@ -652,90 +652,6 @@
         voiceB.draw(contextB, staveB);
       }
     }
-
-    function cycleRange() {
-      currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
-      currentRange = rangeArray[currentRangeIndex];
-      document.getElementById("clefTitle").textContent = currentRange + "-Lage";
-      generateSeries();
-    }
-
-    function toggleDarkMode() {
-      document.body.classList.toggle("dark-mode");
-    }
-
-    function setupFadeOnHover(element) {
-      element.addEventListener("mouseenter", function() { element.classList.remove("faded"); });
-      element.addEventListener("mouseleave", function() { element.classList.add("faded"); });
-      element.addEventListener("touchstart", function() { element.classList.remove("faded"); });
-      element.addEventListener("touchend", function() { element.classList.add("faded"); });
-    }
-
-    document.addEventListener("DOMContentLoaded", function() {
-      var settingsPanel = document.getElementById("settingsPanel");
-      var handToggle = document.createElement("span");
-      handToggle.id = "handToggle";
-      handToggle.textContent = handOptions[currentHandIndex].symbol;
-      if (handOptions[currentHandIndex].flip) {
-        handToggle.style.transform = "scaleX(-1)";
-      }
-      settingsPanel.appendChild(handToggle);
-
-      var levelToggle = document.createElement("span");
-      levelToggle.id = "levelToggle";
-      levelToggle.textContent = levelOptions[currentLevelIndex].symbol;
-      settingsPanel.appendChild(levelToggle);
-
-      var soundToggle = document.createElement("span");
-      soundToggle.id = "soundToggle";
-      soundToggle.textContent = "🔊";
-      settingsPanel.appendChild(soundToggle);
-
-      var darkModeToggle = document.createElement("span");
-      darkModeToggle.id = "darkModeToggle";
-      darkModeToggle.textContent = "🌙";
-      settingsPanel.appendChild(darkModeToggle);
-
-      handToggle.addEventListener("click", function() {
-        currentHandIndex = (currentHandIndex + 1) % handOptions.length;
-        selectedMode = handOptions[currentHandIndex].mode;
-        handToggle.textContent = handOptions[currentHandIndex].symbol;
-        handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
-        generateSeries();
-      });
-
-      levelToggle.addEventListener("click", function() {
-        currentLevelIndex = (currentLevelIndex + 1) % levelOptions.length;
-        level = levelOptions[currentLevelIndex].level;
-        levelToggle.textContent = levelOptions[currentLevelIndex].symbol;
-        generateSeries();
-      });
-
-      soundToggle.addEventListener("click", function() {
-        soundEnabled = !soundEnabled;
-        soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
-      });
-
-      darkModeToggle.addEventListener("click", function() {
-        toggleDarkMode();
-      });
-
-      setupFadeOnHover(settingsPanel);
-      setupFadeOnHover(document.getElementById("clefTitle"));
-
-      // Willkommensbildschirm ausblenden und Spiel starten
-      setTimeout(proceedToMainScreen, 3000);
-      generateSeries();
-      updateHeartsDisplay();
-
-      // Debug: Leertaste simuliert MIDI-Note
-      document.addEventListener("keydown", function(event) {
-        if (event.code === "Space") {
-          handleMIDIMessage(144, 60, 127);
-          console.log("Leertaste gedrückt: MIDI Signal gesendet.");
-        }
-      });
-    });
   </script>
 </head>
 <body>
@@ -760,14 +676,14 @@
     <!-- Container (Zweihand) -->
     <div id="notationContainer"></div>
 
-    <!-- Lage-Button & Herzen -->
-    <div style="position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); display: flex; align-items: center;">
+    <!-- Lagewechsel-Button & Herzen -->
+    <div id="buttonContainer" style="z-index:50;">
       <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
-      <div id="heartsContainer" style="margin-left: 10px;"></div>
+      <div id="heartsContainer" style="margin-left:10px;"></div>
     </div>
 
     <!-- Notenname-Anzeige -->
-    <div id="noteNameDisplay" style="position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%); font-size: 1.5em;"></div>
+    <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:1.5em;"></div>
 
     <!-- Score & Time -->
     <div id="topRightInfo"></div>
