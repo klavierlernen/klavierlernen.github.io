@@ -262,7 +262,6 @@
     let hearts = unlimitedLives ? Infinity : 4;
     const updateHeartsDisplay = () => {
       const heartsElem = document.getElementById("heartsContainer");
-      // Zeige "∞", falls unlimitedLives aktiv sind, ansonsten die Anzahl der Herzen
       heartsElem.textContent = unlimitedLives ? "∞" : "❤️".repeat(hearts);
     };
 
@@ -326,8 +325,6 @@
       const overlay = document.getElementById("gameOverOverlay");
       overlay.style.display = "none";
       sessionPaused = false;
-      const gongAudio = document.getElementById("gongSound");
-      gongAudio && gongAudio.play();
       if (!scoreRecorded) recordScore();
       resetGame();
     };
@@ -381,7 +378,7 @@
       if (!overlay.classList.contains("hidden")) updateScoreboard();
     };
     
-    // Es gibt nur noch zwei Handoptionen: left und right
+    // Es gibt nur zwei Handoptionen: left und right
     const handOptions = [
       { mode: "left", symbol: "✋" },
       { mode: "right", symbol: "✋", flip: true }
@@ -504,7 +501,6 @@
       handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
       settingsPanel.appendChild(handToggle);
       handToggle.addEventListener("click", () => {
-        // Wechsle zwischen left und right (nur, wenn nicht random)
         if (!randomMode) {
           currentHandIndex = (currentHandIndex + 1) % handOptions.length;
           selectedMode = handOptions[currentHandIndex].mode;
@@ -526,14 +522,11 @@
       });
       
       // Weitere Buttons (Sound-Button wurde entfernt)
-      
       const lifeToggle = document.createElement("span");
       lifeToggle.id = "lifeToggle";
       lifeToggle.textContent = "∞";
       settingsPanel.appendChild(lifeToggle);
-      lifeToggle.addEventListener("click", () => {
-        // Lives werden im Unlimited-Lives-Modus nicht verändert
-      });
+      lifeToggle.addEventListener("click", () => { /* Lives bleiben unverändert */ });
       
       const darkModeToggle = document.createElement("span");
       darkModeToggle.id = "darkModeToggle";
@@ -571,23 +564,22 @@
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
       
-      // Wähle einen einheitlichen Notenschlüssel für diese Serie:
-      // Im Random Mode wird hier zufällig zwischen "bass" und "treble" gewählt,
+      // Bestimme einen einheitlichen Notenschlüssel für diese Serie:
+      // Im Random Mode wird zufällig zwischen "bass" und "treble" gewählt,
       // andernfalls orientiert sich der Schlüssel am selectedMode.
       const seriesClef = randomMode ? (Math.random() < 0.5 ? "bass" : "treble") : ((selectedMode === "left") ? "bass" : "treble");
       
       const chooseNote = () => {
-        // Falls Fehler vorhanden, kann eine Note aus errorNotes wiederverwendet werden
+        // Wenn Fehler vorhanden, werden nur jene wiederverwendet, die zum aktuellen Schlüssel passen.
         if (errorNotes.length > 0 && Math.random() < 0.6) {
-          return errorNotes.splice(0,1)[0];
+          const idx = errorNotes.findIndex(note => note.clef === seriesClef);
+          if (idx !== -1) {
+            return errorNotes.splice(idx, 1)[0];
+          }
         }
         let availableNotes;
         if (currentRange === "MC") {
-          if (seriesClef === "bass") {
-            availableNotes = ["f", "g", "a", "b", "c"];
-          } else {
-            availableNotes = ["c", "d", "e", "f", "g"];
-          }
+          availableNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
         } else {
           availableNotes = rangeNotes[currentRange];
         }
@@ -595,13 +587,9 @@
         const chosenNote = availableNotes[randomIndex];
         let noteOctave;
         if (currentRange === "MC") {
-          if (seriesClef === "bass") {
-            noteOctave = (chosenNote === "c") ? 4 : 3;
-          } else {
-            noteOctave = 4;
-          }
+          noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
         } else {
-          noteOctave = (seriesClef === "bass") ? 3 : 4;
+          noteOctave = seriesClef === "bass" ? 3 : 4;
         }
         return {
           note: chosenNote,
@@ -633,7 +621,7 @@
       const svg = notationDiv.querySelector("svg");
       svg && (svg.setAttribute("width", baseWidth), svg.setAttribute("height", 300));
       const context = renderer.getContext();
-      // Verwende den Clef-Wert der ersten Note, um den Stab zu zeichnen
+      // Zeichne den Stab mit dem Schlüssel der ersten Note
       const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
       if (currentSeriesSingle.length) {
         stave.addClef(currentSeriesSingle[0].clef);
@@ -679,7 +667,6 @@
             showMotivationMessage();
             nextMotivationThreshold = correctNoteCount + getRandomThreshold();
           }
-          // Verringere den Session-Counter nur, falls du diesen im begrenzten Modus nutzt
           if (!unlimitedLives) {
             sessionCounter--;
             if (sessionCounter <= 0) {
@@ -692,7 +679,6 @@
         } else {
           currentSeriesSingle[seriesCounter].color = "red";
           errorNotes.push(currentSeriesSingle[seriesCounter]);
-          // Ziehe nur Leben ab, falls limited lives aktiv sind
           if (!unlimitedLives) {
             hearts--;
             updateHeartsDisplay();
@@ -761,7 +747,5 @@
   </div>
   <!-- Einstellungen-Menü -->
   <div id="settingsPanel"></div>
-  <!-- Audio-Element für den Gong (wird nicht mehr verwendet) -->
-  <audio id="gongSound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
 </body>
 </html>
