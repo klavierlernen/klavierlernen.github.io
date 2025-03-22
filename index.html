@@ -49,11 +49,11 @@
       box-sizing: border-box;
       z-index: 2;
     }
-    /* Treble-System: obere Ebene (in diesem Layout werden die Systeme mit Prozentangaben
-       relativ zum Container positioniert – so wirken sie wie zwei Zeilen) */
+    /* Treble-System: obere Ebene – hier mit Prozentwerten relativ zum Container,
+       sodass es wie die obere Zeile eines Musikhefts wirkt */
     #notationTreble {
       position: absolute;
-      top: 105%; /* oberer Bereich; hier können Sie den Abstand feinjustieren */
+      top: 105%;
       left: 50%;
       transform: translateX(-50%);
       width: 100%;
@@ -63,7 +63,7 @@
     /* Bass-System: untere Ebene */
     #notationBass {
       position: absolute;
-      top: 130%; /* vertikaler Abstand – hier den idealen Abstand einstellen */
+      top: 130%;
       left: 50%;
       transform: translateX(-50%);
       width: 100%;
@@ -79,7 +79,7 @@
     #notation svg *, #notationTreble svg *, #notationBass svg * {
       vector-effect: non-scaling-stroke;
     }
-    /* Dark Mode: weiße Stroke/Füllung */
+    /* Im Dark Mode: weiße Stroke/Füllung */
     body.dark-mode #notation svg *,
     body.dark-mode #notationTreble svg *,
     body.dark-mode #notationBass svg * {
@@ -141,7 +141,6 @@
       white-space: pre-line;
       display: block;
     }
-    /* Standardmäßig ausgeblendet */
     .hidden {
       display: none !important;
     }
@@ -459,7 +458,7 @@
     let currentRange = rangeArray[currentRangeIndex];
     let soundEnabled = true;
     let firstNotePlayed = false;
-    // Im Zweihandmodus wird currentPhase auf "pair" gesetzt
+    // Für den Zweihandmodus setzen wir currentPhase auf "pair"
     let currentPhase = "treble";
     
     const motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
@@ -679,7 +678,6 @@
         for (let i = 0; i < seriesLength; i++) {
           currentSeriesSingle.push(chooseNote(clef));
         }
-        // Im Einhandmodus bleibt currentPhase unverändert
         currentPhase = "single";
         drawSeries();
       } else {
@@ -689,9 +687,7 @@
           currentSeriesTreble.push(chooseNote("treble"));
           currentSeriesBass.push(chooseNote("bass"));
         }
-        // Für den Zweihandmodus setzen wir das globale pairInputs zurück.
         pairInputs = { treble: false, bass: false, firstNoteTime: 0 };
-        // currentPhase wird hier als "pair" interpretiert
         currentPhase = "pair";
         drawSeries();
       }
@@ -796,7 +792,7 @@
         totalAttempts++;
         
         if (selectedMode !== "both") {
-          // Einhandmodus – bisherige Logik
+          // Einhandmodus – bisherige Logik:
           const correct = isNoteCorrect(midiInfo);
           if (correct) {
             currentSeriesSingle[seriesCounter].color = "green";
@@ -828,8 +824,7 @@
           }
           updateTimer();
         } else {
-          // Zweihandmodus: Notenpaar (Treble und Bass) werden erwartet.
-          // Wir erwarten idealerweise, dass zuerst die Treble-Note (linke, obere Zeile) gespielt wird.
+          // Zweihandmodus: Erwarte ein Notenpaar (Treble und Bass)
           if (pairInputs.firstNoteTime === 0) {
             // Erster Ton des Paares
             pairInputs.firstNoteTime = currentTime;
@@ -853,7 +848,7 @@
             // Zweiter Ton des Paares
             let timeDiff = currentTime - pairInputs.firstNoteTime;
             if (timeDiff < 200) {
-              // Simultan: Egal in welcher Reihenfolge fehlt noch die jeweils andere Note
+              // Simultan: Unabhängig von der Reihenfolge
               if (!pairInputs.treble && isNoteCorrectForClef(midiInfo, currentSeriesTreble[seriesCounter])) {
                 pairInputs.treble = true;
                 currentSeriesTreble[seriesCounter].color = "green";
@@ -873,7 +868,7 @@
                 }
               }
             } else {
-              // Sequentielles Spielen: Es wird erwartet, dass zuerst die Treble-Note und dann die Bass-Note kommt.
+              // Sequentielles Spielen: Es wird erwartet, dass zuerst die Treble-Note und dann die Bass-Note gespielt wird.
               if (!pairInputs.treble) {
                 currentSeriesTreble[seriesCounter].color = "red";
                 errorNotes.push(currentSeriesTreble[seriesCounter]);
@@ -887,7 +882,7 @@
               }
             }
           }
-          // Sobald beide Noten des Paares erkannt wurden, fahren wir fort:
+          // Wenn beide Noten des Paares erkannt wurden, fahre fort:
           if (pairInputs.treble && pairInputs.bass) {
             seriesCounter++;
             pairInputs = { treble: false, bass: false, firstNoteTime: 0 };
