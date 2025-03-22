@@ -24,7 +24,7 @@
       background-color: #121212;
       color: #e0e0e0;
     }
-    /* Einhand-Notation (einzelnes System) */
+    /* Einhand-Notation */
     #notation {
       display: none;
       position: fixed;
@@ -36,56 +36,20 @@
       box-sizing: border-box;
       z-index: 1;
     }
-    /* Container für den 2-Handmodus – relative Positionierung */
-    #notationContainer {
-      display: none;
-      position: relative;
-      width: 800px;
-      height: 400px; /* Höhe anpassen, damit beide Systeme Platz haben */
-      left: 50%;
-      top: 75%;
-      transform: translate(-50%, -50%);
-      padding: 10px;
-      box-sizing: border-box;
-      z-index: 2;
-    }
-    /* Treble-System: obere Ebene */
-    #notationTreble {
-      position: absolute;
-      top: 0; /* Oben im Container */
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: 1200px;
-      z-index: 2;
-    }
-    /* Bass-System: untere Ebene */
-    #notationBass {
-      position: absolute;
-      top: 150px; /* Vertikaler Abstand – Wert anpassen, um den idealen Abstand einzustellen */
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: 1200px;
-      z-index: 1;
-    }
     /* SVG-Optimierung */
-    #notation svg, #notationTreble svg, #notationBass svg {
+    #notation svg {
       width: 100%;
       height: auto;
       shape-rendering: crispEdges;
     }
-    #notation svg *, #notationTreble svg *, #notationBass svg * {
+    #notation svg * {
       vector-effect: non-scaling-stroke;
     }
-    /* Im Dark Mode: Elemente innerhalb der Notation erhalten weißen Stroke/Füllung */
-    body.dark-mode #notation svg *,
-    body.dark-mode #notationTreble svg *,
-    body.dark-mode #notationBass svg * {
+    body.dark-mode #notation svg * {
       stroke: #ffffff;
       fill: #ffffff;
     }
-    /* Motivationsfenster (ohne Textschatten) */
+    /* Motivationsfenster */
     #motivationOverlay {
       position: fixed;
       top: 20%;
@@ -107,7 +71,7 @@
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
     }
-    /* Game Over Overlay (auch für Session-Pause) */
+    /* Game Over Overlay */
     #gameOverOverlay {
       position: fixed;
       top: 50%;
@@ -125,7 +89,7 @@
     body.dark-mode #gameOverOverlay {
       border: 3px solid #ffffff;
     }
-    /* Scoreboard Overlay – ähnlich wie Game Over Overlay */
+    /* Scoreboard Overlay */
     #scoreboardOverlay {
       position: fixed;
       top: 50%;
@@ -140,11 +104,10 @@
       white-space: pre-line;
       display: block;
     }
-    /* Standardmäßig ausgeblendet */
     .hidden {
       display: none !important;
     }
-    /* Timer Container: rechte untere Ecke (zeigt Zeit und Session-Counter) */
+    /* Timer Container */
     #timerContainer {
       position: fixed;
       right: 10px;
@@ -163,7 +126,7 @@
       transition: opacity 0.5s ease-in;
       padding-bottom: 50px;
     }
-    /* Einstellungen-Menü (links) */
+    /* Einstellungen-Menü */
     #settingsPanel {
       position: fixed;
       left: 30px;
@@ -199,7 +162,7 @@
       background: rgba(0, 0, 0, 0.1);
       border-radius: 10px;
     }
-    /* Lagewechsel-Button (Einhand) */
+    /* Lagewechsel-Button */
     #clefTitle {
       display: inline-block;
       background: #ffffff;
@@ -216,7 +179,7 @@
       border-color: #ffffff;
       color: #ffffff;
     }
-    /* Container für den Lagewechsel-Button und Herzen */
+    /* Container für Lagewechsel-Button & Herzen */
     #buttonContainer {
       position: fixed;
       left: 50%;
@@ -226,7 +189,6 @@
       align-items: center;
       z-index: 50;
     }
-    /* Container für Herzen, direkt neben dem Button */
     #heartsContainer {
       display: inline-block;
       margin-left: 10px;
@@ -264,25 +226,22 @@
     body.dark-mode #welcomeMessage { color: #e0e0e0; }
   </style>
   <script>
-    /****************** Adaptive Pause Script ******************/
+    /**************** Adaptive Pause ****************/
     function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       if (responseTimes.length === 0) return 5;
       let sum = responseTimes.reduce((acc, time) => acc + time, 0);
       let avgResponseTime = sum / responseTimes.length;
-      const baseline = 500; // in ms
+      const baseline = 500;
       let slowdownFactor = avgResponseTime / baseline;
       let fatigueIndex = slowdownFactor * (1 - hitRate);
       const basePause = 10;
       let breakTime = basePause * fatigueIndex;
-      breakTime = Math.max(5, Math.min(breakTime, 300));
-      return breakTime;
+      return Math.max(5, Math.min(breakTime, 300));
     }
-    /************************************************************/
-    
-    // Globale Variablen und initiale Zustände
+    /**********************************************/
+
+    // Globale Variablen
     let currentSeriesSingle = [];
-    let currentSeriesTreble = [];
-    let currentSeriesBass = [];
     let seriesCounter = 0;
     const seriesLength = 5;
     let totalAttempts = 0;
@@ -298,19 +257,14 @@
     let scoreRecorded = false;
     let sessionCount = 0;
     
-    // Herz-System: 4 Herzen
+    // Herzen
     let hearts = 4;
     const updateHeartsDisplay = () => {
       const heartsElem = document.getElementById("heartsContainer");
-      if (unlimitedLives) {
-        heartsElem.textContent = "∞";
-      } else {
-        heartsElem.textContent = "❤️".repeat(hearts);
-      }
+      heartsElem.textContent = "❤️".repeat(hearts);
     };
-    
-    let unlimitedLives = true;
-    
+
+    // Timer
     const updateTimer = () => {
       const elapsed = Math.floor((Date.now() - appStartTime) / 1000);
       let display;
@@ -370,10 +324,8 @@
       const overlay = document.getElementById("gameOverOverlay");
       overlay.style.display = "none";
       sessionPaused = false;
-      if (soundEnabled) {
-         const gongAudio = document.getElementById("gongSound");
-         gongAudio && gongAudio.play();
-      }
+      const gongAudio = document.getElementById("gongSound");
+      gongAudio && gongAudio.play();
       if (!scoreRecorded) recordScore();
       resetGame();
     };
@@ -402,13 +354,10 @@
       dd = dd < 10 ? "0" + dd : dd;
       mm = mm < 10 ? "0" + mm : mm;
       const dateStr = dd + "." + mm;
-      const scoreObj = { date: dateStr, accuracy: accuracy, duration: durationStr, seconds: secondsTotal, mode: selectedMode };
+      const scoreObj = { date: dateStr, accuracy: accuracy, duration: durationStr, seconds: secondsTotal, mode: randomMode ? "random" : selectedMode };
       let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       highScores.push(scoreObj);
-      highScores.sort((a, b) => {
-        if (b.accuracy !== a.accuracy) return b.accuracy - a.accuracy;
-        return a.seconds - b.seconds;
-      });
+      highScores.sort((a, b) => (b.accuracy !== a.accuracy ? b.accuracy - a.accuracy : a.seconds - b.seconds));
       highScores = highScores.slice(0, 5);
       localStorage.setItem("highScores", JSON.stringify(highScores));
       scoreRecorded = true;
@@ -416,8 +365,8 @@
     
     const updateScoreboard = () => {
       const allScores = JSON.parse(localStorage.getItem("highScores") || "[]");
-      const filtered = allScores.filter(score => score.mode === selectedMode);
-      let html = "HIGHSCORES (" + selectedMode + ")\n";
+      const filtered = allScores.filter(score => score.mode === (randomMode ? "random" : selectedMode));
+      let html = "HIGHSCORES (" + (randomMode ? "random" : selectedMode) + ")\n";
       filtered.forEach((score, index) => {
         html += (index + 1) + ". " + score.date + " \t " + score.accuracy + "% " + score.duration + "\n";
       });
@@ -426,36 +375,27 @@
     
     const toggleScoreboard = () => {
       const overlay = document.getElementById("scoreboardOverlay");
-      if (overlay.classList.contains("hidden")) {
-        overlay.classList.remove("hidden");
-        updateScoreboard();
-      } else {
-        overlay.classList.add("hidden");
-      }
+      overlay.classList.toggle("hidden");
+      if (!overlay.classList.contains("hidden")) updateScoreboard();
     };
     
+    // Es gibt nur noch zwei Handoptionen: left und right
     const handOptions = [
       { mode: "left", symbol: "✋" },
-      { mode: "right", symbol: "✋", flip: true },
-      { mode: "both", symbol: "🙌" }
-    ];
-    const levelOptions = [
-      { level: 1, symbol: "1️⃣" },
-      { level: 2, symbol: "2️⃣" },
-      { level: 3, symbol: "3️⃣" },
-      { level: "random", symbol: "🎉" }
+      { mode: "right", symbol: "✋", flip: true }
     ];
     let currentHandIndex = 0;
-    let currentLevelIndex = 2;
     let selectedMode = handOptions[currentHandIndex].mode;
-    let level = levelOptions[currentLevelIndex].level;
     
+    // Neuer Random Mode
+    let randomMode = false;
+    
+    // Die verfügbaren Lagen
     const rangeArray = ["C", "D", "F", "G", "MC"];
     let currentRangeIndex = 0;
     let currentRange = rangeArray[currentRangeIndex];
     let soundEnabled = true;
     let firstNotePlayed = false;
-    let currentPhase = "treble";
     
     const motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
     const showMotivationMessage = () => {
@@ -480,37 +420,16 @@
       "D": ["d", "e", "f#", "g", "a"],
       "F": ["f", "g", "a", "bb", "c"],
       "G": ["g", "a", "b", "c", "d"],
-      "MC": ["c", "d", "e", "f", "g"] // Wird in generateSeries überschrieben
+      "MC": ["c", "d", "e", "f", "g"] // wird in generateSeries angepasst
     };
     
-    const midiNoteToName = (noteNumber) => {
-      const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
-      const octave = Math.floor(noteNumber / 12) - 1;
-      const noteName = noteNames[noteNumber % 12];
-      return { note: noteName, octave: octave };
-    };
-    
+    // Prüfe, ob die gespielte Note korrekt ist (Note UND Oktave müssen übereinstimmen)
     const isNoteCorrect = (midiInfo) => {
-      let expected;
-      if (selectedMode !== "both") {
-        expected = currentSeriesSingle[seriesCounter];
-      } else {
-        expected = currentPhase === "treble" ? currentSeriesTreble[seriesCounter] : currentSeriesBass[seriesCounter];
-      }
+      const expected = currentSeriesSingle[seriesCounter];
       if (!expected) return false;
-      let playedNote = midiInfo.note.toLowerCase();
-      let expectedNote = expected.note.toLowerCase();
-      if (expectedNote === "bb" && playedNote === "a#") {
-        playedNote = expectedNote;
-      }
-      if (level === 1 || level === 3) {
-        return (playedNote === expectedNote && midiInfo.octave === expected.octave);
-      } else if (level === 2) {
-        return (playedNote === expectedNote);
-      } else if (level === "random") {
-        return Math.random() < 0.5;
-      }
-      return false;
+      const playedNote = midiInfo.note.toLowerCase();
+      const expectedNote = expected.note.toLowerCase();
+      return playedNote === expectedNote && midiInfo.octave === expected.octave;
     };
     
     const removeFromErrorNotes = (noteObj) => {
@@ -535,9 +454,6 @@
       if (bestLeft < bestRight) {
         selectedMode = "left";
         currentHandIndex = 0;
-      } else if (bestRight < bestLeft) {
-        selectedMode = "right";
-        currentHandIndex = 1;
       } else {
         selectedMode = "left";
         currentHandIndex = 0;
@@ -582,65 +498,63 @@
     document.addEventListener("DOMContentLoaded", () => {
       const settingsPanel = document.getElementById("settingsPanel");
       
+      // Button für Hand-Auswahl (links/rechts)
       const handToggle = document.createElement("span");
       handToggle.id = "handToggle";
       handToggle.textContent = handOptions[currentHandIndex].symbol;
       handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
       settingsPanel.appendChild(handToggle);
+      handToggle.addEventListener("click", () => {
+        // Wechsle zwischen left und right (nur, wenn nicht random)
+        if (!randomMode) {
+          currentHandIndex = (currentHandIndex + 1) % handOptions.length;
+          selectedMode = handOptions[currentHandIndex].mode;
+          handToggle.textContent = handOptions[currentHandIndex].symbol;
+          handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
+          generateSeries();
+        }
+      });
       
-      const levelToggle = document.createElement("span");
-      levelToggle.id = "levelToggle";
-      levelToggle.textContent = levelOptions[currentLevelIndex].symbol;
-      settingsPanel.appendChild(levelToggle);
+      // Neuer Button: RANDOM Mode (🐇)
+      const randomToggle = document.createElement("span");
+      randomToggle.id = "randomToggle";
+      randomToggle.textContent = "🐇";
+      settingsPanel.appendChild(randomToggle);
+      randomToggle.addEventListener("click", () => {
+        randomMode = !randomMode;
+        // Visuelles Feedback: z. B. Farbwechsel
+        randomToggle.style.opacity = randomMode ? "1" : "0.5";
+        generateSeries();
+      });
       
+      // Weitere Buttons
       const soundToggle = document.createElement("span");
       soundToggle.id = "soundToggle";
       soundToggle.textContent = "🔊";
       settingsPanel.appendChild(soundToggle);
+      soundToggle.addEventListener("click", () => {
+        soundEnabled = !soundEnabled;
+        soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
+      });
       
       const lifeToggle = document.createElement("span");
       lifeToggle.id = "lifeToggle";
       lifeToggle.textContent = "∞";
       settingsPanel.appendChild(lifeToggle);
       lifeToggle.addEventListener("click", () => {
-        unlimitedLives = !unlimitedLives;
-        if (unlimitedLives) {
-          lifeToggle.textContent = "∞";
-          document.getElementById("heartsContainer").textContent = "∞";
-        } else {
-          lifeToggle.textContent = "⭐";
-          updateHeartsDisplay();
-        }
+        // Hier könnte man ggf. Lives toggeln – aktuell nicht verändert
       });
       
       const darkModeToggle = document.createElement("span");
       darkModeToggle.id = "darkModeToggle";
       darkModeToggle.textContent = "🌙";
       settingsPanel.appendChild(darkModeToggle);
+      darkModeToggle.addEventListener("click", toggleDarkMode);
       
       const scoreboardToggle = document.createElement("span");
       scoreboardToggle.id = "scoreboardToggle";
       scoreboardToggle.textContent = "🎯";
       settingsPanel.appendChild(scoreboardToggle);
-      
-      handToggle.addEventListener("click", () => {
-        currentHandIndex = (currentHandIndex + 1) % handOptions.length;
-        selectedMode = handOptions[currentHandIndex].mode;
-        handToggle.textContent = handOptions[currentHandIndex].symbol;
-        handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
-        generateSeries();
-      });
-      levelToggle.addEventListener("click", () => {
-        currentLevelIndex = (currentLevelIndex + 1) % levelOptions.length;
-        level = levelOptions[currentLevelIndex].level;
-        levelToggle.textContent = levelOptions[currentLevelIndex].symbol;
-        generateSeries();
-      });
-      soundToggle.addEventListener("click", () => {
-        soundEnabled = !soundEnabled;
-        soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
-      });
-      darkModeToggle.addEventListener("click", toggleDarkMode);
       scoreboardToggle.addEventListener("click", toggleScoreboard);
       
       setupFadeOnHover(settingsPanel);
@@ -667,145 +581,90 @@
       firstNotePlayed = false;
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
-      const chooseNote = (clef) => {
-        const errorsForClef = errorNotes.filter(n => n.clef === clef);
-        if (errorsForClef.length > 0 && Math.random() < 0.6) {
-          return errorNotes.splice(errorNotes.indexOf(errorsForClef[0]), 1)[0];
-        } else {
-          let availableNotes;
-          // Wenn die Mittlere C Lage (MC) verwendet wird, wähle je nach Hand andere Noten:
-          if (currentRange === "MC") {
-            if (clef === "bass") {
-              // Linke Hand: F, G, A, H, C
-              availableNotes = ["f", "g", "a", "h", "c"];
-            } else {
-              // Rechte Hand: C, D, E, F, G
-              availableNotes = ["c", "d", "e", "f", "g"];
-            }
-          } else {
-            availableNotes = rangeNotes[currentRange];
-          }
-          const randomIndex = Math.floor(Math.random() * availableNotes.length);
-          const chosenNote = availableNotes[randomIndex];
-          let noteOctave;
-          if(currentRange === "MC"){
-            if(clef === "bass"){
-              // Für den Bass-Schlüssel in MC: C soll in Oktave 4 (Middle C) angezeigt werden,
-              // alle anderen Töne in Oktave 3.
-              noteOctave = (chosenNote === "c") ? 4 : 3;
-            } else {
-              noteOctave = 4;
-            }
-          } else {
-            noteOctave = (selectedMode === "left" || clef === "bass") ? 3 : 4;
-          }
-          return {
-            note: chosenNote,
-            octave: noteOctave,
-            clef: clef,
-            color: "black"
-          };
+      
+      const chooseNote = () => {
+        // Wenn Fehler vorhanden, wiederverwenden
+        if (errorNotes.length > 0 && Math.random() < 0.6) {
+          return errorNotes.splice(0,1)[0];
         }
+        // Bestimme, welche Hand genutzt wird:
+        let usedClef;
+        if (randomMode) {
+          usedClef = Math.random() < 0.5 ? "bass" : "treble";
+        } else {
+          usedClef = (selectedMode === "left") ? "bass" : "treble";
+        }
+        let availableNotes;
+        // Bei Mittlerer C Lage: unterschiedliche Reihenfolgen je nach Hand
+        if (currentRange === "MC") {
+          if (usedClef === "bass") {
+            availableNotes = ["f", "g", "a", "h", "c"];
+          } else {
+            availableNotes = ["c", "d", "e", "f", "g"];
+          }
+        } else {
+          availableNotes = rangeNotes[currentRange];
+        }
+        const randomIndex = Math.floor(Math.random() * availableNotes.length);
+        const chosenNote = availableNotes[randomIndex];
+        let noteOctave;
+        if (currentRange === "MC") {
+          if (usedClef === "bass") {
+            // In MC im Bass: C in Oktave 4, sonst Oktave 3
+            noteOctave = (chosenNote === "c") ? 4 : 3;
+          } else {
+            noteOctave = 4;
+          }
+        } else {
+          noteOctave = (usedClef === "bass") ? 3 : 4;
+        }
+        return {
+          note: chosenNote,
+          octave: noteOctave,
+          clef: usedClef,
+          color: "black"
+        };
       };
       
-      if (selectedMode !== "both") {
-        currentSeriesSingle = [];
-        const clef = selectedMode === "left" ? "bass" : "treble";
-        for (let i = 0; i < seriesLength; i++) {
-          currentSeriesSingle.push(chooseNote(clef));
-        }
-        currentPhase = "single";
-        drawSeries();
-      } else {
-        currentSeriesTreble = [];
-        currentSeriesBass = [];
-        for (let i = 0; i < seriesLength; i++) {
-          currentSeriesTreble.push(chooseNote("treble"));
-          currentSeriesBass.push(chooseNote("bass"));
-        }
-        currentPhase = "treble";
-        drawSeries();
+      currentSeriesSingle = [];
+      for (let i = 0; i < seriesLength; i++) {
+        currentSeriesSingle.push(chooseNote());
       }
+      drawSeries();
     };
     // --- ENDE GEÄNDERTE Funktion generateSeries ---
     
     const drawSeries = () => {
       const notationDiv = document.getElementById("notation");
-      const container = document.getElementById("notationContainer");
-      const ratio = window.devicePixelRatio || 1;
       const baseWidth = 800;
+      const ratio = window.devicePixelRatio || 1;
       const height = 300 * ratio;
       
-      if (selectedMode !== "both") {
-        notationDiv.style.display = "block";
-        notationDiv.innerHTML = "";
-        container.style.display = "none";
-        container.innerHTML = "";
-        
-        const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
-        renderer.resize(baseWidth * ratio, height);
-        const svg = notationDiv.querySelector("svg");
-        svg && (svg.setAttribute("width", baseWidth), svg.setAttribute("height", 300));
-        const context = renderer.getContext();
-        const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
-        currentSeriesSingle.length && stave.addClef(currentSeriesSingle[0].clef).setContext(context).draw();
-        const staveNotes = currentSeriesSingle.map(item => new Vex.Flow.StaveNote({
+      notationDiv.style.display = "block";
+      notationDiv.innerHTML = "";
+      
+      const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
+      renderer.resize(baseWidth * ratio, height);
+      const svg = notationDiv.querySelector("svg");
+      svg && (svg.setAttribute("width", baseWidth), svg.setAttribute("height", 300));
+      const context = renderer.getContext();
+      // Verwende den Clef-Wert des ersten Tones für den Stab
+      const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
+      if (currentSeriesSingle.length) {
+        stave.addClef(currentSeriesSingle[0].clef);
+      }
+      stave.setContext(context).draw();
+      
+      const staveNotes = currentSeriesSingle.map(item => new Vex.Flow.StaveNote({
           clef: item.clef,
           keys: [item.note + "/" + item.octave],
           duration: "q"
-        }).setStyle({ fillStyle: item.color, strokeStyle: item.color }));
-        const voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
-        staveNotes.forEach(note => voice.addTickable(note));
-        new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
-        voice.draw(context, stave);
-      } else {
-        container.style.display = "block";
-        container.innerHTML = "";
-        notationDiv.style.display = "none";
-        notationDiv.innerHTML = "";
-        
-        // Treble-System
-        const notationTreble = document.createElement("div");
-        notationTreble.id = "notationTreble";
-        container.appendChild(notationTreble);
-        const rendererT = new Vex.Flow.Renderer(notationTreble, Vex.Flow.Renderer.Backends.SVG);
-        rendererT.resize(baseWidth * ratio, height);
-        const svgT = notationTreble.querySelector("svg");
-        svgT && (svgT.setAttribute("width", baseWidth), svgT.setAttribute("height", 300));
-        const contextT = rendererT.getContext();
-        const staveT = new Vex.Flow.Stave(10, 40, baseWidth - 20);
-        currentSeriesTreble.length && staveT.addClef("treble").setContext(contextT).draw();
-        const staveNotesT = currentSeriesTreble.map(item => new Vex.Flow.StaveNote({
-          clef: "treble",
-          keys: [item.note + "/" + item.octave],
-          duration: "q"
-        }).setStyle({ fillStyle: item.color, strokeStyle: item.color }));
-        const voiceT = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
-        staveNotesT.forEach(note => voiceT.addTickable(note));
-        new Vex.Flow.Formatter().joinVoices([voiceT]).format([voiceT], staveT.getWidth() - 20);
-        voiceT.draw(contextT, staveT);
-        
-        // Bass-System
-        const notationBass = document.createElement("div");
-        notationBass.id = "notationBass";
-        container.appendChild(notationBass);
-        const rendererB = new Vex.Flow.Renderer(notationBass, Vex.Flow.Renderer.Backends.SVG);
-        rendererB.resize(baseWidth * ratio, height);
-        const svgB = notationBass.querySelector("svg");
-        svgB && (svgB.setAttribute("width", baseWidth), svgB.setAttribute("height", 300));
-        const contextB = rendererB.getContext();
-        const staveB = new Vex.Flow.Stave(10, 40, baseWidth - 20);
-        currentSeriesBass.length && staveB.addClef("bass").setContext(contextB).draw();
-        const staveNotesB = currentSeriesBass.map(item => new Vex.Flow.StaveNote({
-          clef: "bass",
-          keys: [item.note + "/" + item.octave],
-          duration: "q"
-        }).setStyle({ fillStyle: item.color, strokeStyle: item.color }));
-        const voiceB = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
-        staveNotesB.forEach(note => voiceB.addTickable(note));
-        new Vex.Flow.Formatter().joinVoices([voiceB]).format([voiceB], staveB.getWidth() - 20);
-        voiceB.draw(contextB, staveB);
-      }
+      }).setStyle({ fillStyle: item.color, strokeStyle: item.color }));
+      
+      const voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
+      staveNotes.forEach(note => voice.addTickable(note));
+      new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
+      voice.draw(context, stave);
     };
     
     const handleMIDIMessage = (status, data1, data2) => {
@@ -816,27 +675,24 @@
         responseTimes.push(responseTime);
         lastNoteTimestamp = currentTime;
         
-        const midiInfo = midiNoteToName(data1);
+        const midiInfo = (() => {
+          const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+          const octave = Math.floor(data1 / 12) - 1;
+          return { note: noteNames[data1 % 12], octave: octave };
+        })();
+        
         const noteName = midiInfo.note + midiInfo.octave;
         const noteDisplay = document.getElementById("noteNameDisplay");
-        noteDisplay && (noteDisplay.textContent = noteName);
+        if(noteDisplay) noteDisplay.textContent = noteName;
         if (soundEnabled) {
           synth.triggerAttackRelease(noteName, "8n");
         }
         totalAttempts++;
-        const correct = isNoteCorrect(midiInfo);
-        if (correct) {
-          if (selectedMode !== "both") {
-            currentSeriesSingle[seriesCounter].color = "green";
-          } else {
-            currentPhase === "treble"
-              ? currentSeriesTreble[seriesCounter].color = "green"
-              : currentSeriesBass[seriesCounter].color = "green";
-          }
+        if (isNoteCorrect(midiInfo)) {
+          currentSeriesSingle[seriesCounter].color = "green";
           correctAnswers++;
           correctNoteCount++;
-          removeFromErrorNotes(correct ? (selectedMode !== "both" ? currentSeriesSingle[seriesCounter] :
-            (currentPhase === "treble" ? currentSeriesTreble[seriesCounter] : currentSeriesBass[seriesCounter])) : {});
+          removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
           if (correctNoteCount >= nextMotivationThreshold) {
             showMotivationMessage();
             nextMotivationThreshold = correctNoteCount + getRandomThreshold();
@@ -849,25 +705,13 @@
             return;
           }
         } else {
-          if (selectedMode !== "both") {
-            currentSeriesSingle[seriesCounter].color = "red";
-            errorNotes.push(currentSeriesSingle[seriesCounter]);
-          } else {
-            if (currentPhase === "treble") {
-              currentSeriesTreble[seriesCounter].color = "red";
-              errorNotes.push(currentSeriesTreble[seriesCounter]);
-            } else {
-              currentSeriesBass[seriesCounter].color = "red";
-              errorNotes.push(currentSeriesBass[seriesCounter]);
-            }
-          }
-          if (!unlimitedLives) {
-            hearts--;
-            updateHeartsDisplay();
-            if (hearts <= 0) {
-              endGame();
-              return;
-            }
+          currentSeriesSingle[seriesCounter].color = "red";
+          errorNotes.push(currentSeriesSingle[seriesCounter]);
+          hearts--;
+          updateHeartsDisplay();
+          if (hearts <= 0) {
+            endGame();
+            return;
           }
         }
         seriesCounter++;
@@ -917,10 +761,8 @@
   <div id="mainContent" style="opacity: 0;">
     <!-- Notation (Einhandmodus) -->
     <div id="notation"></div>
-    <!-- Container für 2-Handmodus -->
-    <div id="notationContainer"></div>
     <!-- Lagewechsel-Button & Herzen -->
-    <div id="buttonContainer" style="z-index:50;">
+    <div id="buttonContainer">
       <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
       <div id="heartsContainer" style="margin-left:10px;"></div>
     </div>
