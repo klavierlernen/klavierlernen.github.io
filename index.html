@@ -258,10 +258,11 @@
     let nextMotivationThreshold = getRandomThreshold();
     // Fehler-Noten-Pool für gezielte Wiederholung
     let errorNotes = [];
-    // Session-Management
+    // Session-Management: Für den Timer, der nicht zurückgesetzt wird,
+    // wird die App-Uptime gespeichert (appStartTime) – sie wird NICHT neu gesetzt!
+    let appStartTime = Date.now();
     let sessionCounter = 1000;
     let sessionPaused = false;
-    let sessionStartTime = Date.now();
     let scoreRecorded = false;
     
     // Herz-System: 4 Herzen
@@ -278,9 +279,10 @@
     // Toggle für unbegrenzte Leben
     let unlimitedLives = false;
     
-    // Timer: Sessiondauer
+    // Der Timer zeigt jetzt die Zeit seit dem ersten Start der App an.
+    // updateTimer() verwendet appStartTime, das NICHT zurückgesetzt wird.
     const updateTimer = () => {
-      const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+      const elapsed = Math.floor((Date.now() - appStartTime) / 1000);
       let display;
       if (elapsed < 60) {
         display = elapsed + " s";
@@ -362,10 +364,11 @@
       setTimeout(resetGame, 5000);
     };
     
-    // Beim Sessionabschluss wird der Score (inkl. Modus) aufgenommen
+    // Beim Sessionabschluss wird der Score (inkl. Modus) aufgenommen.
+    // Die verstrichene Zeit basiert hier auf appStartTime und zeigt, wie lange man in der App ist.
     const recordScore = () => {
       if (totalAttempts <= 0) return;
-      const durationMs = Date.now() - sessionStartTime;
+      const durationMs = Date.now() - appStartTime;
       const secondsTotal = Math.floor(durationMs / 1000);
       const minutes = Math.floor(secondsTotal / 60);
       const seconds = secondsTotal % 60;
@@ -377,7 +380,6 @@
       dd = dd < 10 ? "0" + dd : dd;
       mm = mm < 10 ? "0" + mm : mm;
       const dateStr = dd + "." + mm;
-      // Speichere zusätzlich den aktuellen Modus
       const scoreObj = { date: dateStr, accuracy: accuracy, duration: durationStr, seconds: secondsTotal, mode: selectedMode };
       let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       highScores.push(scoreObj);
@@ -402,7 +404,7 @@
       document.getElementById("scoreboardOverlay").textContent = html;
     };
     
-    // toggleScoreboard: Blendet das Scoreboard ein/aus (indem die Klasse "hidden" entfernt bzw. hinzugefügt wird)
+    // toggleScoreboard: Blendet das Scoreboard ein/aus (Klasse "hidden" wird hinzugefügt oder entfernt)
     const toggleScoreboard = () => {
       const overlay = document.getElementById("scoreboardOverlay");
       if (overlay.classList.contains("hidden")) {
@@ -508,7 +510,7 @@
       }, 500);
     };
     
-    // Automatische Moduswahl: Vergleicht die bisherigen Highscores (nur für "left" und "right")
+    // Automatische Moduswahl: Vergleicht bisherige Highscores für "left" und "right"
     const autoSelectMode = () => {
       let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const leftScores = highScores.filter(score => score.mode === "left");
@@ -525,7 +527,6 @@
         selectedMode = "left";
         currentHandIndex = 0;
       }
-      // Aktualisiere den Hand-Toggle im Menü
       const handToggle = document.getElementById("handToggle");
       if (handToggle) {
         handToggle.textContent = handOptions[currentHandIndex].symbol;
@@ -639,12 +640,10 @@
       setupFadeOnHover(settingsPanel);
       setupFadeOnHover(document.getElementById("clefTitle"));
       
-      // Automatische Moduswahl beim Start
+      // Automatische Moduswahl beim Start (basierend auf bisherigen Highscores)
       autoSelectMode();
       
       setTimeout(proceedToMainScreen, 3000);
-      // Starte Session: Setze Startzeit zurück
-      sessionStartTime = Date.now();
       generateSeries();
       updateHeartsDisplay();
       
@@ -850,7 +849,7 @@
       }
     };
     
-    // Bei Sessionende: Score aufnehmen und Session zurücksetzen
+    // Beim Sessionende wird nun der Score aufgenommen, aber der Timer (appStartTime) bleibt unverändert.
     const resetGame = () => {
       hearts = 4;
       gameOver = false;
@@ -864,7 +863,7 @@
       confettiShown = false;
       errorNotes = [];
       document.getElementById("gameOverOverlay").style.display = "none";
-      sessionStartTime = Date.now();
+      // WICHTIG: appStartTime wird NICHT zurückgesetzt, sodass der Timer die gesamte App-Uptime anzeigt!
       scoreRecorded = false;
       generateSeries();
       updateHeartsDisplay();
