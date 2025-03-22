@@ -89,7 +89,7 @@
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
     }
-    /* Game Over Overlay (auch für Session-Pause genutzt) */
+    /* Game Over Overlay (wird nun auch für Session-Pause genutzt) */
     #gameOverOverlay {
       position: fixed;
       top: 50%;
@@ -120,7 +120,11 @@
       border-radius: 15px;
       font-size: 2em;
       white-space: pre-line;
-      display: none;
+      display: block;
+    }
+    /* Das Overlay wird durch die Klasse "hidden" ausgeblendet */
+    .hidden {
+      display: none !important;
     }
     /* Timer Container: rechte untere Ecke (zeigt Zeit und Session-Counter) */
     #timerContainer {
@@ -240,10 +244,6 @@
       margin-bottom: 20px;
     }
     body.dark-mode #welcomeMessage { color: #e0e0e0; }
-    /* Klasse zum Verbergen */
-    .hidden {
-      display: none !important;
-    }
   </style>
   <script>
     // Globale Variablen und initiale Zustände
@@ -263,7 +263,7 @@
     let sessionPaused = false;
     let sessionStartTime = Date.now();
     let scoreRecorded = false;
-
+    
     // Herz-System: 4 Herzen
     let hearts = 4;
     const updateHeartsDisplay = () => {
@@ -274,10 +274,10 @@
         heartsElem.textContent = "❤️".repeat(hearts);
       }
     };
-
+    
     // Toggle für unbegrenzte Leben
     let unlimitedLives = false;
-
+    
     // Timer: Sessiondauer (wird nun aus sessionStartTime berechnet)
     const updateTimer = () => {
       const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
@@ -292,13 +292,13 @@
       document.getElementById("timerContainer").textContent = display + " | Richtig übrig: " + sessionCounter;
     };
     setInterval(updateTimer, 1000);
-
+    
     // Pause-Variablen und -Funktionen
     const pauseDuration = 300; // 5 Minuten in Sekunden
     let pauseRemaining = pauseDuration;
     let pauseInterval = null;
     let confettiShown = false;
-
+    
     const updatePauseOverlay = () => {
       const now = new Date();
       let hours = now.getHours();
@@ -318,7 +318,7 @@
       const overlay = document.getElementById("gameOverOverlay");
       overlay.textContent = "SESSION PAUSIERT\n\nZEIT:\t" + timeString + "\nQUOTE:\t" + quotePercent + "%\n\nPAUSE:\t" + pauseString;
     };
-
+    
     const startPauseCountdown = () => {
       sessionPaused = true;
       pauseRemaining = pauseDuration;
@@ -335,7 +335,7 @@
            }
       }, 1000);
     };
-
+    
     const endPause = () => {
       const overlay = document.getElementById("gameOverOverlay");
       overlay.style.display = "none";
@@ -352,7 +352,7 @@
       }
       resetGame();
     };
-
+    
     let gameOver = false;
     const endGame = () => {
       gameOver = true;
@@ -362,7 +362,7 @@
       if (!scoreRecorded) recordScore();
       setTimeout(resetGame, 5000);
     };
-
+    
     const recordScore = () => {
       if (totalAttempts <= 0) return;
       // Berechne Dauer der Session
@@ -392,7 +392,7 @@
       localStorage.setItem("highScores", JSON.stringify(highScores));
       scoreRecorded = true;
     };
-
+    
     // Funktion zum Aktualisieren und Anzeigen des Scoreboards
     const updateScoreboard = () => {
       const highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
@@ -402,17 +402,18 @@
       });
       document.getElementById("scoreboardOverlay").textContent = html;
     };
-
+    
+    // Angepasste toggleScoreboard-Funktion: entfernt/fügt die Klasse "hidden" hinzu
     const toggleScoreboard = () => {
       const overlay = document.getElementById("scoreboardOverlay");
-      if (overlay.style.display === "block") {
-        overlay.style.display = "none";
-      } else {
+      if (overlay.classList.contains("hidden")) {
+        overlay.classList.remove("hidden");
         updateScoreboard();
-        overlay.style.display = "block";
+      } else {
+        overlay.classList.add("hidden");
       }
     };
-
+    
     // Einstellungen für Hand, Level und Leben
     const handOptions = [
       { mode: "left", symbol: "✋" },
@@ -429,14 +430,14 @@
     let currentLevelIndex = 2;
     let selectedMode = handOptions[currentHandIndex].mode;
     let level = levelOptions[currentLevelIndex].level;
-
+    
     const rangeArray = ["C", "D", "F", "G", "MC"];
     let currentRangeIndex = 0;
     let currentRange = rangeArray[currentRangeIndex];
     let soundEnabled = true;
     let firstNotePlayed = false;
     let currentPhase = "treble";
-
+    
     // Motivationsnachrichten
     const motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
     const showMotivationMessage = () => {
@@ -449,14 +450,14 @@
         overlay.textContent = "";
       }, 2500);
     };
-
+    
     function getRandomThreshold() {
       return Math.floor(Math.random() * 4) + 2;
     }
-
+    
     // Synth initialisieren (Tone.js)
     const synth = new Tone.Synth().toDestination();
-
+    
     const rangeNotes = {
       "C": ["c", "d", "e", "f", "g"],
       "D": ["d", "e", "f#", "g", "a"],
@@ -464,14 +465,14 @@
       "G": ["g", "a", "b", "c", "d"],
       "MC": ["c", "d", "e", "f", "g"]
     };
-
+    
     const midiNoteToName = (noteNumber) => {
       const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
       const octave = Math.floor(noteNumber / 12) - 1;
       const noteName = noteNames[noteNumber % 12];
       return { note: noteName, octave: octave };
     };
-
+    
     const isNoteCorrect = (midiInfo) => {
       let expected;
       if (selectedMode !== "both") {
@@ -494,11 +495,11 @@
       }
       return false;
     };
-
+    
     const removeFromErrorNotes = (noteObj) => {
       errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
     };
-
+    
     const proceedToMainScreen = () => {
       const welcomeOverlay = document.getElementById("welcomeOverlay");
       welcomeOverlay.style.opacity = "0";
@@ -507,7 +508,7 @@
         document.getElementById("mainContent").style.opacity = "1";
       }, 500);
     };
-
+    
     // Lagewechsel-Button: wechselt die "Lage" und erzeugt neue Notation
     const cycleRange = () => {
       currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
@@ -516,18 +517,18 @@
       generateSeries();
       updateHeartsDisplay();
     };
-
+    
     const toggleDarkMode = () => {
       document.body.classList.toggle("dark-mode");
     };
-
+    
     const setupFadeOnHover = (element) => {
       element.addEventListener("mouseenter", () => element.classList.remove("faded"));
       element.addEventListener("mouseleave", () => element.classList.add("faded"));
       element.addEventListener("touchstart", () => element.classList.remove("faded"));
       element.addEventListener("touchend", () => element.classList.add("faded"));
     };
-
+    
     // Throttling für das Neuzeichnen der Notation
     let redrawQueued = false;
     const queueRedraw = () => {
@@ -539,7 +540,7 @@
         });
       }
     };
-
+    
     document.addEventListener("DOMContentLoaded", () => {
       const settingsPanel = document.getElementById("settingsPanel");
       
@@ -629,7 +630,7 @@
       // Klick auf das Scoreboard-Overlay blendet es wieder aus
       document.getElementById("scoreboardOverlay").addEventListener("click", toggleScoreboard);
     });
-
+    
     // Generiert eine neue Notenserie unter Einbezug von Fehlern (gezielte Wiederholung)
     const generateSeries = () => {
       seriesCounter = 0;
@@ -671,7 +672,7 @@
         drawSeries();
       }
     };
-
+    
     // Zeichnet die Notenserie (SVG via VexFlow)
     const drawSeries = () => {
       const notationDiv = document.getElementById("notation");
@@ -752,7 +753,7 @@
         voiceB.draw(contextB, staveB);
       }
     };
-
+    
     // Optimierte Funktion zur Verarbeitung, Bewertung, visuellen Rückmeldung und Fortschaltung der Note
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
@@ -821,7 +822,7 @@
         updateTimer();
       }
     };
-
+    
     // Bei Sessionende wird die Score aufgenommen und Session zurückgesetzt
     const resetGame = () => {
       hearts = 4;
