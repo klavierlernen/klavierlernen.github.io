@@ -11,15 +11,257 @@
   <!-- canvas-confetti laden -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
   <style>
-    /* (Your CSS remains unchanged) */
-    html, body { height: 100%; margin: 0; padding: 0; background-color: #ffffff; font-family: sans-serif; text-align: center; transition: background-color 0.3s, color 0.3s; }
-    body.dark-mode { background-color: #121212; color: #e0e0e0; }
-    #notation { display: none; position: fixed; left: 50%; top: 75%; transform: translate(-50%, -50%); max-width: 800px; padding: 10px; box-sizing: border-box; z-index: 1; }
-    #notationContainer { display: none; position: relative; width: 800px; height: 400px; left: 50%; top: 75%; transform: translate(-50%, -50%); padding: 10px; box-sizing: border-box; z-index: 2; }
-    #notationTreble { position: absolute; top: 105%; left: 50%; transform: translateX(-50%); width: 100%; max-width: 1200px; z-index: 2; }
-    #notationBass { position: absolute; top: 130%; left: 50%; transform: translateX(-50%); width: 100%; max-width: 1200px; z-index: 1; }
-    /* SVG-Optimierung und weitere CSS-Regeln... */
-    /* ... (rest of your CSS unchanged) ... */
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: #ffffff;
+      font-family: sans-serif;
+      text-align: center;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    body.dark-mode {
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+    /* Einhand-Notation (einzelnes System) */
+    #notation {
+      display: none;
+      position: fixed;
+      left: 50%;
+      top: 75%;
+      transform: translate(-50%, -50%);
+      max-width: 800px;
+      padding: 10px;
+      box-sizing: border-box;
+      z-index: 1;
+    }
+    /* Container für den 2-Handmodus – relative Positionierung */
+    #notationContainer {
+      display: none;
+      position: relative;
+      width: 800px;
+      height: 400px; /* Höhe anpassen, damit beide Systeme Platz haben */
+      left: 50%;
+      top: 75%;
+      transform: translate(-50%, -50%);
+      padding: 10px;
+      box-sizing: border-box;
+      z-index: 2;
+    }
+    /* Treble-System: obere Ebene – hier mit Prozentwerten relativ zum Container,
+       sodass es wie die obere Zeile eines Musikhefts wirkt */
+    #notationTreble {
+      position: absolute;
+      top: 105%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 1200px;
+      z-index: 2;
+    }
+    /* Bass-System: untere Ebene */
+    #notationBass {
+      position: absolute;
+      top: 130%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 1200px;
+      z-index: 1;
+    }
+    /* SVG-Optimierung */
+    #notation svg, #notationTreble svg, #notationBass svg {
+      width: 100%;
+      height: auto;
+      shape-rendering: crispEdges;
+    }
+    #notation svg *, #notationTreble svg *, #notationBass svg * {
+      vector-effect: non-scaling-stroke;
+    }
+    /* Im Dark Mode: weiße Stroke/Füllung */
+    body.dark-mode #notation svg *,
+    body.dark-mode #notationTreble svg *,
+    body.dark-mode #notationBass svg * {
+      stroke: #ffffff;
+      fill: #ffffff;
+    }
+    /* Motivationsfenster */
+    #motivationOverlay {
+      position: fixed;
+      top: 20%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 15;
+      pointer-events: none;
+      opacity: 0;
+      font-size: 2em;
+      color: #000000;
+      text-shadow: none;
+    }
+    @keyframes floatFade {
+      0% { transform: translate(-50%, -50%) translateY(20px); opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translate(-50%, -50%) translateY(-20px); opacity: 0; }
+    }
+    .animate-motivation {
+      animation: floatFade 2.5s ease-out forwards;
+    }
+    /* Game Over Overlay (auch für Session-Pause) */
+    #gameOverOverlay {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+      background: rgba(0,0,0,0.8);
+      color: #ffffff;
+      padding: 30px;
+      border-radius: 15px;
+      font-size: 2em;
+      white-space: pre-line;
+      display: none;
+    }
+    body.dark-mode #gameOverOverlay {
+      border: 3px solid #ffffff;
+    }
+    /* Scoreboard Overlay – ähnlich wie Game Over Overlay */
+    #scoreboardOverlay {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+      background: rgba(0,0,0,0.8);
+      color: #ffffff;
+      padding: 30px;
+      border-radius: 15px;
+      font-size: 2em;
+      white-space: pre-line;
+      display: block;
+    }
+    .hidden {
+      display: none !important;
+    }
+    /* Timer Container: rechte untere Ecke (zeigt Zeit und Session-Counter) */
+    #timerContainer {
+      position: fixed;
+      right: 10px;
+      bottom: 30px;
+      font-size: 1.5em;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Hauptinhalt */
+    #mainContent {
+      position: relative;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.5s ease-in;
+      padding-bottom: 50px;
+    }
+    /* Einstellungen-Menü (links) */
+    #settingsPanel {
+      position: fixed;
+      left: 30px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #ffffff;
+      border: 3px solid #000;
+      border-radius: 20px;
+      padding: 10px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 10;
+      transition: background 0.3s, border-color 0.3s, color 0.3s;
+    }
+    body.dark-mode #settingsPanel {
+      background: #000000;
+      border-color: #ffffff;
+    }
+    #settingsPanel span {
+      display: block;
+      cursor: pointer;
+      font-size: 1.8em;
+      margin: 8px 0;
+      padding: 2px;
+      text-align: center;
+      background: none;
+      border: none;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    #settingsPanel span:hover {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+    }
+    /* Lagewechsel-Button (Einhand) */
+    #clefTitle {
+      display: inline-block;
+      background: #ffffff;
+      border: 3px solid #000;
+      border-radius: 20px;
+      padding: 10px 20px;
+      font-size: 1.5em;
+      color: #000;
+      cursor: pointer;
+      transition: all 0.5s ease;
+    }
+    body.dark-mode #clefTitle {
+      background: #000000;
+      border-color: #ffffff;
+      color: #ffffff;
+    }
+    /* Container für den Lagewechsel-Button und Herzen */
+    #buttonContainer {
+      position: fixed;
+      left: 50%;
+      bottom: 30px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      z-index: 50;
+    }
+    /* Container für Herzen, direkt neben dem Button */
+    #heartsContainer {
+      display: inline-block;
+      margin-left: 10px;
+      vertical-align: middle;
+      font-size: 1.5em;
+    }
+    /* Notenname-Anzeige */
+    #noteNameDisplay {
+      margin-top: 10px;
+      font-size: 1.5em;
+      color: #000;
+    }
+    body.dark-mode #noteNameDisplay { color: #e0e0e0; }
+    /* Welcome Overlay */
+    #welcomeOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      transition: opacity 0.5s ease-out;
+    }
+    body.dark-mode #welcomeOverlay { background-color: #121212; }
+    #welcomeMessage {
+      font-size: 2.5em;
+      color: #000;
+      margin-bottom: 20px;
+    }
+    body.dark-mode #welcomeMessage { color: #e0e0e0; }
   </style>
   <script>
     /****************** Adaptive Pause Script ******************/
@@ -32,11 +274,12 @@
       let fatigueIndex = slowdownFactor * (1 - hitRate);
       const basePause = 10;
       let breakTime = basePause * fatigueIndex;
-      return Math.max(5, Math.min(breakTime, 300));
+      breakTime = Math.max(5, Math.min(breakTime, 300));
+      return breakTime;
     }
     /************************************************************/
     
-    // Global variables and state
+    // Globale Variablen und initiale Zustände
     let currentSeriesSingle = [];
     let currentSeriesTreble = [];
     let currentSeriesBass = [];
@@ -55,16 +298,21 @@
     let scoreRecorded = false;
     let sessionCount = 0;
     
-    // Global object for note pair in dual-hand mode
+    // Globales Objekt für das Notenpaar im Zweihandmodus
     let pairInputs = { treble: false, bass: false, firstNoteTime: 0 };
     
-    // Heart system
+    // Herz-System: 4 Herzen
     let hearts = 4;
-    let unlimitedLives = true;
     const updateHeartsDisplay = () => {
       const heartsElem = document.getElementById("heartsContainer");
-      heartsElem.textContent = unlimitedLives ? "∞" : "❤️".repeat(hearts);
+      if (unlimitedLives) {
+        heartsElem.textContent = "∞";
+      } else {
+        heartsElem.textContent = "❤️".repeat(hearts);
+      }
     };
+    
+    let unlimitedLives = true;
     
     const updateTimer = () => {
       const elapsed = Math.floor((Date.now() - appStartTime) / 1000);
@@ -210,7 +458,7 @@
     let currentRange = rangeArray[currentRangeIndex];
     let soundEnabled = true;
     let firstNotePlayed = false;
-    // In dual-hand mode, we set currentPhase to "pair"
+    // Für den Zweihandmodus setzen wir currentPhase auf "pair"
     let currentPhase = "pair";
     
     const motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
@@ -239,7 +487,7 @@
       "MC": ["c", "d", "e", "f", "g"]
     };
     
-    // Helper: checks if the played note matches the expected note for a given clef.
+    // Hilfsfunktion: Prüft, ob die eingespielte Note der erwarteten Note für den angegebenen Clef entspricht.
     function isNoteCorrectForClef(midiInfo, expected) {
       if (!expected) return false;
       let playedNote = midiInfo.note.toLowerCase();
@@ -576,8 +824,9 @@
           }
           updateTimer();
         } else {
-          // Zweihandmodus: Erwarte ein Notenpaar (Treble und Bass)
+          // Zweihandmodus: Notenpaar (Treble und Bass) verarbeiten
           if (pairInputs.firstNoteTime === 0) {
+            // Erster Ton des Paares
             pairInputs.firstNoteTime = currentTime;
           }
           let timeDiff = currentTime - pairInputs.firstNoteTime;
@@ -595,6 +844,7 @@
               currentSeriesBass[seriesCounter].color = "green";
               correctAnswers++;
             } else {
+              // Falls die Note zu keinem noch fehlenden Teil passt, markiere Fehler
               if (!pairInputs.treble) {
                 currentSeriesTreble[seriesCounter].color = "red";
                 errorNotes.push(currentSeriesTreble[seriesCounter]);
@@ -605,7 +855,7 @@
               }
             }
           } else {
-            // Sequentielles Spielen: Erwartet wird zuerst die Treble-Note, dann die Bass-Note.
+            // Sequentielles Spielen: Erwartet wird, dass zuerst die Treble-Note und dann die Bass-Note gespielt wird.
             if (!pairInputs.treble) {
               currentSeriesTreble[seriesCounter].color = "red";
               errorNotes.push(currentSeriesTreble[seriesCounter]);
@@ -621,6 +871,7 @@
             }
           }
           
+          // Wenn beide Noten des Paares erkannt wurden, fahre fort:
           if (pairInputs.treble && pairInputs.bass) {
             seriesCounter++;
             pairInputs = { treble: false, bass: false, firstNoteTime: 0 };
@@ -663,10 +914,6 @@
       generateSeries();
       updateHeartsDisplay();
     };
-    
-    // Expose key functions to the global scope so Swift can call them
-    window.handleMIDIMessage = handleMIDIMessage;
-    window.midiNoteToName = midiNoteToName;
   </script>
 </head>
 <body>
