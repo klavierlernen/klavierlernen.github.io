@@ -58,7 +58,7 @@
     #notation svg *, #notationTreble svg *, #notationBass svg * {
       vector-effect: non-scaling-stroke;
     }
-    /* Im Dark Mode: Inline-Farben (z. B. "red" oder "green") bleiben erhalten */
+    /* Im Dark Mode werden andere Elemente weiß gefärbt, aber inline-Styles (z. B. "red" oder "green") behalten */
     body.dark-mode #notation svg *,
     body.dark-mode #notationTreble svg *,
     body.dark-mode #notationBass svg * {
@@ -255,7 +255,7 @@
     // Toggle für unbegrenzte Leben
     var unlimitedLives = false;
 
-    // Timer: Startzeit bleibt erhalten
+    // Timer: Startzeit bleibt erhalten, auch nach Game Over
     var startTime = Date.now();
     function updateTimer() {
       var elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -396,7 +396,7 @@
       element.addEventListener("touchend", function() { element.classList.add("faded"); });
     }
 
-    // Throttling: Neuzeichnen wird über requestAnimationFrame gesteuert
+    // Throttling für das Neuzeichnen der Notation
     var redrawQueued = false;
     function queueRedraw() {
       if (!redrawQueued) {
@@ -488,7 +488,6 @@
       });
     });
 
-    // Hier wurde die Note-Generierung optimiert, indem auch die Oktaven zufällig gewählt werden.
     function generateSeries() {
       seriesCounter = 0;
       firstNotePlayed = false;
@@ -497,12 +496,10 @@
 
       if (selectedMode !== "both") {
         currentSeriesSingle = [];
-        // Für Single-Mode: Bei "left" (Bass) wähle zufällig zwischen Oktaven 2 und 3, sonst (Treble) zwischen 4 und 5.
-        var possibleOctaves = (selectedMode === "left") ? [2, 3] : [4, 5];
         for (var i = 0; i < seriesLength; i++) {
           var randomIndex = Math.floor(Math.random() * rangeNotes[currentRange].length);
           var clef = (selectedMode === "left") ? "bass" : "treble";
-          var octave = possibleOctaves[Math.floor(Math.random() * possibleOctaves.length)];
+          var octave = (selectedMode === "left") ? 3 : 4;
           currentSeriesSingle.push({
             note: rangeNotes[currentRange][randomIndex],
             octave: octave,
@@ -515,21 +512,18 @@
       } else {
         currentSeriesTreble = [];
         currentSeriesBass = [];
-        // Für Zweihandmodus: Treble erhält zufällig Oktaven 4 oder 5, Bass erhält 2 oder 3.
         for (var i = 0; i < seriesLength; i++) {
           var randomIndexT = Math.floor(Math.random() * rangeNotes[currentRange].length);
           var randomIndexB = Math.floor(Math.random() * rangeNotes[currentRange].length);
-          var octaveT = Math.random() < 0.5 ? 4 : 5;
-          var octaveB = Math.random() < 0.5 ? 2 : 3;
           currentSeriesTreble.push({
             note: rangeNotes[currentRange][randomIndexT],
-            octave: octaveT,
+            octave: 4,
             clef: "treble",
             color: "black"
           });
           currentSeriesBass.push({
             note: rangeNotes[currentRange][randomIndexB],
-            octave: octaveB,
+            octave: 3,
             clef: "bass",
             color: "black"
           });
@@ -676,6 +670,7 @@
         if (noteDisplay) {
           noteDisplay.textContent = noteName;
         }
+        // Note abspielen
         synth.triggerAttackRelease(noteName, "8n");
         
         totalAttempts++;
