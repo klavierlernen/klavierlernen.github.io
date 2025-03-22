@@ -58,7 +58,7 @@
     #notation svg *, #notationTreble svg *, #notationBass svg * {
       vector-effect: non-scaling-stroke;
     }
-    /* Im Dark Mode werden andere Elemente weiß gefärbt, aber inline-Styles (z. B. "red" oder "green") gewinnen */
+    /* Im Dark Mode werden andere Elemente weiß gefärbt, aber inline-Styles (z. B. "red" oder "green") behalten */
     body.dark-mode #notation svg *,
     body.dark-mode #notationTreble svg *,
     body.dark-mode #notationBass svg * {
@@ -396,6 +396,18 @@
       element.addEventListener("touchend", function() { element.classList.add("faded"); });
     }
 
+    // Throttling für das Neuzeichnen der Notation
+    var redrawQueued = false;
+    function queueRedraw() {
+      if (!redrawQueued) {
+        redrawQueued = true;
+        requestAnimationFrame(function() {
+          drawSeries();
+          redrawQueued = false;
+        });
+      }
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
       var settingsPanel = document.getElementById("settingsPanel");
       var handToggle = document.createElement("span");
@@ -424,7 +436,7 @@
       lifeToggle.addEventListener("click", function() {
         unlimitedLives = !unlimitedLives;
         if (unlimitedLives) {
-          lifeToggle.textContent = "⭐ (∞)";
+          lifeToggle.textContent = "∞";
           document.getElementById("heartsContainer").textContent = "∞";
         } else {
           lifeToggle.textContent = "⭐";
@@ -526,7 +538,6 @@
       var container = document.getElementById("notationContainer");
 
       if (selectedMode !== "both") {
-        // Einhandmodus: #notation anzeigen, #notationContainer verstecken
         notationDiv.style.display = "block";
         notationDiv.innerHTML = "";
         container.style.display = "none";
@@ -565,12 +576,10 @@
         staveNotes.forEach(function(note) {
           voice.addTickable(note);
         });
-
         new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
         voice.draw(context, stave);
 
       } else {
-        // Zweihandmodus: #notationContainer anzeigen, #notation verstecken
         container.style.display = "flex";
         container.innerHTML = "";
         notationDiv.style.display = "none";
@@ -581,7 +590,6 @@
         var width = baseWidth * ratio;
         var height = 300 * ratio;
 
-        // Oberes System (Treble)
         var notationTreble = document.createElement("div");
         notationTreble.id = "notationTreble";
         container.appendChild(notationTreble);
@@ -615,7 +623,6 @@
         new Vex.Flow.Formatter().joinVoices([voiceT]).format([voiceT], staveT.getWidth() - 20);
         voiceT.draw(contextT, staveT);
 
-        // Unteres System (Bass)
         var notationBass = document.createElement("div");
         notationBass.id = "notationBass";
         container.appendChild(notationBass);
@@ -651,7 +658,7 @@
       }
     }
 
-    // Aktualisierte Funktion zur Verarbeitung, Bewertung, Farbanpassung und Fortschaltung der Note
+    // Optimierte Funktion zur Verarbeitung, Bewertung, Farbanpassung und Fortschaltung der Note
     function handleMIDIMessage(status, data1, data2) {
       if (sessionPaused) return;
       
@@ -666,11 +673,9 @@
         // Note abspielen
         synth.triggerAttackRelease(noteName, "8n");
         
-        // Bewertung durchführen
         totalAttempts++;
         var correct = isNoteCorrect(midiInfo);
         if (correct) {
-          // Markiere aktuelle Note grün
           if (selectedMode !== "both") {
             currentSeriesSingle[seriesCounter].color = "green";
           } else {
@@ -681,7 +686,6 @@
             }
           }
           correctAnswers++;
-          // Session-Counter dekrementieren
           sessionCounter--;
           if (sessionCounter <= 0) {
             sessionCounter = 0;
@@ -693,7 +697,6 @@
             return;
           }
         } else {
-          // Markiere aktuelle Note rot
           if (selectedMode !== "both") {
             currentSeriesSingle[seriesCounter].color = "red";
           } else {
@@ -703,7 +706,6 @@
               currentSeriesBass[seriesCounter].color = "red";
             }
           }
-          // Falsche Note – falls kein Unlimited-Leben aktiviert, Herzen abziehen
           if (!unlimitedLives) {
             hearts--;
             updateHeartsDisplay();
@@ -713,13 +715,12 @@
             }
           }
         }
-        // Unabhängig vom Ergebnis immer zur nächsten Note fortfahren:
         seriesCounter++;
         if (seriesCounter >= seriesLength) {
-          drawSeries();
+          queueRedraw();
           setTimeout(generateSeries, 300);
         } else {
-          drawSeries();
+          queueRedraw();
         }
         updateTimer();
       }
