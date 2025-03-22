@@ -582,26 +582,22 @@
     // --- GEÄNDERTE Funktion generateSeries ---
     const generateSeries = () => {
       seriesCounter = 0;
-      firstNotePlayed = false;
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
       
+      // Wähle einen einheitlichen Notenschlüssel für diese Serie:
+      // Im Random Mode wird hier zufällig zwischen "bass" und "treble" gewählt,
+      // andernfalls orientiert sich der Schlüssel am selectedMode.
+      const seriesClef = randomMode ? (Math.random() < 0.5 ? "bass" : "treble") : ((selectedMode === "left") ? "bass" : "treble");
+      
       const chooseNote = () => {
-        // Wenn Fehler vorhanden, wiederverwenden
+        // Falls Fehler vorhanden, kann eine Note aus errorNotes wiederverwendet werden
         if (errorNotes.length > 0 && Math.random() < 0.6) {
           return errorNotes.splice(0,1)[0];
         }
-        // Bestimme, welche Hand genutzt wird:
-        let usedClef;
-        if (randomMode) {
-          usedClef = Math.random() < 0.5 ? "bass" : "treble";
-        } else {
-          usedClef = (selectedMode === "left") ? "bass" : "treble";
-        }
         let availableNotes;
-        // Bei Mittlerer C Lage: unterschiedliche Reihenfolgen je nach Hand
         if (currentRange === "MC") {
-          if (usedClef === "bass") {
+          if (seriesClef === "bass") {
             availableNotes = ["f", "g", "a", "b", "c"];
           } else {
             availableNotes = ["c", "d", "e", "f", "g"];
@@ -613,19 +609,18 @@
         const chosenNote = availableNotes[randomIndex];
         let noteOctave;
         if (currentRange === "MC") {
-          if (usedClef === "bass") {
-            // In MC im Bass: C in Oktave 4, sonst Oktave 3
+          if (seriesClef === "bass") {
             noteOctave = (chosenNote === "c") ? 4 : 3;
           } else {
             noteOctave = 4;
           }
         } else {
-          noteOctave = (usedClef === "bass") ? 3 : 4;
+          noteOctave = (seriesClef === "bass") ? 3 : 4;
         }
         return {
           note: chosenNote,
           octave: noteOctave,
-          clef: usedClef,
+          clef: seriesClef,
           color: "black"
         };
       };
@@ -652,7 +647,7 @@
       const svg = notationDiv.querySelector("svg");
       svg && (svg.setAttribute("width", baseWidth), svg.setAttribute("height", 300));
       const context = renderer.getContext();
-      // Verwende den Clef-Wert des ersten Tones für den Stab
+      // Verwende den Clef-Wert der ersten Note, um den Stab zu zeichnen
       const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
       if (currentSeriesSingle.length) {
         stave.addClef(currentSeriesSingle[0].clef);
