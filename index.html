@@ -89,7 +89,7 @@
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
     }
-    /* Game Over Overlay (wird nun auch für Session-Pause genutzt) */
+    /* Game Over Overlay (auch für Session-Pause genutzt) */
     #gameOverOverlay {
       position: fixed;
       top: 50%;
@@ -106,6 +106,21 @@
     }
     body.dark-mode #gameOverOverlay {
       border: 3px solid #ffffff;
+    }
+    /* Scoreboard Overlay – ähnlich wie Game Over Overlay */
+    #scoreboardOverlay {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+      background: rgba(0,0,0,0.8);
+      color: #ffffff;
+      padding: 30px;
+      border-radius: 15px;
+      font-size: 2em;
+      white-space: pre-line;
+      display: none;
     }
     /* Timer Container: rechte untere Ecke (zeigt Zeit und Session-Counter) */
     #timerContainer {
@@ -241,9 +256,13 @@
     let correctAnswers = 0;
     let correctNoteCount = 0;
     let nextMotivationThreshold = getRandomThreshold();
-    
     // Fehler-Noten-Pool für gezielte Wiederholung
     let errorNotes = [];
+    // Session-Management
+    let sessionCounter = 1000;
+    let sessionPaused = false;
+    let sessionStartTime = Date.now();
+    let scoreRecorded = false;
 
     // Herz-System: 4 Herzen
     let hearts = 4;
@@ -256,17 +275,12 @@
       }
     };
 
-    // Session-Counter (richtig gespielte Noten, startet bei 1000)
-    let sessionCounter = 1000;
-    let sessionPaused = false;
-
     // Toggle für unbegrenzte Leben
     let unlimitedLives = false;
 
-    // Timer: Startzeit bleibt erhalten, auch nach Game Over
-    const startTime = Date.now();
+    // Timer: Sessiondauer (wird nun aus sessionStartTime berechnet)
     const updateTimer = () => {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
       let display;
       if (elapsed < 60) {
         display = elapsed + " s";
@@ -331,7 +345,7 @@
          const gongAudio = document.getElementById("gongSound");
          gongAudio && gongAudio.play();
       }
-      // Konfetti nur einmal auslösen
+      if (!scoreRecorded) recordScore();
       if (!confettiShown) {
          confettiShown = true;
          confetti();
@@ -345,25 +359,58 @@
       const gameOverOverlay = document.getElementById("gameOverOverlay");
       gameOverOverlay.textContent = "Game Over!";
       gameOverOverlay.style.display = "block";
+      if (!scoreRecorded) recordScore();
       setTimeout(resetGame, 5000);
     };
 
-    const resetGame = () => {
-      hearts = 4;
-      gameOver = false;
-      seriesCounter = 0;
-      totalAttempts = 0;
-      correctAnswers = 0;
-      correctNoteCount = 0;
-      nextMotivationThreshold = getRandomThreshold();
-      sessionCounter = 1000;
-      sessionPaused = false;
-      confettiShown = false;
-      // Fehlerpool zurücksetzen
-      errorNotes = [];
-      document.getElementById("gameOverOverlay").style.display = "none";
-      generateSeries();
-      updateHeartsDisplay();
+    const recordScore = () => {
+      if (totalAttempts <= 0) return;
+      // Berechne Dauer der Session
+      const durationMs = Date.now() - sessionStartTime;
+      const secondsTotal = Math.floor(durationMs / 1000);
+      const minutes = Math.floor(secondsTotal / 60);
+      const seconds = secondsTotal % 60;
+      const durationStr = (minutes < 10 ? "0" + minutes : minutes) + ":" + (seconds < 10 ? "0" + seconds : seconds);
+      // Berechne Genauigkeit
+      const accuracy = Math.round((correctAnswers / totalAttempts) * 100);
+      const now = new Date();
+      let dd = now.getDate();
+      let mm = now.getMonth() + 1;
+      dd = dd < 10 ? "0" + dd : dd;
+      mm = mm < 10 ? "0" + mm : mm;
+      const dateStr = dd + "." + mm;
+      const scoreObj = { date: dateStr, accuracy: accuracy, duration: durationStr, seconds: secondsTotal };
+      // Highscores aus localStorage laden
+      let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
+      highScores.push(scoreObj);
+      // Sortierung: höchste Genauigkeit, bei Gleichstand kürzere Dauer
+      highScores.sort((a, b) => {
+        if (b.accuracy !== a.accuracy) return b.accuracy - a.accuracy;
+        return a.seconds - b.seconds;
+      });
+      highScores = highScores.slice(0, 5);
+      localStorage.setItem("highScores", JSON.stringify(highScores));
+      scoreRecorded = true;
+    };
+
+    // Funktion zum Aktualisieren und Anzeigen des Scoreboards
+    const updateScoreboard = () => {
+      const highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
+      let html = "HIGHSCORES\n";
+      highScores.forEach((score, index) => {
+        html += (index + 1) + ". " + score.date + " \t " + score.accuracy + "% " + score.duration + "\n";
+      });
+      document.getElementById("scoreboardOverlay").textContent = html;
+    };
+
+    const toggleScoreboard = () => {
+      const overlay = document.getElementById("scoreboardOverlay");
+      if (overlay.style.display === "block") {
+        overlay.style.display = "none";
+      } else {
+        updateScoreboard();
+        overlay.style.display = "block";
+      }
     };
 
     // Einstellungen für Hand, Level und Leben
@@ -394,7 +441,6 @@
     const motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
     const showMotivationMessage = () => {
       const overlay = document.getElementById("motivationOverlay");
-      // Wähle eine zufällige Motivationsnachricht
       const msg = motivationMessages[Math.floor(Math.random() * motivationMessages.length)];
       overlay.textContent = msg;
       overlay.classList.add("animate-motivation");
@@ -449,7 +495,6 @@
       return false;
     };
 
-    // Entfernt korrekt beantwortete Noten aus dem Fehlerpool
     const removeFromErrorNotes = (noteObj) => {
       errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
     };
@@ -504,19 +549,19 @@
       handToggle.textContent = handOptions[currentHandIndex].symbol;
       handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
       settingsPanel.appendChild(handToggle);
-
+      
       // Level-Toggle
       const levelToggle = document.createElement("span");
       levelToggle.id = "levelToggle";
       levelToggle.textContent = levelOptions[currentLevelIndex].symbol;
       settingsPanel.appendChild(levelToggle);
-
+      
       // Sound-Toggle
       const soundToggle = document.createElement("span");
       soundToggle.id = "soundToggle";
       soundToggle.textContent = "🔊";
       settingsPanel.appendChild(soundToggle);
-
+      
       // Life-Toggle (unbegrenzte Leben)
       const lifeToggle = document.createElement("span");
       lifeToggle.id = "lifeToggle";
@@ -532,13 +577,19 @@
           updateHeartsDisplay();
         }
       });
-
+      
       // Dark-Mode-Toggle
       const darkModeToggle = document.createElement("span");
       darkModeToggle.id = "darkModeToggle";
       darkModeToggle.textContent = "🌙";
       settingsPanel.appendChild(darkModeToggle);
-
+      
+      // Scoreboard-Toggle (über 🎯)
+      const scoreboardToggle = document.createElement("span");
+      scoreboardToggle.id = "scoreboardToggle";
+      scoreboardToggle.textContent = "🎯";
+      settingsPanel.appendChild(scoreboardToggle);
+      
       // Toggle-Events
       handToggle.addEventListener("click", () => {
         currentHandIndex = (currentHandIndex + 1) % handOptions.length;
@@ -558,20 +609,25 @@
         soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
       });
       darkModeToggle.addEventListener("click", toggleDarkMode);
-
+      scoreboardToggle.addEventListener("click", toggleScoreboard);
+      
       setupFadeOnHover(settingsPanel);
       setupFadeOnHover(document.getElementById("clefTitle"));
-
+      
       setTimeout(proceedToMainScreen, 3000);
+      // Starte Session: Setze Startzeit zurück
+      sessionStartTime = Date.now();
       generateSeries();
       updateHeartsDisplay();
-
+      
       document.addEventListener("keydown", (event) => {
         if (event.code === "Space") {
           handleMIDIMessage(144, 60, 127);
-          // Debug: MIDI Signal gesendet
         }
       });
+      
+      // Klick auf das Scoreboard-Overlay blendet es wieder aus
+      document.getElementById("scoreboardOverlay").addEventListener("click", toggleScoreboard);
     });
 
     // Generiert eine neue Notenserie unter Einbezug von Fehlern (gezielte Wiederholung)
@@ -580,12 +636,10 @@
       firstNotePlayed = false;
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
-
-      // Helper: Wählt zufällig entweder eine fehlerhafte Note (bei hoher Wahrscheinlichkeit) oder eine neue Note
+      // Wähle Note – entweder aus Fehlerpool oder neu
       const chooseNote = (clef) => {
         const errorsForClef = errorNotes.filter(n => n.clef === clef);
         if (errorsForClef.length > 0 && Math.random() < 0.6) {
-          // Fehler-Note auswählen und aus dem Pool entfernen
           return errorNotes.splice(errorNotes.indexOf(errorsForClef[0]), 1)[0];
         } else {
           const randomIndex = Math.floor(Math.random() * rangeNotes[currentRange].length);
@@ -597,7 +651,7 @@
           };
         }
       };
-
+      
       if (selectedMode !== "both") {
         currentSeriesSingle = [];
         const clef = selectedMode === "left" ? "bass" : "treble";
@@ -626,13 +680,13 @@
       const baseWidth = 800;
       const width = baseWidth * ratio;
       const height = 300 * ratio;
-
+      
       if (selectedMode !== "both") {
         notationDiv.style.display = "block";
         notationDiv.innerHTML = "";
         container.style.display = "none";
         container.innerHTML = "";
-
+        
         const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
         renderer.resize(width, height);
         const svg = notationDiv.querySelector("svg");
@@ -654,7 +708,7 @@
         container.innerHTML = "";
         notationDiv.style.display = "none";
         notationDiv.innerHTML = "";
-
+        
         // Treble
         const notationTreble = document.createElement("div");
         notationTreble.id = "notationTreble";
@@ -675,7 +729,7 @@
         staveNotesT.forEach(note => voiceT.addTickable(note));
         new Vex.Flow.Formatter().joinVoices([voiceT]).format([voiceT], staveT.getWidth() - 20);
         voiceT.draw(contextT, staveT);
-
+        
         // Bass
         const notationBass = document.createElement("div");
         notationBass.id = "notationBass";
@@ -702,20 +756,17 @@
     // Optimierte Funktion zur Verarbeitung, Bewertung, visuellen Rückmeldung und Fortschaltung der Note
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
-      // Nur Note-On Events mit data2 > 0 verarbeiten
       if ((status & 0xf0) === 0x90 && data2 > 0) {
         const midiInfo = midiNoteToName(data1);
         const noteName = midiInfo.note + midiInfo.octave;
         const noteDisplay = document.getElementById("noteNameDisplay");
         noteDisplay && (noteDisplay.textContent = noteName);
-        // Sound auslösen, falls aktiviert
         if (soundEnabled) {
           synth.triggerAttackRelease(noteName, "8n");
         }
         totalAttempts++;
         const correct = isNoteCorrect(midiInfo);
         if (correct) {
-          // Korrekte Note: grün färben, Session und Motivations-Feedback aktualisieren
           if (selectedMode !== "both") {
             currentSeriesSingle[seriesCounter].color = "green";
           } else {
@@ -725,10 +776,8 @@
           }
           correctAnswers++;
           correctNoteCount++;
-          // Entferne ggf. die Note aus dem Fehlerpool, falls vorhanden
           removeFromErrorNotes(correct ? (selectedMode !== "both" ? currentSeriesSingle[seriesCounter] :
             (currentPhase === "treble" ? currentSeriesTreble[seriesCounter] : currentSeriesBass[seriesCounter])) : {});
-          // Motivationsfeedback: zeige Nachricht, wenn Schwelle erreicht
           if (correctNoteCount >= nextMotivationThreshold) {
             showMotivationMessage();
             nextMotivationThreshold = correctNoteCount + getRandomThreshold();
@@ -741,7 +790,6 @@
             return;
           }
         } else {
-          // Falsche Note: rot färben, Note dem Fehlerpool hinzufügen
           if (selectedMode !== "both") {
             currentSeriesSingle[seriesCounter].color = "red";
             errorNotes.push(currentSeriesSingle[seriesCounter]);
@@ -773,6 +821,27 @@
         updateTimer();
       }
     };
+
+    // Bei Sessionende wird die Score aufgenommen und Session zurückgesetzt
+    const resetGame = () => {
+      hearts = 4;
+      gameOver = false;
+      seriesCounter = 0;
+      totalAttempts = 0;
+      correctAnswers = 0;
+      correctNoteCount = 0;
+      nextMotivationThreshold = getRandomThreshold();
+      sessionCounter = 1000;
+      sessionPaused = false;
+      confettiShown = false;
+      errorNotes = [];
+      document.getElementById("gameOverOverlay").style.display = "none";
+      // Setze Startzeit für neue Session
+      sessionStartTime = Date.now();
+      scoreRecorded = false;
+      generateSeries();
+      updateHeartsDisplay();
+    };
   </script>
 </head>
 <body>
@@ -780,36 +849,30 @@
   <div id="welcomeOverlay">
     <div id="welcomeMessage">Hallo, schön dich zu sehen!<br>V23:45</div>
   </div>
-
   <!-- Game Over / Session-Pause Overlay -->
   <div id="gameOverOverlay"></div>
-
+  <!-- Scoreboard Overlay -->
+  <div id="scoreboardOverlay" class="hidden"></div>
   <!-- Motivationsfenster -->
   <div id="motivationOverlay"></div>
-
   <!-- Timer Container -->
   <div id="timerContainer"></div>
-
   <!-- Hauptinhalt -->
   <div id="mainContent" style="opacity: 0;">
     <!-- Notation (Einhand) -->
     <div id="notation"></div>
     <!-- Container (Zweihand) -->
     <div id="notationContainer"></div>
-
     <!-- Lagewechsel-Button & Herzen -->
     <div id="buttonContainer" style="z-index:50;">
       <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
       <div id="heartsContainer" style="margin-left:10px;"></div>
     </div>
-
     <!-- Notenname-Anzeige -->
     <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:1.5em;"></div>
   </div>
-
   <!-- Einstellungen-Menü -->
   <div id="settingsPanel"></div>
-  
   <!-- Audio-Element für den Gong -->
   <audio id="gongSound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
 </body>
