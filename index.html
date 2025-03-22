@@ -6,8 +6,8 @@
   <title>Notentraining</title>
   <!-- Tone.js laden -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.37/Tone.js"></script>
-  <!-- VexFlow laden -->
-  <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+  <!-- VexFlow laden (UMD-Build) -->
+  <script src="https://unpkg.com/vexflow/releases/vexflow-min.js"></script>
   <!-- canvas-confetti laden -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
   <style>
@@ -226,6 +226,12 @@
     body.dark-mode #welcomeMessage { color: #e0e0e0; }
   </style>
   <script>
+    // Starte den AudioContext nach einer Nutzerinteraktion
+    document.addEventListener('click', async () => {
+      await Tone.start();
+      console.log('AudioContext resumed.');
+    }, { once: true });
+    
     /**************** Adaptive Pause ****************/
     function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       if (responseTimes.length === 0) return 5;
@@ -239,7 +245,7 @@
       return Math.max(5, Math.min(breakTime, 300));
     }
     /**********************************************/
-
+    
     // Globale Variablen
     let currentSeriesSingle = [];
     let seriesCounter = 0;
@@ -257,13 +263,20 @@
     let scoreRecorded = false;
     let sessionCount = 0;
     
+    // Unendlich Modus
+    let infiniteMode = false;
+    
     // Herzen
     let hearts = 4;
     const updateHeartsDisplay = () => {
       const heartsElem = document.getElementById("heartsContainer");
-      heartsElem.textContent = "❤️".repeat(hearts);
+      if (infiniteMode) {
+        heartsElem.textContent = "∞";
+      } else {
+        heartsElem.textContent = "❤️".repeat(hearts);
+      }
     };
-
+    
     // Timer
     const updateTimer = () => {
       const elapsed = Math.floor((Date.now() - appStartTime) / 1000);
@@ -379,7 +392,7 @@
       if (!overlay.classList.contains("hidden")) updateScoreboard();
     };
     
-    // Es gibt nur noch zwei Handoptionen: left und right
+    // Hand Optionen
     const handOptions = [
       { mode: "left", symbol: "✋" },
       { mode: "right", symbol: "✋", flip: true }
@@ -423,7 +436,7 @@
       "MC": ["c", "d", "e", "f", "g"] // wird in generateSeries angepasst
     };
     
-    // Prüfe, ob die gespielte Note korrekt ist (Note UND Oktave müssen übereinstimmen)
+    // Prüfe, ob die gespielte Note korrekt ist
     const isNoteCorrect = (midiInfo) => {
       const expected = currentSeriesSingle[seriesCounter];
       if (!expected) return false;
@@ -505,7 +518,6 @@
       handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
       settingsPanel.appendChild(handToggle);
       handToggle.addEventListener("click", () => {
-        // Wechsle zwischen left und right (nur, wenn nicht random)
         if (!randomMode) {
           currentHandIndex = (currentHandIndex + 1) % handOptions.length;
           selectedMode = handOptions[currentHandIndex].mode;
@@ -515,19 +527,18 @@
         }
       });
       
-      // Neuer Button: RANDOM Mode (🐇)
+      // RANDOM Mode Button (🐇)
       const randomToggle = document.createElement("span");
       randomToggle.id = "randomToggle";
       randomToggle.textContent = "🐇";
       settingsPanel.appendChild(randomToggle);
       randomToggle.addEventListener("click", () => {
         randomMode = !randomMode;
-        // Visuelles Feedback: z. B. Farbwechsel
         randomToggle.style.opacity = randomMode ? "1" : "0.5";
         generateSeries();
       });
       
-      // Weitere Buttons
+      // Sound Toggle Button
       const soundToggle = document.createElement("span");
       soundToggle.id = "soundToggle";
       soundToggle.textContent = "🔊";
@@ -537,20 +548,26 @@
         soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
       });
       
+      // Unendlich Modus Button
       const lifeToggle = document.createElement("span");
       lifeToggle.id = "lifeToggle";
       lifeToggle.textContent = "∞";
+      // Setze initiale Darstellung
+      lifeToggle.style.opacity = infiniteMode ? "1" : "0.5";
       settingsPanel.appendChild(lifeToggle);
       lifeToggle.addEventListener("click", () => {
-        // Hier könnte man ggf. Lives toggeln – aktuell nicht verändert
+        infiniteMode = !infiniteMode;
+        if (infiniteMode) {
+          hearts = Infinity;
+          lifeToggle.style.opacity = "1";
+        } else {
+          hearts = 4;
+          lifeToggle.style.opacity = "0.5";
+        }
+        updateHeartsDisplay();
       });
       
-      const darkModeToggle = document.createElement("span");
-      darkModeToggle.id = "darkModeToggle";
-      darkModeToggle.textContent = "🌙";
-      settingsPanel.appendChild(darkModeToggle);
-      darkModeToggle.addEventListener("click", toggleDarkMode);
-      
+      // Scoreboard Toggle Button
       const scoreboardToggle = document.createElement("span");
       scoreboardToggle.id = "scoreboardToggle";
       scoreboardToggle.textContent = "🎯";
@@ -583,11 +600,9 @@
       nextMotivationThreshold = getRandomThreshold();
       
       const chooseNote = () => {
-        // Wenn Fehler vorhanden, wiederverwenden
         if (errorNotes.length > 0 && Math.random() < 0.6) {
           return errorNotes.splice(0,1)[0];
         }
-        // Bestimme, welche Hand genutzt wird:
         let usedClef;
         if (randomMode) {
           usedClef = Math.random() < 0.5 ? "bass" : "treble";
@@ -595,9 +610,9 @@
           usedClef = (selectedMode === "left") ? "bass" : "treble";
         }
         let availableNotes;
-        // Bei Mittlerer C Lage: unterschiedliche Reihenfolgen je nach Hand
         if (currentRange === "MC") {
           if (usedClef === "bass") {
+            // Ersetze "h" durch "b"
             availableNotes = ["f", "g", "a", "b", "c"];
           } else {
             availableNotes = ["c", "d", "e", "f", "g"];
@@ -610,7 +625,6 @@
         let noteOctave;
         if (currentRange === "MC") {
           if (usedClef === "bass") {
-            // In MC im Bass: C in Oktave 4, sonst Oktave 3
             noteOctave = (chosenNote === "c") ? 4 : 3;
           } else {
             noteOctave = 4;
@@ -646,9 +660,11 @@
       const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
       renderer.resize(baseWidth * ratio, height);
       const svg = notationDiv.querySelector("svg");
-      svg && (svg.setAttribute("width", baseWidth), svg.setAttribute("height", 300));
+      if(svg) {
+        svg.setAttribute("width", baseWidth);
+        svg.setAttribute("height", 300);
+      }
       const context = renderer.getContext();
-      // Verwende den Clef-Wert des ersten Tones für den Stab
       const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
       if (currentSeriesSingle.length) {
         stave.addClef(currentSeriesSingle[0].clef);
@@ -707,9 +723,11 @@
         } else {
           currentSeriesSingle[seriesCounter].color = "red";
           errorNotes.push(currentSeriesSingle[seriesCounter]);
-          hearts--;
+          if (!infiniteMode) {
+            hearts--;
+          }
           updateHeartsDisplay();
-          if (hearts <= 0) {
+          if (!infiniteMode && hearts <= 0) {
             endGame();
             return;
           }
@@ -726,7 +744,11 @@
     };
     
     const resetGame = () => {
-      hearts = 4;
+      if (infiniteMode) {
+        hearts = Infinity;
+      } else {
+        hearts = 4;
+      }
       gameOver = false;
       seriesCounter = 0;
       totalAttempts = 0;
