@@ -36,39 +36,26 @@
       box-sizing: border-box;
       z-index: 1;
     }
-    /* Container für den 2-Handmodus – relative Positionierung */
+    /* Container für den 2-Handmodus – zentral fixiert */
     #notationContainer {
       display: none;
-      position: relative;
-      width: 800px;
-      height: 400px; /* Höhe anpassen, damit beide Systeme Platz haben */
+      position: fixed;
       left: 50%;
       top: 75%;
       transform: translate(-50%, -50%);
+      max-width: 800px;
       padding: 10px;
       box-sizing: border-box;
       z-index: 2;
     }
-    /* Treble-System: obere Ebene – hier mit Prozentwerten relativ zum Container,
-       sodass es wie die obere Zeile eines Musikhefts wirkt */
-    #notationTreble {
-      position: absolute;
-      top: 105%;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 100%;
-      max-width: 1200px;
-      z-index: 2;
-    }
-    /* Bass-System: untere Ebene */
+    /* Im Zweihandmodus werden die Systeme als zwei Blockelemente untereinander angezeigt */
+    #notationTreble,
     #notationBass {
-      position: absolute;
-      top: 130%;
-      left: 50%;
-      transform: translateX(-50%);
       width: 100%;
-      max-width: 1200px;
-      z-index: 1;
+      max-width: 800px;
+    }
+    #notationTreble {
+      margin-bottom: 20px;
     }
     /* SVG-Optimierung */
     #notation svg, #notationTreble svg, #notationBass svg {
@@ -79,7 +66,7 @@
     #notation svg *, #notationTreble svg *, #notationBass svg * {
       vector-effect: non-scaling-stroke;
     }
-    /* Im Dark Mode: weiße Stroke/Füllung */
+    /* Dark Mode: weiße Stroke/Füllung */
     body.dark-mode #notation svg *,
     body.dark-mode #notationTreble svg *,
     body.dark-mode #notationBass svg * {
@@ -108,7 +95,7 @@
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
     }
-    /* Game Over Overlay (auch für Session-Pause) */
+    /* Game Over Overlay */
     #gameOverOverlay {
       position: fixed;
       top: 50%;
@@ -126,7 +113,7 @@
     body.dark-mode #gameOverOverlay {
       border: 3px solid #ffffff;
     }
-    /* Scoreboard Overlay – ähnlich wie Game Over Overlay */
+    /* Scoreboard Overlay */
     #scoreboardOverlay {
       position: fixed;
       top: 50%;
@@ -144,7 +131,7 @@
     .hidden {
       display: none !important;
     }
-    /* Timer Container: rechte untere Ecke (zeigt Zeit und Session-Counter) */
+    /* Timer Container */
     #timerContainer {
       position: fixed;
       right: 10px;
@@ -163,7 +150,7 @@
       transition: opacity 0.5s ease-in;
       padding-bottom: 50px;
     }
-    /* Einstellungen-Menü (links) */
+    /* Einstellungen-Menü */
     #settingsPanel {
       position: fixed;
       left: 30px;
@@ -199,7 +186,7 @@
       background: rgba(0, 0, 0, 0.1);
       border-radius: 10px;
     }
-    /* Lagewechsel-Button (Einhand) */
+    /* Lagewechsel-Button */
     #clefTitle {
       display: inline-block;
       background: #ffffff;
@@ -216,7 +203,7 @@
       border-color: #ffffff;
       color: #ffffff;
     }
-    /* Container für den Lagewechsel-Button und Herzen */
+    /* Button & Herzen Container */
     #buttonContainer {
       position: fixed;
       left: 50%;
@@ -226,7 +213,6 @@
       align-items: center;
       z-index: 50;
     }
-    /* Container für Herzen, direkt neben dem Button */
     #heartsContainer {
       display: inline-block;
       margin-left: 10px;
@@ -264,22 +250,20 @@
     body.dark-mode #welcomeMessage { color: #e0e0e0; }
   </style>
   <script>
-    /****************** Adaptive Pause Script ******************/
+    // Adaptive Pause Script
     function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       if (responseTimes.length === 0) return 5;
       let sum = responseTimes.reduce((acc, time) => acc + time, 0);
       let avgResponseTime = sum / responseTimes.length;
-      const baseline = 500; // in ms
+      const baseline = 500;
       let slowdownFactor = avgResponseTime / baseline;
       let fatigueIndex = slowdownFactor * (1 - hitRate);
       const basePause = 10;
       let breakTime = basePause * fatigueIndex;
-      breakTime = Math.max(5, Math.min(breakTime, 300));
-      return breakTime;
+      return Math.max(5, Math.min(breakTime, 300));
     }
-    /************************************************************/
     
-    // Globale Variablen und initiale Zustände
+    // Global variables and state
     let currentSeriesSingle = [];
     let currentSeriesTreble = [];
     let currentSeriesBass = [];
@@ -298,21 +282,16 @@
     let scoreRecorded = false;
     let sessionCount = 0;
     
-    // Globales Objekt für das Notenpaar im Zweihandmodus
+    // Object for dual-hand note pair
     let pairInputs = { treble: false, bass: false, firstNoteTime: 0 };
     
-    // Herz-System: 4 Herzen
+    // Heart system
     let hearts = 4;
+    let unlimitedLives = true;
     const updateHeartsDisplay = () => {
       const heartsElem = document.getElementById("heartsContainer");
-      if (unlimitedLives) {
-        heartsElem.textContent = "∞";
-      } else {
-        heartsElem.textContent = "❤️".repeat(hearts);
-      }
+      heartsElem.textContent = unlimitedLives ? "∞" : "❤️".repeat(hearts);
     };
-    
-    let unlimitedLives = true;
     
     const updateTimer = () => {
       const elapsed = Math.floor((Date.now() - appStartTime) / 1000);
@@ -458,7 +437,7 @@
     let currentRange = rangeArray[currentRangeIndex];
     let soundEnabled = true;
     let firstNotePlayed = false;
-    // Für den Zweihandmodus setzen wir currentPhase auf "pair"
+    // In dual-hand mode, currentPhase is "pair"
     let currentPhase = "pair";
     
     const motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
@@ -487,7 +466,7 @@
       "MC": ["c", "d", "e", "f", "g"]
     };
     
-    // Hilfsfunktion: Prüft, ob die eingespielte Note der erwarteten Note für den angegebenen Clef entspricht.
+    // Helper: checks if the played note matches expected for a given clef.
     function isNoteCorrectForClef(midiInfo, expected) {
       if (!expected) return false;
       let playedNote = midiInfo.note.toLowerCase();
@@ -773,7 +752,7 @@
       }
     };
     
-    // Verarbeitung der MIDI-Nachrichten
+    // MIDI processing
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
       if ((status & 0xf0) === 0x90 && data2 > 0) {
@@ -792,7 +771,7 @@
         totalAttempts++;
         
         if (selectedMode !== "both") {
-          // Einhandmodus – bisherige Logik:
+          // Single-hand mode
           const correct = isNoteCorrect(midiInfo);
           if (correct) {
             currentSeriesSingle[seriesCounter].color = "green";
@@ -824,9 +803,8 @@
           }
           updateTimer();
         } else {
-          // Zweihandmodus: Notenpaar (Treble und Bass) verarbeiten
+          // Dual-hand mode: process note pair (treble and bass)
           if (pairInputs.firstNoteTime === 0) {
-            // Erster Ton des Paares
             pairInputs.firstNoteTime = currentTime;
           }
           let timeDiff = currentTime - pairInputs.firstNoteTime;
@@ -834,7 +812,7 @@
           let matchedBass = isNoteCorrectForClef(midiInfo, currentSeriesBass[seriesCounter]);
           
           if (timeDiff < 200) {
-            // Simultanes Spielen: Akzeptiere beide unabhängig von der Reihenfolge
+            // Simultaneous playing: accept both regardless of order
             if (!pairInputs.treble && matchedTreble) {
               pairInputs.treble = true;
               currentSeriesTreble[seriesCounter].color = "green";
@@ -844,7 +822,6 @@
               currentSeriesBass[seriesCounter].color = "green";
               correctAnswers++;
             } else {
-              // Falls die Note zu keinem noch fehlenden Teil passt, markiere Fehler
               if (!pairInputs.treble) {
                 currentSeriesTreble[seriesCounter].color = "red";
                 errorNotes.push(currentSeriesTreble[seriesCounter]);
@@ -855,7 +832,7 @@
               }
             }
           } else {
-            // Sequentielles Spielen: Erwartet wird, dass zuerst die Treble-Note und dann die Bass-Note gespielt wird.
+            // Sequential playing: expect treble first, then bass.
             if (!pairInputs.treble) {
               currentSeriesTreble[seriesCounter].color = "red";
               errorNotes.push(currentSeriesTreble[seriesCounter]);
@@ -871,7 +848,6 @@
             }
           }
           
-          // Wenn beide Noten des Paares erkannt wurden, fahre fort:
           if (pairInputs.treble && pairInputs.bass) {
             seriesCounter++;
             pairInputs = { treble: false, bass: false, firstNoteTime: 0 };
@@ -914,6 +890,10 @@
       generateSeries();
       updateHeartsDisplay();
     };
+    
+    // Expose functions globally so Swift can call them via evaluateJavaScript
+    window.handleMIDIMessage = handleMIDIMessage;
+    window.midiNoteToName = midiNoteToName;
   </script>
 </head>
 <body>
@@ -931,21 +911,21 @@
   <div id="timerContainer"></div>
   <!-- Hauptinhalt -->
   <div id="mainContent" style="opacity: 0;">
-    <!-- Notation (Einhandmodus) -->
+    <!-- Notation (Single-hand mode) -->
     <div id="notation"></div>
-    <!-- Container für 2-Handmodus -->
+    <!-- Container for dual-hand mode -->
     <div id="notationContainer"></div>
-    <!-- Lagewechsel-Button & Herzen -->
+    <!-- Button & hearts -->
     <div id="buttonContainer" style="z-index:50;">
       <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
       <div id="heartsContainer" style="margin-left:10px;"></div>
     </div>
-    <!-- Notenname-Anzeige -->
+    <!-- Note name display -->
     <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:1.5em;"></div>
   </div>
-  <!-- Einstellungen-Menü -->
+  <!-- Settings Panel -->
   <div id="settingsPanel"></div>
-  <!-- Audio-Element für den Gong -->
+  <!-- Audio element for gong -->
   <audio id="gongSound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
 </body>
 </html>
