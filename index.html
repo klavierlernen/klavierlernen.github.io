@@ -22,7 +22,6 @@
       background-color: #121212;
       color: #e0e0e0;
     }
-
     /* Notationscontainer (Einhand und Zweihand) – immer in der absoluten Mitte */
     #notation, #notationContainer {
       display: none;
@@ -50,7 +49,6 @@
       margin: 0 auto;
     }
     #notationTreble { margin-bottom: 5px; }
-
     /* SVG-Optimierung */
     #notation svg, #notationTreble svg, #notationBass svg {
       width: 100%;
@@ -60,13 +58,13 @@
     #notation svg *, #notationTreble svg *, #notationBass svg * {
       vector-effect: non-scaling-stroke;
     }
+    /* Im Dark Mode werden andere Elemente weiß gefärbt, aber inline-Styles (z. B. "red" oder "green") gewinnen */
     body.dark-mode #notation svg *,
     body.dark-mode #notationTreble svg *,
     body.dark-mode #notationBass svg * {
-      stroke: #ffffff !important;
-      fill: #ffffff !important;
+      stroke: #ffffff;
+      fill: #ffffff;
     }
-
     /* Motivationsfenster (ohne Textschatten) */
     #motivationOverlay {
       position: fixed;
@@ -89,7 +87,6 @@
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
     }
-
     /* Game Over Overlay (wird nun auch für Session-Pause genutzt) */
     #gameOverOverlay {
       position: fixed;
@@ -107,7 +104,6 @@
     body.dark-mode #gameOverOverlay {
       border: 3px solid #ffffff;
     }
-
     /* Timer Container: rechte untere Ecke (zeigt Zeit und Session-Counter) */
     #timerContainer {
       position: fixed;
@@ -119,7 +115,6 @@
       align-items: center;
       justify-content: center;
     }
-
     /* Hauptinhalt */
     #mainContent {
       position: relative;
@@ -128,7 +123,6 @@
       transition: opacity 0.5s ease-in;
       padding-bottom: 50px;
     }
-
     /* Einstellungen-Menü (links) */
     #settingsPanel {
       position: fixed;
@@ -165,7 +159,6 @@
       background: rgba(0, 0, 0, 0.1);
       border-radius: 10px;
     }
-
     /* Score & Time */
     #topRightInfo {
       position: fixed;
@@ -177,7 +170,6 @@
       z-index: 10;
     }
     body.dark-mode #topRightInfo { color: #e0e0e0; }
-
     /* Lagewechsel-Button (Einhand) */
     #clefTitle {
       display: inline-block;
@@ -195,7 +187,6 @@
       border-color: #ffffff;
       color: #ffffff;
     }
-
     /* Container für den Lagewechsel-Button und Herzen */
     #buttonContainer {
       position: fixed;
@@ -213,7 +204,6 @@
       vertical-align: middle;
       font-size: 1.5em;
     }
-
     /* Notenname-Anzeige */
     #noteNameDisplay {
       margin-top: 10px;
@@ -221,7 +211,6 @@
       color: #000;
     }
     body.dark-mode #noteNameDisplay { color: #e0e0e0; }
-
     /* Welcome Overlay */
     #welcomeOverlay {
       position: fixed;
@@ -244,7 +233,6 @@
       margin-bottom: 20px;
     }
     body.dark-mode #welcomeMessage { color: #e0e0e0; }
-
     /* Klasse zum Verbergen */
     .hidden {
       display: none !important;
@@ -264,12 +252,19 @@
     var hearts = 4;
     function updateHeartsDisplay() {
       var heartsElem = document.getElementById("heartsContainer");
-      heartsElem.textContent = "❤️".repeat(hearts);
+      if (unlimitedLives) {
+        heartsElem.textContent = "∞";
+      } else {
+        heartsElem.textContent = "❤️".repeat(hearts);
+      }
     }
 
     // Neuer Session-Counter (korrekte Noten, startet bei 1000)
     var sessionCounter = 1000;
     var sessionPaused = false;
+
+    // Toggle für unbegrenzte Leben
+    var unlimitedLives = false;
 
     // Timer: Startzeit bleibt erhalten, auch nach Game Over
     var startTime = Date.now();
@@ -283,7 +278,6 @@
         var minutes = Math.floor((elapsed % 3600) / 60);
         display = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
       }
-      // Anzeige: Zeit und verbleibende korrekte Noten
       document.getElementById("timerContainer").textContent = display + " | Richtig übrig: " + sessionCounter;
     }
     setInterval(updateTimer, 1000);
@@ -313,7 +307,7 @@
       updateHeartsDisplay();
     }
 
-    // Einstellungen für Hand und Level
+    // Einstellungen für Hand, Level und Leben
     var handOptions = [
       { mode: "left", symbol: "✋" },
       { mode: "right", symbol: "✋", flip: true },
@@ -439,6 +433,22 @@
       soundToggle.id = "soundToggle";
       soundToggle.textContent = "🔊";
       settingsPanel.appendChild(soundToggle);
+
+      // Neuer Toggle für Leben: Mit Klick auf ⭐ wird der Herzen-Modus deaktiviert (unbegrenzte Leben)
+      var lifeToggle = document.createElement("span");
+      lifeToggle.id = "lifeToggle";
+      lifeToggle.textContent = "⭐";
+      settingsPanel.appendChild(lifeToggle);
+      lifeToggle.addEventListener("click", function() {
+        unlimitedLives = !unlimitedLives;
+        if (unlimitedLives) {
+          lifeToggle.textContent = "⭐ (∞)";
+          document.getElementById("heartsContainer").textContent = "∞";
+        } else {
+          lifeToggle.textContent = "⭐";
+          updateHeartsDisplay();
+        }
+      });
 
       var darkModeToggle = document.createElement("span");
       darkModeToggle.id = "darkModeToggle";
@@ -678,7 +688,7 @@
         totalAttempts++;
         var correct = isNoteCorrect(midiInfo);
         if (correct) {
-          // Markiere Note grün
+          // Markiere aktuelle Note grün
           if (selectedMode !== "both") {
             currentSeriesSingle[seriesCounter].color = "green";
           } else {
@@ -689,7 +699,6 @@
             }
           }
           correctAnswers++;
-          seriesCounter++;
           // Session-Counter dekrementieren
           sessionCounter--;
           if (sessionCounter <= 0) {
@@ -701,13 +710,8 @@
             updateTimer();
             return;
           }
-          if (seriesCounter >= seriesLength) {
-            generateSeries();
-          } else {
-            drawSeries();
-          }
         } else {
-          // Markiere Note rot
+          // Markiere aktuelle Note rot
           if (selectedMode !== "both") {
             currentSeriesSingle[seriesCounter].color = "red";
           } else {
@@ -717,12 +721,23 @@
               currentSeriesBass[seriesCounter].color = "red";
             }
           }
-          hearts--;
-          updateHeartsDisplay();
-          if (hearts <= 0) {
-            endGame();
-            return;
+          // Falsche Note – falls kein Unlimited-Leben aktiviert, Herzen abziehen
+          if (!unlimitedLives) {
+            hearts--;
+            updateHeartsDisplay();
+            if (hearts <= 0) {
+              endGame();
+              return;
+            }
           }
+        }
+        // Unabhängig vom Ergebnis immer zur nächsten Note fortfahren:
+        seriesCounter++;
+        if (seriesCounter >= seriesLength) {
+          drawSeries();
+          // Kurzer Delay, damit man die letzte Markierung sieht
+          setTimeout(generateSeries, 300);
+        } else {
           drawSeries();
         }
         updateScore();
@@ -734,7 +749,7 @@
 <body>
   <!-- Welcome Overlay -->
   <div id="welcomeOverlay">
-    <div id="welcomeMessage">Hallo, schön dich zu sehen!<br></div>
+    <div id="welcomeMessage">Hallo, schön dich zu sehen!<br>V23:45</div>
   </div>
 
   <!-- Game Over / Session-Pause Overlay -->
