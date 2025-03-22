@@ -639,20 +639,39 @@
       }
     }
 
-    // Hinzugefügte Funktion zur Verarbeitung von MIDI-Nachrichten
+    // Aktualisierte Funktion zur Verarbeitung, Bewertung und Fortschaltung der Note
     function handleMIDIMessage(status, data1, data2) {
       console.log("MIDI Message Received: status=" + status + ", data1=" + data1 + ", data2=" + data2);
-      // Überprüfe, ob es sich um eine Note-On Nachricht handelt (Status 144 bzw. 0x90) und die Velocity > 0 ist
       if ((status & 0xf0) === 0x90 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         var noteName = midiInfo.note + midiInfo.octave;
-        // Anzeige des Notennamens aktualisieren
         var noteDisplay = document.getElementById("noteNameDisplay");
         if (noteDisplay) {
           noteDisplay.textContent = noteName;
         }
-        // Note abspielen mit Tone.js
+        // Note abspielen
         synth.triggerAttackRelease(noteName, "8n");
+        
+        // Bewertung durchführen
+        totalAttempts++;
+        if (isNoteCorrect(midiInfo)) {
+          correctAnswers++;
+          seriesCounter++;
+          // Optional: Motivation anzeigen, falls benötigt
+          // Wenn alle Noten der Serie gespielt wurden, neue Serie generieren
+          if (seriesCounter >= seriesLength) {
+            generateSeries();
+          }
+        } else {
+          // Falsche Note – Herz reduzieren
+          hearts--;
+          updateHeartsDisplay();
+          if (hearts <= 0) {
+            endGame();
+            return;
+          }
+        }
+        updateScore();
       }
     }
   </script>
