@@ -22,6 +22,7 @@
       background-color: #121212;
       color: #e0e0e0;
     }
+
     /* Notationscontainer (Einhand und Zweihand) – immer in der absoluten Mitte */
     #notation, #notationContainer {
       display: none;
@@ -49,6 +50,7 @@
       margin: 0 auto;
     }
     #notationTreble { margin-bottom: 5px; }
+
     /* SVG-Optimierung */
     #notation svg, #notationTreble svg, #notationBass svg {
       width: 100%;
@@ -64,6 +66,7 @@
       stroke: #ffffff !important;
       fill: #ffffff !important;
     }
+
     /* Motivationsfenster (ohne Textschatten) */
     #motivationOverlay {
       position: fixed;
@@ -86,7 +89,8 @@
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
     }
-    /* Game Over Overlay */
+
+    /* Game Over Overlay (wird nun auch für Session-Pause genutzt) */
     #gameOverOverlay {
       position: fixed;
       top: 50%;
@@ -103,7 +107,8 @@
     body.dark-mode #gameOverOverlay {
       border: 3px solid #ffffff;
     }
-    /* Timer Container: rechte untere Ecke */
+
+    /* Timer Container: rechte untere Ecke (zeigt Zeit und Session-Counter) */
     #timerContainer {
       position: fixed;
       right: 10px;
@@ -114,6 +119,7 @@
       align-items: center;
       justify-content: center;
     }
+
     /* Hauptinhalt */
     #mainContent {
       position: relative;
@@ -122,6 +128,7 @@
       transition: opacity 0.5s ease-in;
       padding-bottom: 50px;
     }
+
     /* Einstellungen-Menü (links) */
     #settingsPanel {
       position: fixed;
@@ -158,6 +165,7 @@
       background: rgba(0, 0, 0, 0.1);
       border-radius: 10px;
     }
+
     /* Score & Time */
     #topRightInfo {
       position: fixed;
@@ -169,6 +177,7 @@
       z-index: 10;
     }
     body.dark-mode #topRightInfo { color: #e0e0e0; }
+
     /* Lagewechsel-Button (Einhand) */
     #clefTitle {
       display: inline-block;
@@ -186,6 +195,7 @@
       border-color: #ffffff;
       color: #ffffff;
     }
+
     /* Container für den Lagewechsel-Button und Herzen */
     #buttonContainer {
       position: fixed;
@@ -203,6 +213,7 @@
       vertical-align: middle;
       font-size: 1.5em;
     }
+
     /* Notenname-Anzeige */
     #noteNameDisplay {
       margin-top: 10px;
@@ -210,6 +221,7 @@
       color: #000;
     }
     body.dark-mode #noteNameDisplay { color: #e0e0e0; }
+
     /* Welcome Overlay */
     #welcomeOverlay {
       position: fixed;
@@ -232,6 +244,7 @@
       margin-bottom: 20px;
     }
     body.dark-mode #welcomeMessage { color: #e0e0e0; }
+
     /* Klasse zum Verbergen */
     .hidden {
       display: none !important;
@@ -254,6 +267,10 @@
       heartsElem.textContent = "❤️".repeat(hearts);
     }
 
+    // Neuer Session-Counter (korrekte Noten, startet bei 1000)
+    var sessionCounter = 1000;
+    var sessionPaused = false;
+
     // Timer: Startzeit bleibt erhalten, auch nach Game Over
     var startTime = Date.now();
     function updateTimer() {
@@ -266,7 +283,8 @@
         var minutes = Math.floor((elapsed % 3600) / 60);
         display = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
       }
-      document.getElementById("timerContainer").textContent = display;
+      // Anzeige: Zeit und verbleibende korrekte Noten
+      document.getElementById("timerContainer").textContent = display + " | Richtig übrig: " + sessionCounter;
     }
     setInterval(updateTimer, 1000);
 
@@ -287,6 +305,8 @@
       correctAnswers = 0;
       firstNotePlayed = false;
       correctNoteCount = 0;
+      sessionCounter = 1000;
+      sessionPaused = false;
       nextMotivationThreshold = getRandomThreshold();
       document.getElementById("gameOverOverlay").style.display = "none";
       generateSeries();
@@ -639,8 +659,10 @@
       }
     }
 
-    // Aktualisierte Funktion zur Verarbeitung, Bewertung und Fortschaltung der Note
+    // Aktualisierte Funktion zur Verarbeitung, Bewertung, Farbanpassung und Fortschaltung der Note
     function handleMIDIMessage(status, data1, data2) {
+      if (sessionPaused) return;
+      
       console.log("MIDI Message Received: status=" + status + ", data1=" + data1 + ", data2=" + data2);
       if ((status & 0xf0) === 0x90 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
@@ -654,24 +676,57 @@
         
         // Bewertung durchführen
         totalAttempts++;
-        if (isNoteCorrect(midiInfo)) {
+        var correct = isNoteCorrect(midiInfo);
+        if (correct) {
+          // Markiere Note grün
+          if (selectedMode !== "both") {
+            currentSeriesSingle[seriesCounter].color = "green";
+          } else {
+            if (currentPhase === "treble") {
+              currentSeriesTreble[seriesCounter].color = "green";
+            } else {
+              currentSeriesBass[seriesCounter].color = "green";
+            }
+          }
           correctAnswers++;
           seriesCounter++;
-          // Optional: Motivation anzeigen, falls benötigt
-          // Wenn alle Noten der Serie gespielt wurden, neue Serie generieren
+          // Session-Counter dekrementieren
+          sessionCounter--;
+          if (sessionCounter <= 0) {
+            sessionCounter = 0;
+            sessionPaused = true;
+            var overlay = document.getElementById("gameOverOverlay");
+            overlay.textContent = "Session pausieren";
+            overlay.style.display = "block";
+            updateTimer();
+            return;
+          }
           if (seriesCounter >= seriesLength) {
             generateSeries();
+          } else {
+            drawSeries();
           }
         } else {
-          // Falsche Note – Herz reduzieren
+          // Markiere Note rot
+          if (selectedMode !== "both") {
+            currentSeriesSingle[seriesCounter].color = "red";
+          } else {
+            if (currentPhase === "treble") {
+              currentSeriesTreble[seriesCounter].color = "red";
+            } else {
+              currentSeriesBass[seriesCounter].color = "red";
+            }
+          }
           hearts--;
           updateHeartsDisplay();
           if (hearts <= 0) {
             endGame();
             return;
           }
+          drawSeries();
         }
         updateScore();
+        updateTimer();
       }
     }
   </script>
@@ -679,10 +734,10 @@
 <body>
   <!-- Welcome Overlay -->
   <div id="welcomeOverlay">
-    <div id="welcomeMessage">Hallo, schön dich zu sehen!<br>V23:45</div>
+    <div id="welcomeMessage">Hallo, schön dich zu sehen!<br></div>
   </div>
 
-  <!-- Game Over Overlay -->
+  <!-- Game Over / Session-Pause Overlay -->
   <div id="gameOverOverlay"></div>
 
   <!-- Motivationsfenster -->
