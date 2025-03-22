@@ -6,8 +6,8 @@
   <title>Notentraining</title>
   <!-- Tone.js laden -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.37/Tone.js"></script>
-  <!-- VexFlow laden -->
-  <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+  <!-- VexFlow laden – UMD-Version -->
+  <script src="https://unpkg.com/vexflow/releases/vexflow-min.js"></script>
   <!-- canvas-confetti laden -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
   <style>
@@ -522,7 +522,6 @@
       settingsPanel.appendChild(randomToggle);
       randomToggle.addEventListener("click", () => {
         randomMode = !randomMode;
-        // Visuelles Feedback: z. B. Farbwechsel
         randomToggle.style.opacity = randomMode ? "1" : "0.5";
         generateSeries();
       });
@@ -541,9 +540,6 @@
       lifeToggle.id = "lifeToggle";
       lifeToggle.textContent = "∞";
       settingsPanel.appendChild(lifeToggle);
-      lifeToggle.addEventListener("click", () => {
-        // Hier könnte man ggf. Lives toggeln – aktuell nicht verändert
-      });
       
       const darkModeToggle = document.createElement("span");
       darkModeToggle.id = "darkModeToggle";
@@ -583,11 +579,9 @@
       nextMotivationThreshold = getRandomThreshold();
       
       const chooseNote = () => {
-        // Wenn Fehler vorhanden, wiederverwenden
         if (errorNotes.length > 0 && Math.random() < 0.6) {
           return errorNotes.splice(0,1)[0];
         }
-        // Bestimme, welche Hand genutzt wird:
         let usedClef;
         if (randomMode) {
           usedClef = Math.random() < 0.5 ? "bass" : "treble";
@@ -595,7 +589,6 @@
           usedClef = (selectedMode === "left") ? "bass" : "treble";
         }
         let availableNotes;
-        // Bei Mittlerer C Lage: unterschiedliche Reihenfolgen je nach Hand
         if (currentRange === "MC") {
           if (usedClef === "bass") {
             availableNotes = ["f", "g", "a", "h", "c"];
@@ -610,7 +603,6 @@
         let noteOctave;
         if (currentRange === "MC") {
           if (usedClef === "bass") {
-            // In MC im Bass: C in Oktave 4, sonst Oktave 3
             noteOctave = (chosenNote === "c") ? 4 : 3;
           } else {
             noteOctave = 4;
@@ -648,7 +640,6 @@
       const svg = notationDiv.querySelector("svg");
       svg && (svg.setAttribute("width", baseWidth), svg.setAttribute("height", 300));
       const context = renderer.getContext();
-      // Verwende den Clef-Wert des ersten Tones für den Stab
       const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
       if (currentSeriesSingle.length) {
         stave.addClef(currentSeriesSingle[0].clef);
@@ -747,7 +738,7 @@
 <body>
   <!-- Welcome Overlay -->
   <div id="welcomeOverlay">
-    <div id="welcomeMessage">Hallo, schön dich zu sehen!</div>
+    <div id="welcomeMessage">Hallo, schön dich zu sehen!<br>v1.0</div>
   </div>
   <!-- Game Over / Session-Pause Overlay -->
   <div id="gameOverOverlay"></div>
