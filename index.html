@@ -159,17 +159,6 @@
       background: rgba(0, 0, 0, 0.1);
       border-radius: 10px;
     }
-    /* Score & Time */
-    #topRightInfo {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      text-align: right;
-      font-size: 1.2em;
-      color: #000;
-      z-index: 10;
-    }
-    body.dark-mode #topRightInfo { color: #e0e0e0; }
     /* Lagewechsel-Button (Einhand) */
     #clefTitle {
       display: inline-block;
@@ -347,13 +336,6 @@
       "G": ["g", "a", "b", "c", "d"],
       "MC": ["c", "d", "e", "f", "g"]
     };
-
-    function updateScore() {
-      var scoreElem = document.getElementById("topRightInfo");
-      var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
-      scoreElem.innerHTML = "Score: " + percent + "%<br>Time: " + Date.now();
-    }
-    window.updateScore = updateScore;
 
     function midiNoteToName(noteNumber) {
       var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
@@ -735,12 +717,10 @@
         seriesCounter++;
         if (seriesCounter >= seriesLength) {
           drawSeries();
-          // Kurzer Delay, damit man die letzte Markierung sieht
           setTimeout(generateSeries, 300);
         } else {
           drawSeries();
         }
-        updateScore();
         updateTimer();
       }
     }
@@ -776,12 +756,6 @@
 
     <!-- Notenname-Anzeige -->
     <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:1.5em;"></div>
-
-    <!-- Score & Time -->
-    <div id="topRightInfo"></div>
-
-    <!-- Debug-Ausgabe -->
-    <div id="nativeLog"></div>
   </div>
 
   <!-- Einstellungen-Menü -->
