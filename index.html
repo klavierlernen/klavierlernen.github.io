@@ -49,10 +49,11 @@
       box-sizing: border-box;
       z-index: 2;
     }
-    /* Treble-System: obere Ebene */
+    /* Treble-System: obere Ebene (in diesem Layout werden die Systeme mit Prozentangaben
+       relativ zum Container positioniert – so wirken sie wie zwei Zeilen) */
     #notationTreble {
       position: absolute;
-      top: 105%; /* Oben im Container */
+      top: 105%; /* oberer Bereich; hier können Sie den Abstand feinjustieren */
       left: 50%;
       transform: translateX(-50%);
       width: 100%;
@@ -62,7 +63,7 @@
     /* Bass-System: untere Ebene */
     #notationBass {
       position: absolute;
-      top: 130%; /* Vertikaler Abstand – Wert anpassen, um den idealen Abstand einzustellen */
+      top: 130%; /* vertikaler Abstand – hier den idealen Abstand einstellen */
       left: 50%;
       transform: translateX(-50%);
       width: 100%;
@@ -78,14 +79,14 @@
     #notation svg *, #notationTreble svg *, #notationBass svg * {
       vector-effect: non-scaling-stroke;
     }
-    /* Im Dark Mode: Elemente innerhalb der Notation erhalten weißen Stroke/Füllung */
+    /* Dark Mode: weiße Stroke/Füllung */
     body.dark-mode #notation svg *,
     body.dark-mode #notationTreble svg *,
     body.dark-mode #notationBass svg * {
       stroke: #ffffff;
       fill: #ffffff;
     }
-    /* Motivationsfenster (ohne Textschatten) */
+    /* Motivationsfenster */
     #motivationOverlay {
       position: fixed;
       top: 20%;
@@ -298,6 +299,9 @@
     let scoreRecorded = false;
     let sessionCount = 0;
     
+    // Globales Objekt für das Notenpaar im Zweihandmodus
+    let pairInputs = { treble: false, bass: false, firstNoteTime: 0 };
+    
     // Herz-System: 4 Herzen
     let hearts = 4;
     const updateHeartsDisplay = () => {
@@ -455,6 +459,7 @@
     let currentRange = rangeArray[currentRangeIndex];
     let soundEnabled = true;
     let firstNotePlayed = false;
+    // Im Zweihandmodus wird currentPhase auf "pair" gesetzt
     let currentPhase = "treble";
     
     const motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
@@ -483,20 +488,8 @@
       "MC": ["c", "d", "e", "f", "g"]
     };
     
-    const midiNoteToName = (noteNumber) => {
-      const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
-      const octave = Math.floor(noteNumber / 12) - 1;
-      const noteName = noteNames[noteNumber % 12];
-      return { note: noteName, octave: octave };
-    };
-    
-    const isNoteCorrect = (midiInfo) => {
-      let expected;
-      if (selectedMode !== "both") {
-        expected = currentSeriesSingle[seriesCounter];
-      } else {
-        expected = currentPhase === "treble" ? currentSeriesTreble[seriesCounter] : currentSeriesBass[seriesCounter];
-      }
+    // Hilfsfunktion: Prüft, ob die eingespielte Note der erwarteten Note für den angegebenen Clef entspricht.
+    function isNoteCorrectForClef(midiInfo, expected) {
       if (!expected) return false;
       let playedNote = midiInfo.note.toLowerCase();
       let expectedNote = expected.note.toLowerCase();
@@ -504,14 +497,14 @@
         playedNote = expectedNote;
       }
       if (level === 1 || level === 3) {
-        return (playedNote === expectedNote && midiInfo.octave === expected.octave);
+        return playedNote === expectedNote && midiInfo.octave === expected.octave;
       } else if (level === 2) {
-        return (playedNote === expectedNote);
+        return playedNote === expectedNote;
       } else if (level === "random") {
         return Math.random() < 0.5;
       }
       return false;
-    };
+    }
     
     const removeFromErrorNotes = (noteObj) => {
       errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
@@ -663,7 +656,6 @@
     
     const generateSeries = () => {
       seriesCounter = 0;
-      firstNotePlayed = false;
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
       const chooseNote = (clef) => {
@@ -687,6 +679,7 @@
         for (let i = 0; i < seriesLength; i++) {
           currentSeriesSingle.push(chooseNote(clef));
         }
+        // Im Einhandmodus bleibt currentPhase unverändert
         currentPhase = "single";
         drawSeries();
       } else {
@@ -696,7 +689,10 @@
           currentSeriesTreble.push(chooseNote("treble"));
           currentSeriesBass.push(chooseNote("bass"));
         }
-        currentPhase = "treble";
+        // Für den Zweihandmodus setzen wir das globale pairInputs zurück.
+        pairInputs = { treble: false, bass: false, firstNoteTime: 0 };
+        // currentPhase wird hier als "pair" interpretiert
+        currentPhase = "pair";
         drawSeries();
       }
     };
@@ -737,7 +733,7 @@
         notationDiv.style.display = "none";
         notationDiv.innerHTML = "";
         
-        // Treble-System
+        // Treble-System (obere Zeile)
         const notationTreble = document.createElement("div");
         notationTreble.id = "notationTreble";
         container.appendChild(notationTreble);
@@ -758,7 +754,7 @@
         new Vex.Flow.Formatter().joinVoices([voiceT]).format([voiceT], staveT.getWidth() - 20);
         voiceT.draw(contextT, staveT);
         
-        // Bass-System
+        // Bass-System (untere Zeile)
         const notationBass = document.createElement("div");
         notationBass.id = "notationBass";
         container.appendChild(notationBass);
@@ -781,6 +777,7 @@
       }
     };
     
+    // Verarbeitung der MIDI-Nachrichten
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
       if ((status & 0xf0) === 0x90 && data2 > 0) {
@@ -792,65 +789,127 @@
         const midiInfo = midiNoteToName(data1);
         const noteName = midiInfo.note + midiInfo.octave;
         const noteDisplay = document.getElementById("noteNameDisplay");
-        noteDisplay && (noteDisplay.textContent = noteName);
+        if (noteDisplay) noteDisplay.textContent = noteName;
         if (soundEnabled) {
           synth.triggerAttackRelease(noteName, "8n");
         }
         totalAttempts++;
-        const correct = isNoteCorrect(midiInfo);
-        if (correct) {
-          if (selectedMode !== "both") {
+        
+        if (selectedMode !== "both") {
+          // Einhandmodus – bisherige Logik
+          const correct = isNoteCorrect(midiInfo);
+          if (correct) {
             currentSeriesSingle[seriesCounter].color = "green";
+            correctAnswers++;
+            correctNoteCount++;
+            removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
+            if (correctNoteCount >= nextMotivationThreshold) {
+              showMotivationMessage();
+              nextMotivationThreshold = correctNoteCount + getRandomThreshold();
+            }
           } else {
-            currentPhase === "treble"
-              ? currentSeriesTreble[seriesCounter].color = "green"
-              : currentSeriesBass[seriesCounter].color = "green";
-          }
-          correctAnswers++;
-          correctNoteCount++;
-          removeFromErrorNotes(correct ? (selectedMode !== "both" ? currentSeriesSingle[seriesCounter] :
-            (currentPhase === "treble" ? currentSeriesTreble[seriesCounter] : currentSeriesBass[seriesCounter])) : {});
-          if (correctNoteCount >= nextMotivationThreshold) {
-            showMotivationMessage();
-            nextMotivationThreshold = correctNoteCount + getRandomThreshold();
-          }
-          sessionCounter--;
-          if (sessionCounter <= 0) {
-            sessionCounter = 0;
-            startPauseCountdown();
-            updateTimer();
-            return;
-          }
-        } else {
-          if (selectedMode !== "both") {
             currentSeriesSingle[seriesCounter].color = "red";
             errorNotes.push(currentSeriesSingle[seriesCounter]);
+            if (!unlimitedLives) {
+              hearts--;
+              updateHeartsDisplay();
+              if (hearts <= 0) {
+                endGame();
+                return;
+              }
+            }
+          }
+          seriesCounter++;
+          if (seriesCounter >= seriesLength) {
+            queueRedraw();
+            setTimeout(generateSeries, 300);
           } else {
-            if (currentPhase === "treble") {
-              currentSeriesTreble[seriesCounter].color = "red";
-              errorNotes.push(currentSeriesTreble[seriesCounter]);
-            } else {
+            queueRedraw();
+          }
+          updateTimer();
+        } else {
+          // Zweihandmodus: Notenpaar (Treble und Bass) werden erwartet.
+          // Wir erwarten idealerweise, dass zuerst die Treble-Note (linke, obere Zeile) gespielt wird.
+          if (pairInputs.firstNoteTime === 0) {
+            // Erster Ton des Paares
+            pairInputs.firstNoteTime = currentTime;
+            let matchTreble = isNoteCorrectForClef(midiInfo, currentSeriesTreble[seriesCounter]);
+            let matchBass = isNoteCorrectForClef(midiInfo, currentSeriesBass[seriesCounter]);
+            if (matchTreble) {
+              pairInputs.treble = true;
+              currentSeriesTreble[seriesCounter].color = "green";
+              correctAnswers++;
+            } else if (matchBass) {
+              // Wird die Bass-Note als erste gespielt, wird dies als Fehler gewertet.
               currentSeriesBass[seriesCounter].color = "red";
               errorNotes.push(currentSeriesBass[seriesCounter]);
+              pairInputs.bass = true;
+            } else {
+              // Keine erwartete Note erkannt – Fehler bei Treble
+              currentSeriesTreble[seriesCounter].color = "red";
+              errorNotes.push(currentSeriesTreble[seriesCounter]);
+            }
+          } else {
+            // Zweiter Ton des Paares
+            let timeDiff = currentTime - pairInputs.firstNoteTime;
+            if (timeDiff < 200) {
+              // Simultan: Egal in welcher Reihenfolge fehlt noch die jeweils andere Note
+              if (!pairInputs.treble && isNoteCorrectForClef(midiInfo, currentSeriesTreble[seriesCounter])) {
+                pairInputs.treble = true;
+                currentSeriesTreble[seriesCounter].color = "green";
+                correctAnswers++;
+              } else if (!pairInputs.bass && isNoteCorrectForClef(midiInfo, currentSeriesBass[seriesCounter])) {
+                pairInputs.bass = true;
+                currentSeriesBass[seriesCounter].color = "green";
+                correctAnswers++;
+              } else {
+                // Falls der Ton nicht passt, als Fehler markieren
+                if (!pairInputs.treble) {
+                  currentSeriesTreble[seriesCounter].color = "red";
+                  errorNotes.push(currentSeriesTreble[seriesCounter]);
+                } else if (!pairInputs.bass) {
+                  currentSeriesBass[seriesCounter].color = "red";
+                  errorNotes.push(currentSeriesBass[seriesCounter]);
+                }
+              }
+            } else {
+              // Sequentielles Spielen: Es wird erwartet, dass zuerst die Treble-Note und dann die Bass-Note kommt.
+              if (!pairInputs.treble) {
+                currentSeriesTreble[seriesCounter].color = "red";
+                errorNotes.push(currentSeriesTreble[seriesCounter]);
+              } else if (!pairInputs.bass && isNoteCorrectForClef(midiInfo, currentSeriesBass[seriesCounter])) {
+                pairInputs.bass = true;
+                currentSeriesBass[seriesCounter].color = "green";
+                correctAnswers++;
+              } else {
+                currentSeriesBass[seriesCounter].color = "red";
+                errorNotes.push(currentSeriesBass[seriesCounter]);
+              }
             }
           }
-          if (!unlimitedLives) {
-            hearts--;
-            updateHeartsDisplay();
-            if (hearts <= 0) {
-              endGame();
+          // Sobald beide Noten des Paares erkannt wurden, fahren wir fort:
+          if (pairInputs.treble && pairInputs.bass) {
+            seriesCounter++;
+            pairInputs = { treble: false, bass: false, firstNoteTime: 0 };
+            correctNoteCount++;
+            if (correctNoteCount >= nextMotivationThreshold) {
+              showMotivationMessage();
+              nextMotivationThreshold = correctNoteCount + getRandomThreshold();
+            }
+            sessionCounter--;
+            if (sessionCounter <= 0) {
+              sessionCounter = 0;
+              startPauseCountdown();
+              updateTimer();
               return;
             }
+            queueRedraw();
+            if (seriesCounter >= seriesLength) {
+              setTimeout(generateSeries, 300);
+            }
           }
+          updateTimer();
         }
-        seriesCounter++;
-        if (seriesCounter >= seriesLength) {
-          queueRedraw();
-          setTimeout(generateSeries, 300);
-        } else {
-          queueRedraw();
-        }
-        updateTimer();
       }
     };
     
