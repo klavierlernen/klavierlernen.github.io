@@ -24,8 +24,8 @@
       background-color: #121212;
       color: #e0e0e0;
     }
-    /* Einhand-Notation (einzelnes System) */
-    #notation {
+    /* Notationscontainer (Einhand und Zweihand) – immer in der absoluten Mitte */
+    #notation, #notationContainer {
       display: none;
       position: fixed;
       left: 50%;
@@ -36,27 +36,21 @@
       box-sizing: border-box;
       z-index: 1;
     }
-    /* Container für den 2-Handmodus – zentral fixiert */
+    /* Für Zweihand: beide Systeme (Treble & Bass) im Container mit Abstand */
     #notationContainer {
-      display: none;
-      position: fixed;
-      left: 50%;
-      top: 75%;
-      transform: translate(-50%, -50%);
-      max-width: 800px;
-      padding: 10px;
-      box-sizing: border-box;
-      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      row-gap: 20px;
+      height: auto;
     }
-    /* Im Zweihandmodus werden die Systeme als zwei Blockelemente untereinander angezeigt */
-    #notationTreble,
-    #notationBass {
+    #notationTreble, #notationBass {
       width: 100%;
-      max-width: 800px;
+      max-width: 1200px;
+      margin: 0 auto;
     }
-    #notationTreble {
-      margin-bottom: 20px;
-    }
+    #notationTreble { margin-bottom: 5px; }
     /* SVG-Optimierung */
     #notation svg, #notationTreble svg, #notationBass svg {
       width: 100%;
@@ -66,14 +60,14 @@
     #notation svg *, #notationTreble svg *, #notationBass svg * {
       vector-effect: non-scaling-stroke;
     }
-    /* Dark Mode: weiße Stroke/Füllung */
+    /* Im Dark Mode: Elemente innerhalb der Notation erhalten weißen Stroke/Füllung */
     body.dark-mode #notation svg *,
     body.dark-mode #notationTreble svg *,
     body.dark-mode #notationBass svg * {
       stroke: #ffffff;
       fill: #ffffff;
     }
-    /* Motivationsfenster */
+    /* Motivationsfenster (ohne Textschatten) */
     #motivationOverlay {
       position: fixed;
       top: 20%;
@@ -95,7 +89,7 @@
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
     }
-    /* Game Over Overlay */
+    /* Game Over Overlay (auch für Session-Pause) */
     #gameOverOverlay {
       position: fixed;
       top: 50%;
@@ -113,7 +107,7 @@
     body.dark-mode #gameOverOverlay {
       border: 3px solid #ffffff;
     }
-    /* Scoreboard Overlay */
+    /* Scoreboard Overlay – ähnlich wie Game Over Overlay */
     #scoreboardOverlay {
       position: fixed;
       top: 50%;
@@ -128,10 +122,11 @@
       white-space: pre-line;
       display: block;
     }
+    /* Standardmäßig ausgeblendet */
     .hidden {
       display: none !important;
     }
-    /* Timer Container */
+    /* Timer Container: rechte untere Ecke (zeigt Zeit und Session-Counter) */
     #timerContainer {
       position: fixed;
       right: 10px;
@@ -150,7 +145,7 @@
       transition: opacity 0.5s ease-in;
       padding-bottom: 50px;
     }
-    /* Einstellungen-Menü */
+    /* Einstellungen-Menü (links) */
     #settingsPanel {
       position: fixed;
       left: 30px;
@@ -186,7 +181,7 @@
       background: rgba(0, 0, 0, 0.1);
       border-radius: 10px;
     }
-    /* Lagewechsel-Button */
+    /* Lagewechsel-Button (Einhand) */
     #clefTitle {
       display: inline-block;
       background: #ffffff;
@@ -203,7 +198,7 @@
       border-color: #ffffff;
       color: #ffffff;
     }
-    /* Button & Herzen Container */
+    /* Container für den Lagewechsel-Button und Herzen */
     #buttonContainer {
       position: fixed;
       left: 50%;
@@ -213,6 +208,7 @@
       align-items: center;
       z-index: 50;
     }
+    /* Container für Herzen, direkt neben dem Button */
     #heartsContainer {
       display: inline-block;
       margin-left: 10px;
@@ -250,20 +246,23 @@
     body.dark-mode #welcomeMessage { color: #e0e0e0; }
   </style>
   <script>
-    // Adaptive Pause Script
+    /****************** Adaptive Pause Script ******************/
+    // Berechnet die adaptive Pausendauer (in Sekunden) basierend auf durchschnittlichen Antwortzeiten (ms) und Trefferquote (0-1)
     function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       if (responseTimes.length === 0) return 5;
       let sum = responseTimes.reduce((acc, time) => acc + time, 0);
       let avgResponseTime = sum / responseTimes.length;
-      const baseline = 500;
+      const baseline = 500; // in ms
       let slowdownFactor = avgResponseTime / baseline;
       let fatigueIndex = slowdownFactor * (1 - hitRate);
       const basePause = 10;
       let breakTime = basePause * fatigueIndex;
-      return Math.max(5, Math.min(breakTime, 300));
+      breakTime = Math.max(5, Math.min(breakTime, 300));
+      return breakTime;
     }
+    /************************************************************/
     
-    // Global variables and state
+    // Globale Variablen und initiale Zustände
     let currentSeriesSingle = [];
     let currentSeriesTreble = [];
     let currentSeriesBass = [];
@@ -274,25 +273,32 @@
     let correctNoteCount = 0;
     let nextMotivationThreshold = getRandomThreshold();
     let errorNotes = [];
+    // Für adaptive Pause: Antwortzeiten und Zeitstempel
     let responseTimes = [];
     let lastNoteTimestamp = Date.now();
+    // App-Uptime bleibt konstant (appStartTime wird nicht zurückgesetzt)
     let appStartTime = Date.now();
     let sessionCounter = 1000;
     let sessionPaused = false;
     let scoreRecorded = false;
+    // Sessionzähler (Anzahl abgeschlossener Sessions)
     let sessionCount = 0;
     
-    // Object for dual-hand note pair
-    let pairInputs = { treble: false, bass: false, firstNoteTime: 0 };
-    
-    // Heart system
+    // Herz-System: 4 Herzen
     let hearts = 4;
-    let unlimitedLives = true;
     const updateHeartsDisplay = () => {
       const heartsElem = document.getElementById("heartsContainer");
-      heartsElem.textContent = unlimitedLives ? "∞" : "❤️".repeat(hearts);
+      if (unlimitedLives) {
+        heartsElem.textContent = "∞";
+      } else {
+        heartsElem.textContent = "❤️".repeat(hearts);
+      }
     };
     
+    // Unendlichmodus ist standardmäßig aktiv
+    let unlimitedLives = true;
+    
+    // Der Timer zeigt die gesamte App-Uptime an
     const updateTimer = () => {
       const elapsed = Math.floor((Date.now() - appStartTime) / 1000);
       let display;
@@ -303,14 +309,16 @@
         const minutes = Math.floor((elapsed % 3600) / 60);
         display = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
       }
-      document.getElementById("timerContainer").textContent = display + " | " + sessionCounter;
+      document.getElementById("timerContainer").textContent = display + " | Richtig übrig: " + sessionCounter;
     };
     setInterval(updateTimer, 1000);
     
+    // Pause-Funktionen
     let pauseRemaining = 0;
     let pauseInterval = null;
     let confettiShown = false;
     
+    // Aktualisiert das Pause-Overlay inkl. Sessionzähler
     const updatePauseOverlay = () => {
       const now = new Date();
       let hours = now.getHours();
@@ -325,11 +333,13 @@
                             "\nQUOTE:\t" + quotePercent + "%\n\nPAUSE:\t" + pauseString + " s";
     };
     
+    // Startet den adaptiven Pausen-Countdown; die finale Pause beträgt: (adaptive Zeit * 2) + 300 s
     const startPauseCountdown = () => {
       sessionPaused = true;
-      sessionCount++;
+      sessionCount++;  // Erhöhe den Sessionzähler
       const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
       pauseRemaining = Math.floor(calculateAdaptiveBreakTime(responseTimes, hitRate) * 2 + 300);
+      // Konfetti-Effekt sofort auslösen
       if (!confettiShown) {
          confetti();
          confettiShown = true;
@@ -370,6 +380,7 @@
       setTimeout(resetGame, 5000);
     };
     
+    // Beim Sessionende wird der Score aufgenommen (basierend auf der gesamten App-Uptime)
     const recordScore = () => {
       if (totalAttempts <= 0) return;
       const durationMs = Date.now() - appStartTime;
@@ -396,6 +407,7 @@
       scoreRecorded = true;
     };
     
+    // Zeigt Highscores für den aktuellen Modus an
     const updateScoreboard = () => {
       const allScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const filtered = allScores.filter(score => score.mode === selectedMode);
@@ -406,6 +418,7 @@
       document.getElementById("scoreboardOverlay").textContent = html;
     };
     
+    // Blendet das Scoreboard ein/aus
     const toggleScoreboard = () => {
       const overlay = document.getElementById("scoreboardOverlay");
       if (overlay.classList.contains("hidden")) {
@@ -416,6 +429,7 @@
       }
     };
     
+    // Einstellungen für Hand, Level und Leben
     const handOptions = [
       { mode: "left", symbol: "✋" },
       { mode: "right", symbol: "✋", flip: true },
@@ -437,9 +451,9 @@
     let currentRange = rangeArray[currentRangeIndex];
     let soundEnabled = true;
     let firstNotePlayed = false;
-    // In dual-hand mode, currentPhase is "pair"
-    let currentPhase = "pair";
+    let currentPhase = "treble";
     
+    // Motivationsnachrichten
     const motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
     const showMotivationMessage = () => {
       const overlay = document.getElementById("motivationOverlay");
@@ -456,6 +470,7 @@
       return Math.floor(Math.random() * 4) + 2;
     }
     
+    // Synth initialisieren (Tone.js)
     const synth = new Tone.Synth().toDestination();
     
     const rangeNotes = {
@@ -466,8 +481,20 @@
       "MC": ["c", "d", "e", "f", "g"]
     };
     
-    // Helper: checks if the played note matches expected for a given clef.
-    function isNoteCorrectForClef(midiInfo, expected) {
+    const midiNoteToName = (noteNumber) => {
+      const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+      const octave = Math.floor(noteNumber / 12) - 1;
+      const noteName = noteNames[noteNumber % 12];
+      return { note: noteName, octave: octave };
+    };
+    
+    const isNoteCorrect = (midiInfo) => {
+      let expected;
+      if (selectedMode !== "both") {
+        expected = currentSeriesSingle[seriesCounter];
+      } else {
+        expected = currentPhase === "treble" ? currentSeriesTreble[seriesCounter] : currentSeriesBass[seriesCounter];
+      }
       if (!expected) return false;
       let playedNote = midiInfo.note.toLowerCase();
       let expectedNote = expected.note.toLowerCase();
@@ -475,14 +502,14 @@
         playedNote = expectedNote;
       }
       if (level === 1 || level === 3) {
-        return playedNote === expectedNote && midiInfo.octave === expected.octave;
+        return (playedNote === expectedNote && midiInfo.octave === expected.octave);
       } else if (level === 2) {
-        return playedNote === expectedNote;
+        return (playedNote === expectedNote);
       } else if (level === "random") {
         return Math.random() < 0.5;
       }
       return false;
-    }
+    };
     
     const removeFromErrorNotes = (noteObj) => {
       errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
@@ -497,6 +524,7 @@
       }, 500);
     };
     
+    // Automatische Moduswahl: Vergleicht Highscores für "left" und "right"
     const autoSelectMode = () => {
       let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const leftScores = highScores.filter(score => score.mode === "left");
@@ -520,6 +548,7 @@
       }
     };
     
+    // Lagewechsel-Button: wechselt die "Lage" und erzeugt neue Notation
     const cycleRange = () => {
       currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
       currentRange = rangeArray[currentRangeIndex];
@@ -539,6 +568,7 @@
       element.addEventListener("touchend", () => element.classList.add("faded"));
     };
     
+    // Throttling für das Neuzeichnen der Notation
     let redrawQueued = false;
     const queueRedraw = () => {
       if (!redrawQueued) {
@@ -553,22 +583,26 @@
     document.addEventListener("DOMContentLoaded", () => {
       const settingsPanel = document.getElementById("settingsPanel");
       
+      // Hand-Toggle
       const handToggle = document.createElement("span");
       handToggle.id = "handToggle";
       handToggle.textContent = handOptions[currentHandIndex].symbol;
       handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
       settingsPanel.appendChild(handToggle);
       
+      // Level-Toggle
       const levelToggle = document.createElement("span");
       levelToggle.id = "levelToggle";
       levelToggle.textContent = levelOptions[currentLevelIndex].symbol;
       settingsPanel.appendChild(levelToggle);
       
+      // Sound-Toggle
       const soundToggle = document.createElement("span");
       soundToggle.id = "soundToggle";
       soundToggle.textContent = "🔊";
       settingsPanel.appendChild(soundToggle);
       
+      // Life-Toggle (Unendlichmodus ist standardmäßig aktiv)
       const lifeToggle = document.createElement("span");
       lifeToggle.id = "lifeToggle";
       lifeToggle.textContent = "∞";
@@ -584,16 +618,19 @@
         }
       });
       
+      // Dark-Mode-Toggle
       const darkModeToggle = document.createElement("span");
       darkModeToggle.id = "darkModeToggle";
       darkModeToggle.textContent = "🌙";
       settingsPanel.appendChild(darkModeToggle);
       
+      // Scoreboard-Toggle (über 🎯)
       const scoreboardToggle = document.createElement("span");
       scoreboardToggle.id = "scoreboardToggle";
       scoreboardToggle.textContent = "🎯";
       settingsPanel.appendChild(scoreboardToggle);
       
+      // Toggle-Events
       handToggle.addEventListener("click", () => {
         currentHandIndex = (currentHandIndex + 1) % handOptions.length;
         selectedMode = handOptions[currentHandIndex].mode;
@@ -617,6 +654,7 @@
       setupFadeOnHover(settingsPanel);
       setupFadeOnHover(document.getElementById("clefTitle"));
       
+      // Automatische Moduswahl beim Start
       autoSelectMode();
       
       setTimeout(proceedToMainScreen, 3000);
@@ -629,11 +667,14 @@
         }
       });
       
+      // Klick auf das Scoreboard-Overlay blendet es wieder aus
       document.getElementById("scoreboardOverlay").addEventListener("click", toggleScoreboard);
     });
     
+    // Generiert eine neue Notenserie unter Einbezug von Fehlern (gezielte Wiederholung)
     const generateSeries = () => {
       seriesCounter = 0;
+      firstNotePlayed = false;
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
       const chooseNote = (clef) => {
@@ -666,12 +707,12 @@
           currentSeriesTreble.push(chooseNote("treble"));
           currentSeriesBass.push(chooseNote("bass"));
         }
-        pairInputs = { treble: false, bass: false, firstNoteTime: 0 };
-        currentPhase = "pair";
+        currentPhase = "treble";
         drawSeries();
       }
     };
     
+    // Zeichnet die Notenserie (SVG via VexFlow)
     const drawSeries = () => {
       const notationDiv = document.getElementById("notation");
       const container = document.getElementById("notationContainer");
@@ -703,12 +744,12 @@
         new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
         voice.draw(context, stave);
       } else {
-        container.style.display = "block";
+        container.style.display = "flex";
         container.innerHTML = "";
         notationDiv.style.display = "none";
         notationDiv.innerHTML = "";
         
-        // Treble-System (obere Zeile)
+        // Treble
         const notationTreble = document.createElement("div");
         notationTreble.id = "notationTreble";
         container.appendChild(notationTreble);
@@ -729,7 +770,7 @@
         new Vex.Flow.Formatter().joinVoices([voiceT]).format([voiceT], staveT.getWidth() - 20);
         voiceT.draw(contextT, staveT);
         
-        // Bass-System (untere Zeile)
+        // Bass
         const notationBass = document.createElement("div");
         notationBass.id = "notationBass";
         container.appendChild(notationBass);
@@ -752,7 +793,7 @@
       }
     };
     
-    // MIDI processing
+    // Verarbeitung, Bewertung, visuelles Feedback und Fortschaltung der Note
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
       if ((status & 0xf0) === 0x90 && data2 > 0) {
@@ -764,115 +805,69 @@
         const midiInfo = midiNoteToName(data1);
         const noteName = midiInfo.note + midiInfo.octave;
         const noteDisplay = document.getElementById("noteNameDisplay");
-        if (noteDisplay) noteDisplay.textContent = noteName;
+        noteDisplay && (noteDisplay.textContent = noteName);
         if (soundEnabled) {
           synth.triggerAttackRelease(noteName, "8n");
         }
         totalAttempts++;
-        
-        if (selectedMode !== "both") {
-          // Single-hand mode
-          const correct = isNoteCorrect(midiInfo);
-          if (correct) {
+        const correct = isNoteCorrect(midiInfo);
+        if (correct) {
+          if (selectedMode !== "both") {
             currentSeriesSingle[seriesCounter].color = "green";
-            correctAnswers++;
-            correctNoteCount++;
-            removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
-            if (correctNoteCount >= nextMotivationThreshold) {
-              showMotivationMessage();
-              nextMotivationThreshold = correctNoteCount + getRandomThreshold();
-            }
           } else {
+            currentPhase === "treble"
+              ? currentSeriesTreble[seriesCounter].color = "green"
+              : currentSeriesBass[seriesCounter].color = "green";
+          }
+          correctAnswers++;
+          correctNoteCount++;
+          removeFromErrorNotes(correct ? (selectedMode !== "both" ? currentSeriesSingle[seriesCounter] :
+            (currentPhase === "treble" ? currentSeriesTreble[seriesCounter] : currentSeriesBass[seriesCounter])) : {});
+          if (correctNoteCount >= nextMotivationThreshold) {
+            showMotivationMessage();
+            nextMotivationThreshold = correctNoteCount + getRandomThreshold();
+          }
+          sessionCounter--;
+          if (sessionCounter <= 0) {
+            sessionCounter = 0;
+            startPauseCountdown();
+            updateTimer();
+            return;
+          }
+        } else {
+          if (selectedMode !== "both") {
             currentSeriesSingle[seriesCounter].color = "red";
             errorNotes.push(currentSeriesSingle[seriesCounter]);
-            if (!unlimitedLives) {
-              hearts--;
-              updateHeartsDisplay();
-              if (hearts <= 0) {
-                endGame();
-                return;
-              }
-            }
-          }
-          seriesCounter++;
-          if (seriesCounter >= seriesLength) {
-            queueRedraw();
-            setTimeout(generateSeries, 300);
           } else {
-            queueRedraw();
-          }
-          updateTimer();
-        } else {
-          // Dual-hand mode: process note pair (treble and bass)
-          if (pairInputs.firstNoteTime === 0) {
-            pairInputs.firstNoteTime = currentTime;
-          }
-          let timeDiff = currentTime - pairInputs.firstNoteTime;
-          let matchedTreble = isNoteCorrectForClef(midiInfo, currentSeriesTreble[seriesCounter]);
-          let matchedBass = isNoteCorrectForClef(midiInfo, currentSeriesBass[seriesCounter]);
-          
-          if (timeDiff < 200) {
-            // Simultaneous playing: accept both regardless of order
-            if (!pairInputs.treble && matchedTreble) {
-              pairInputs.treble = true;
-              currentSeriesTreble[seriesCounter].color = "green";
-              correctAnswers++;
-            } else if (!pairInputs.bass && matchedBass) {
-              pairInputs.bass = true;
-              currentSeriesBass[seriesCounter].color = "green";
-              correctAnswers++;
-            } else {
-              if (!pairInputs.treble) {
-                currentSeriesTreble[seriesCounter].color = "red";
-                errorNotes.push(currentSeriesTreble[seriesCounter]);
-              }
-              if (!pairInputs.bass) {
-                currentSeriesBass[seriesCounter].color = "red";
-                errorNotes.push(currentSeriesBass[seriesCounter]);
-              }
-            }
-          } else {
-            // Sequential playing: expect treble first, then bass.
-            if (!pairInputs.treble) {
+            if (currentPhase === "treble") {
               currentSeriesTreble[seriesCounter].color = "red";
               errorNotes.push(currentSeriesTreble[seriesCounter]);
-            } else if (!pairInputs.bass) {
-              if (matchedBass) {
-                pairInputs.bass = true;
-                currentSeriesBass[seriesCounter].color = "green";
-                correctAnswers++;
-              } else {
-                currentSeriesBass[seriesCounter].color = "red";
-                errorNotes.push(currentSeriesBass[seriesCounter]);
-              }
+            } else {
+              currentSeriesBass[seriesCounter].color = "red";
+              errorNotes.push(currentSeriesBass[seriesCounter]);
             }
           }
-          
-          if (pairInputs.treble && pairInputs.bass) {
-            seriesCounter++;
-            pairInputs = { treble: false, bass: false, firstNoteTime: 0 };
-            correctNoteCount++;
-            if (correctNoteCount >= nextMotivationThreshold) {
-              showMotivationMessage();
-              nextMotivationThreshold = correctNoteCount + getRandomThreshold();
-            }
-            sessionCounter--;
-            if (sessionCounter <= 0) {
-              sessionCounter = 0;
-              startPauseCountdown();
-              updateTimer();
+          if (!unlimitedLives) {
+            hearts--;
+            updateHeartsDisplay();
+            if (hearts <= 0) {
+              endGame();
               return;
             }
-            queueRedraw();
-            if (seriesCounter >= seriesLength) {
-              setTimeout(generateSeries, 300);
-            }
           }
-          updateTimer();
         }
+        seriesCounter++;
+        if (seriesCounter >= seriesLength) {
+          queueRedraw();
+          setTimeout(generateSeries, 300);
+        } else {
+          queueRedraw();
+        }
+        updateTimer();
       }
     };
     
+    // Beim Sessionende wird der Score aufgenommen, aber appStartTime bleibt unverändert.
     const resetGame = () => {
       hearts = 4;
       gameOver = false;
@@ -886,14 +881,11 @@
       confettiShown = false;
       errorNotes = [];
       document.getElementById("gameOverOverlay").style.display = "none";
+      // appStartTime bleibt erhalten – die gesamte App-Uptime wird angezeigt!
       scoreRecorded = false;
       generateSeries();
       updateHeartsDisplay();
     };
-    
-    // Expose functions globally so Swift can call them via evaluateJavaScript
-    window.handleMIDIMessage = handleMIDIMessage;
-    window.midiNoteToName = midiNoteToName;
   </script>
 </head>
 <body>
@@ -911,21 +903,21 @@
   <div id="timerContainer"></div>
   <!-- Hauptinhalt -->
   <div id="mainContent" style="opacity: 0;">
-    <!-- Notation (Single-hand mode) -->
+    <!-- Notation (Einhand) -->
     <div id="notation"></div>
-    <!-- Container for dual-hand mode -->
+    <!-- Container (Zweihand) -->
     <div id="notationContainer"></div>
-    <!-- Button & hearts -->
+    <!-- Lagewechsel-Button & Herzen -->
     <div id="buttonContainer" style="z-index:50;">
       <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
       <div id="heartsContainer" style="margin-left:10px;"></div>
     </div>
-    <!-- Note name display -->
+    <!-- Notenname-Anzeige -->
     <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:1.5em;"></div>
   </div>
-  <!-- Settings Panel -->
+  <!-- Einstellungen-Menü -->
   <div id="settingsPanel"></div>
-  <!-- Audio element for gong -->
+  <!-- Audio-Element für den Gong -->
   <audio id="gongSound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
 </body>
 </html>
