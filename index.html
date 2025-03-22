@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Notentraining</title>
   <!-- Tone.js laden -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.37/Tone.js"></script>
@@ -226,6 +226,9 @@
     body.dark-mode #welcomeMessage { color: #e0e0e0; }
   </style>
   <script>
+    // Shortcut: Verwende VF als Abkürzung für VexFlow.Flow
+    const VF = VexFlow.Flow;
+
     /**************** Adaptive Pause ****************/
     function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       if (responseTimes.length === 0) return 5;
@@ -259,13 +262,13 @@
     
     // Herzen
     let hearts = 4;
-    const updateHeartsDisplay = () => {
+    function updateHeartsDisplay() {
       const heartsElem = document.getElementById("heartsContainer");
       heartsElem.textContent = "❤️".repeat(hearts);
-    };
+    }
 
     // Timer
-    const updateTimer = () => {
+    function updateTimer() {
       const elapsed = Math.floor((Date.now() - appStartTime) / 1000);
       let display;
       if (elapsed < 60) {
@@ -276,14 +279,14 @@
         display = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
       }
       document.getElementById("timerContainer").textContent = display + " | " + sessionCounter;
-    };
+    }
     setInterval(updateTimer, 1000);
     
     let pauseRemaining = 0;
     let pauseInterval = null;
     let confettiShown = false;
     
-    const updatePauseOverlay = () => {
+    function updatePauseOverlay() {
       const now = new Date();
       let hours = now.getHours();
       let minutes = now.getMinutes();
@@ -294,10 +297,10 @@
       const pauseString = (pauseRemaining < 10 ? "0" + pauseRemaining : pauseRemaining);
       const overlay = document.getElementById("gameOverOverlay");
       overlay.textContent = "SESSION " + sessionCount + " PAUSIERT\n\nZEIT:\t" + timeString +
-                            "\nQUOTE:\t" + quotePercent + "%\n\nPAUSE:\t" + pauseString + " s";
-    };
+                              "\nQUOTE:\t" + quotePercent + "%\n\nPAUSE:\t" + pauseString + " s";
+    }
     
-    const startPauseCountdown = () => {
+    function startPauseCountdown() {
       sessionPaused = true;
       sessionCount++;
       const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
@@ -318,9 +321,9 @@
                updatePauseOverlay();
            }
       }, 1000);
-    };
+    }
     
-    const endPause = () => {
+    function endPause() {
       const overlay = document.getElementById("gameOverOverlay");
       overlay.style.display = "none";
       sessionPaused = false;
@@ -328,19 +331,19 @@
       gongAudio && gongAudio.play();
       if (!scoreRecorded) recordScore();
       resetGame();
-    };
+    }
     
     let gameOver = false;
-    const endGame = () => {
+    function endGame() {
       gameOver = true;
       const gameOverOverlay = document.getElementById("gameOverOverlay");
       gameOverOverlay.textContent = "Game Over!";
       gameOverOverlay.style.display = "block";
       if (!scoreRecorded) recordScore();
       setTimeout(resetGame, 5000);
-    };
+    }
     
-    const recordScore = () => {
+    function recordScore() {
       if (totalAttempts <= 0) return;
       const durationMs = Date.now() - appStartTime;
       const secondsTotal = Math.floor(durationMs / 1000);
@@ -361,9 +364,9 @@
       highScores = highScores.slice(0, 5);
       localStorage.setItem("highScores", JSON.stringify(highScores));
       scoreRecorded = true;
-    };
+    }
     
-    const updateScoreboard = () => {
+    function updateScoreboard() {
       const allScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const filtered = allScores.filter(score => score.mode === (randomMode ? "random" : selectedMode));
       let html = "HIGHSCORES (" + (randomMode ? "random" : selectedMode) + ")\n";
@@ -371,26 +374,25 @@
         html += (index + 1) + ". " + score.date + " \t " + score.accuracy + "% " + score.duration + "\n";
       });
       document.getElementById("scoreboardOverlay").textContent = html;
-    };
+    }
     
-    const toggleScoreboard = () => {
+    function toggleScoreboard() {
       const overlay = document.getElementById("scoreboardOverlay");
       overlay.classList.toggle("hidden");
       if (!overlay.classList.contains("hidden")) updateScoreboard();
-    };
+    }
     
-    // Es gibt nur noch zwei Handoptionen: left und right
+    // Nur zwei Handoptionen: left und right
     const handOptions = [
       { mode: "left", symbol: "✋" },
       { mode: "right", symbol: "✋", flip: true }
     ];
     let currentHandIndex = 0;
     let selectedMode = handOptions[currentHandIndex].mode;
-    
     // Neuer Random Mode
     let randomMode = false;
     
-    // Die verfügbaren Lagen
+    // Verfügbare Lagen
     const rangeArray = ["C", "D", "F", "G", "MC"];
     let currentRangeIndex = 0;
     let currentRange = rangeArray[currentRangeIndex];
@@ -398,7 +400,7 @@
     let firstNotePlayed = false;
     
     const motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
-    const showMotivationMessage = () => {
+    function showMotivationMessage() {
       const overlay = document.getElementById("motivationOverlay");
       const msg = motivationMessages[Math.floor(Math.random() * motivationMessages.length)];
       overlay.textContent = msg;
@@ -407,7 +409,7 @@
         overlay.classList.remove("animate-motivation");
         overlay.textContent = "";
       }, 2500);
-    };
+    }
     
     function getRandomThreshold() {
       return Math.floor(Math.random() * 4) + 2;
@@ -423,29 +425,29 @@
       "MC": ["c", "d", "e", "f", "g"] // wird in generateSeries angepasst
     };
     
-    // Prüfe, ob die gespielte Note korrekt ist (Note UND Oktave müssen übereinstimmen)
-    const isNoteCorrect = (midiInfo) => {
+    // Prüfe, ob gespielte Note korrekt (Note & Oktave)
+    function isNoteCorrect(midiInfo) {
       const expected = currentSeriesSingle[seriesCounter];
       if (!expected) return false;
       const playedNote = midiInfo.note.toLowerCase();
       const expectedNote = expected.note.toLowerCase();
       return playedNote === expectedNote && midiInfo.octave === expected.octave;
-    };
+    }
     
-    const removeFromErrorNotes = (noteObj) => {
+    function removeFromErrorNotes(noteObj) {
       errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
-    };
+    }
     
-    const proceedToMainScreen = () => {
+    function proceedToMainScreen() {
       const welcomeOverlay = document.getElementById("welcomeOverlay");
       welcomeOverlay.style.opacity = "0";
       setTimeout(() => {
         welcomeOverlay.classList.add("hidden");
         document.getElementById("mainContent").style.opacity = "1";
       }, 500);
-    };
+    }
     
-    const autoSelectMode = () => {
+    function autoSelectMode() {
       let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const leftScores = highScores.filter(score => score.mode === "left");
       const rightScores = highScores.filter(score => score.mode === "right");
@@ -463,29 +465,29 @@
         handToggle.textContent = handOptions[currentHandIndex].symbol;
         handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
       }
-    };
+    }
     
-    const cycleRange = () => {
+    function cycleRange() {
       currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
       currentRange = rangeArray[currentRangeIndex];
       document.getElementById("clefTitle").textContent = currentRange + "-Lage";
       generateSeries();
       updateHeartsDisplay();
-    };
+    }
     
-    const toggleDarkMode = () => {
+    function toggleDarkMode() {
       document.body.classList.toggle("dark-mode");
-    };
+    }
     
-    const setupFadeOnHover = (element) => {
+    function setupFadeOnHover(element) {
       element.addEventListener("mouseenter", () => element.classList.remove("faded"));
       element.addEventListener("mouseleave", () => element.classList.add("faded"));
       element.addEventListener("touchstart", () => element.classList.remove("faded"));
       element.addEventListener("touchend", () => element.classList.add("faded"));
-    };
+    }
     
     let redrawQueued = false;
-    const queueRedraw = () => {
+    function queueRedraw() {
       if (!redrawQueued) {
         redrawQueued = true;
         requestAnimationFrame(() => {
@@ -493,7 +495,7 @@
           redrawQueued = false;
         });
       }
-    };
+    }
     
     document.addEventListener("DOMContentLoaded", () => {
       const settingsPanel = document.getElementById("settingsPanel");
@@ -505,7 +507,6 @@
       handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
       settingsPanel.appendChild(handToggle);
       handToggle.addEventListener("click", () => {
-        // Wechsle zwischen left und right (nur, wenn nicht random)
         if (!randomMode) {
           currentHandIndex = (currentHandIndex + 1) % handOptions.length;
           selectedMode = handOptions[currentHandIndex].mode;
@@ -571,16 +572,14 @@
       document.getElementById("scoreboardOverlay").addEventListener("click", toggleScoreboard);
     });
     
-    // --- GEÄNDERTE Funktion generateSeries ---
-    const generateSeries = () => {
+    // GEÄNDERTE Funktion generateSeries
+    function generateSeries() {
       seriesCounter = 0;
-      firstNotePlayed = false;
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
-      
-      const chooseNote = () => {
+      function chooseNote() {
         if (errorNotes.length > 0 && Math.random() < 0.6) {
-          return errorNotes.splice(0,1)[0];
+          return errorNotes.splice(0, 1)[0];
         }
         let usedClef;
         if (randomMode) {
@@ -616,65 +615,60 @@
           clef: usedClef,
           color: "black"
         };
-      };
-      
+      }
       currentSeriesSingle = [];
       for (let i = 0; i < seriesLength; i++) {
         currentSeriesSingle.push(chooseNote());
       }
       drawSeries();
-    };
-    // --- ENDE GEÄNDERTE Funktion generateSeries ---
+    }
     
-    const drawSeries = () => {
+    function drawSeries() {
       const notationDiv = document.getElementById("notation");
       const baseWidth = 800;
       const ratio = window.devicePixelRatio || 1;
       const height = 300 * ratio;
-      
       notationDiv.style.display = "block";
       notationDiv.innerHTML = "";
-      
-      const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
+      const renderer = new VF.Renderer(notationDiv, VF.Renderer.Backends.SVG);
       renderer.resize(baseWidth * ratio, height);
       const svg = notationDiv.querySelector("svg");
-      svg && (svg.setAttribute("width", baseWidth), svg.setAttribute("height", 300));
+      if (svg) {
+        svg.setAttribute("width", baseWidth);
+        svg.setAttribute("height", 300);
+      }
       const context = renderer.getContext();
-      const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
+      const stave = new VF.Stave(10, 40, baseWidth - 20);
       if (currentSeriesSingle.length) {
         stave.addClef(currentSeriesSingle[0].clef);
       }
       stave.setContext(context).draw();
-      
-      const staveNotes = currentSeriesSingle.map(item => new Vex.Flow.StaveNote({
+      const staveNotes = currentSeriesSingle.map(item => new VF.StaveNote({
           clef: item.clef,
           keys: [item.note + "/" + item.octave],
           duration: "q"
       }).setStyle({ fillStyle: item.color, strokeStyle: item.color }));
-      
-      const voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
+      const voice = new VF.Voice({ num_beats: seriesLength, beat_value: 4 });
       staveNotes.forEach(note => voice.addTickable(note));
-      new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
+      new VF.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
       voice.draw(context, stave);
-    };
+    }
     
-    const handleMIDIMessage = (status, data1, data2) => {
+    function handleMIDIMessage(status, data1, data2) {
       if (sessionPaused) return;
       if ((status & 0xf0) === 0x90 && data2 > 0) {
         let currentTime = Date.now();
         let responseTime = currentTime - lastNoteTimestamp;
         responseTimes.push(responseTime);
         lastNoteTimestamp = currentTime;
-        
         const midiInfo = (() => {
           const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
           const octave = Math.floor(data1 / 12) - 1;
           return { note: noteNames[data1 % 12], octave: octave };
         })();
-        
         const noteName = midiInfo.note + midiInfo.octave;
         const noteDisplay = document.getElementById("noteNameDisplay");
-        if(noteDisplay) noteDisplay.textContent = noteName;
+        if (noteDisplay) noteDisplay.textContent = noteName;
         if (soundEnabled) {
           synth.triggerAttackRelease(noteName, "8n");
         }
@@ -714,9 +708,9 @@
         }
         updateTimer();
       }
-    };
+    }
     
-    const resetGame = () => {
+    function resetGame() {
       hearts = 4;
       gameOver = false;
       seriesCounter = 0;
@@ -732,13 +726,13 @@
       scoreRecorded = false;
       generateSeries();
       updateHeartsDisplay();
-    };
+    }
   </script>
 </head>
 <body>
   <!-- Welcome Overlay -->
   <div id="welcomeOverlay">
-    <div id="welcomeMessage">Hallo, schön dich zu sehen!<br>v1.0</div>
+    <div id="welcomeMessage">Hallo, schön dich zu sehen!<br>V23:45</div>
   </div>
   <!-- Game Over / Session-Pause Overlay -->
   <div id="gameOverOverlay"></div>
@@ -750,7 +744,7 @@
   <div id="timerContainer"></div>
   <!-- Hauptinhalt -->
   <div id="mainContent" style="opacity: 0;">
-    <!-- Notation (Einhandmodus) -->
+    <!-- Notation -->
     <div id="notation"></div>
     <!-- Lagewechsel-Button & Herzen -->
     <div id="buttonContainer">
