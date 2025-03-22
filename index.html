@@ -8,6 +8,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.37/Tone.js"></script>
   <!-- VexFlow laden -->
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+  <!-- canvas-confetti laden -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
   <style>
     html, body {
       height: 100%;
@@ -99,6 +101,7 @@
       padding: 30px;
       border-radius: 15px;
       font-size: 2em;
+      white-space: pre-line;
       display: none;
     }
     body.dark-mode #gameOverOverlay {
@@ -271,7 +274,72 @@
     }
     setInterval(updateTimer, 1000);
 
-    // Spielende
+    // Pause-Variablen
+    var pauseDuration = 300; // 5 Minuten in Sekunden
+    var pauseRemaining = pauseDuration;
+    var pauseInterval = null;
+    var confettiShown = false;
+
+    // Aktualisiert den Inhalt des Pause-Overlays
+    function updatePauseOverlay() {
+      var now = new Date();
+      var hours = now.getHours();
+      var minutes = now.getMinutes();
+      hours = hours < 10 ? "0" + hours : hours;
+      minutes = minutes < 10 ? "0" + minutes : minutes;
+      var timeString = hours + ":" + minutes;
+      
+      var quotePercent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
+      
+      var pauseMinutes = Math.floor(pauseRemaining / 60);
+      var pauseSeconds = pauseRemaining % 60;
+      pauseMinutes = pauseMinutes < 10 ? "0" + pauseMinutes : pauseMinutes;
+      pauseSeconds = pauseSeconds < 10 ? "0" + pauseSeconds : pauseSeconds;
+      var pauseString = pauseMinutes + ":" + pauseSeconds;
+      
+      var overlay = document.getElementById("gameOverOverlay");
+      overlay.textContent = "SESSION PAUSIERT\n\nZEIT:\t" + timeString + "\nQUOTE:\t" + quotePercent + "%\n\nPAUSE:\t" + pauseString;
+    }
+
+    // Startet den 5-Minuten-Pausen-Countdown
+    function startPauseCountdown() {
+      sessionPaused = true;
+      pauseRemaining = pauseDuration;
+      var overlay = document.getElementById("gameOverOverlay");
+      overlay.style.display = "block";
+      updatePauseOverlay();
+      pauseInterval = setInterval(function(){
+           pauseRemaining--;
+           if (pauseRemaining <= 0) {
+               clearInterval(pauseInterval);
+               endPause();
+           } else {
+               updatePauseOverlay();
+           }
+      }, 1000);
+    }
+
+    // Wird am Ende der Pause aufgerufen: Gong ertönen & Konfetti (nur 1x), danach Spiel fortsetzen
+    function endPause() {
+      var overlay = document.getElementById("gameOverOverlay");
+      overlay.style.display = "none";
+      sessionPaused = false;
+      // Gong abspielen, falls Sound aktiviert ist
+      if (soundEnabled) {
+         var gongAudio = document.getElementById("gongSound");
+         if (gongAudio) {
+           gongAudio.play();
+         }
+      }
+      // Konfetti nur einmal auslösen
+      if (!confettiShown) {
+         confettiShown = true;
+         confetti();
+      }
+      resetGame();
+    }
+
+    // Spielende (Game Over) – bleibt unverändert
     var gameOver = false;
     function endGame() {
       gameOver = true;
@@ -290,6 +358,8 @@
       correctNoteCount = 0;
       sessionCounter = 1000;
       sessionPaused = false;
+      // Setzt auch die Konfetti-Flag zurück, falls gewünscht
+      confettiShown = false;
       nextMotivationThreshold = getRandomThreshold();
       document.getElementById("gameOverOverlay").style.display = "none";
       generateSeries();
@@ -670,8 +740,10 @@
         if (noteDisplay) {
           noteDisplay.textContent = noteName;
         }
-        // Note abspielen
-        synth.triggerAttackRelease(noteName, "8n");
+        // Note abspielen (nur wenn Sound aktiviert ist)
+        if (soundEnabled) {
+          synth.triggerAttackRelease(noteName, "8n");
+        }
         
         totalAttempts++;
         var correct = isNoteCorrect(midiInfo);
@@ -689,10 +761,8 @@
           sessionCounter--;
           if (sessionCounter <= 0) {
             sessionCounter = 0;
-            sessionPaused = true;
-            var overlay = document.getElementById("gameOverOverlay");
-            overlay.textContent = "Session pausieren";
-            overlay.style.display = "block";
+            // Statt direktem "Session pausieren" starten wir den 5-Minuten-Pause-Countdown
+            startPauseCountdown();
             updateTimer();
             return;
           }
@@ -761,5 +831,8 @@
 
   <!-- Einstellungen-Menü -->
   <div id="settingsPanel"></div>
+  
+  <!-- Audio-Element für den Gong -->
+  <audio id="gongSound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
 </body>
 </html>
