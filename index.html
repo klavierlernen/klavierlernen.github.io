@@ -257,7 +257,6 @@
     
     // Variable für unbegrenzte Leben (Standard: true)
     let unlimitedLives = true;
-
     // Setze die Herzen je nach Modus
     let hearts = unlimitedLives ? Infinity : 4;
     const updateHeartsDisplay = () => {
@@ -416,7 +415,7 @@
       "D": ["d", "e", "f#", "g", "a"],
       "F": ["f", "g", "a", "bb", "c"],
       "G": ["g", "a", "b", "c", "d"],
-      "MC": ["c", "d", "e", "f", "g"] // wird in generateSeries angepasst
+      "MC": ["c", "d", "e", "f", "g"]
     };
     
     // Prüfe, ob die gespielte Note korrekt ist (Note UND Oktave müssen übereinstimmen)
@@ -521,7 +520,7 @@
         generateSeries();
       });
       
-      // Weitere Buttons (Sound-Button wurde entfernt)
+      // Weitere Buttons (Sound-Button entfernt)
       const lifeToggle = document.createElement("span");
       lifeToggle.id = "lifeToggle";
       lifeToggle.textContent = "∞";
@@ -667,14 +666,13 @@
             showMotivationMessage();
             nextMotivationThreshold = correctNoteCount + getRandomThreshold();
           }
-          if (!unlimitedLives) {
-            sessionCounter--;
-            if (sessionCounter <= 0) {
-              sessionCounter = 0;
-              startPauseCountdown();
-              updateTimer();
-              return;
-            }
+          // Hier wird der Session-Counter immer verringert
+          sessionCounter--;
+          if (sessionCounter <= 0) {
+            sessionCounter = 0;
+            startPauseCountdown();
+            updateTimer();
+            return;
           }
         } else {
           currentSeriesSingle[seriesCounter].color = "red";
@@ -700,6 +698,8 @@
     };
     
     const resetGame = () => {
+      // Setze den Session-Counter wieder auf 1000, damit die Session endet, sobald 1000 korrekte Noten erreicht wurden.
+      sessionCounter = 1000;
       hearts = unlimitedLives ? Infinity : 4;
       gameOver = false;
       seriesCounter = 0;
@@ -707,9 +707,6 @@
       correctAnswers = 0;
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
-      if (!unlimitedLives) {
-        sessionCounter = 1000;
-      }
       sessionPaused = false;
       confettiShown = false;
       errorNotes = [];
