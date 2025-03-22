@@ -480,7 +480,7 @@
       "D": ["d", "e", "f#", "g", "a"],
       "F": ["f", "g", "a", "bb", "c"],
       "G": ["g", "a", "b", "c", "d"],
-      "MC": ["c", "d", "e", "f", "g"]
+      "MC": ["c", "d", "e", "f", "g"] // Wird in generateSeries überschrieben
     };
     
     const midiNoteToName = (noteNumber) => {
@@ -661,6 +661,7 @@
       document.getElementById("scoreboardOverlay").addEventListener("click", toggleScoreboard);
     });
     
+    // --- GEÄNDERTE Funktion generateSeries ---
     const generateSeries = () => {
       seriesCounter = 0;
       firstNotePlayed = false;
@@ -671,9 +672,22 @@
         if (errorsForClef.length > 0 && Math.random() < 0.6) {
           return errorNotes.splice(errorNotes.indexOf(errorsForClef[0]), 1)[0];
         } else {
-          const randomIndex = Math.floor(Math.random() * rangeNotes[currentRange].length);
+          let availableNotes;
+          // Wenn die Mittlere C Lage (MC) verwendet wird, wähle je nach Hand andere Noten:
+          if (currentRange === "MC") {
+            if (clef === "bass") {
+              // Linke Hand: F, G, A, H, C
+              availableNotes = ["f", "g", "a", "h", "c"];
+            } else {
+              // Rechte Hand: C, D, E, F, G
+              availableNotes = ["c", "d", "e", "f", "g"];
+            }
+          } else {
+            availableNotes = rangeNotes[currentRange];
+          }
+          const randomIndex = Math.floor(Math.random() * availableNotes.length);
           return {
-            note: rangeNotes[currentRange][randomIndex],
+            note: availableNotes[randomIndex],
             octave: (selectedMode === "left" || clef === "bass") ? 3 : 4,
             clef: clef,
             color: "black"
@@ -700,6 +714,7 @@
         drawSeries();
       }
     };
+    // --- ENDE GEÄNDERTE Funktion generateSeries ---
     
     const drawSeries = () => {
       const notationDiv = document.getElementById("notation");
