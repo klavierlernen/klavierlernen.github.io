@@ -246,6 +246,22 @@
     body.dark-mode #welcomeMessage { color: #e0e0e0; }
   </style>
   <script>
+    /****************** Adaptive Pause Script ******************/
+    // Berechnet die empfohlene Pausendauer (in Sekunden) basierend auf durchschnittlichen Antwortzeiten (ms) und Trefferquote (0-1)
+    function calculateAdaptiveBreakTime(responseTimes, hitRate) {
+      if (responseTimes.length === 0) return 5;
+      let sum = responseTimes.reduce((acc, time) => acc + time, 0);
+      let avgResponseTime = sum / responseTimes.length;
+      const baseline = 500; // in ms
+      let slowdownFactor = avgResponseTime / baseline;
+      let fatigueIndex = slowdownFactor * (1 - hitRate);
+      const basePause = 10;
+      let breakTime = basePause * fatigueIndex;
+      breakTime = Math.max(5, Math.min(breakTime, 300));
+      return breakTime;
+    }
+    /************************************************************/
+    
     // Globale Variablen und initiale Zustände
     let currentSeriesSingle = [];
     let currentSeriesTreble = [];
@@ -256,14 +272,17 @@
     let correctAnswers = 0;
     let correctNoteCount = 0;
     let nextMotivationThreshold = getRandomThreshold();
-    // Fehler-Noten-Pool für gezielte Wiederholung
     let errorNotes = [];
-    // Session-Management: Für den Timer, der nicht zurückgesetzt wird,
-    // wird die App-Uptime gespeichert (appStartTime) – sie wird NICHT neu gesetzt!
+    // Für adaptive Pause: Antwortzeiten und Zeitstempel
+    let responseTimes = [];
+    let lastNoteTimestamp = Date.now();
+    // App-Uptime bleibt konstant (appStartTime wird nicht zurückgesetzt)
     let appStartTime = Date.now();
     let sessionCounter = 1000;
     let sessionPaused = false;
     let scoreRecorded = false;
+    // Neuer Sessionzähler für Wiederholungen
+    let sessionCount = 0;
     
     // Herz-System: 4 Herzen
     let hearts = 4;
@@ -276,11 +295,9 @@
       }
     };
     
-    // Toggle für unbegrenzte Leben
     let unlimitedLives = false;
     
-    // Der Timer zeigt jetzt die Zeit seit dem ersten Start der App an.
-    // updateTimer() verwendet appStartTime, das NICHT zurückgesetzt wird.
+    // Der Timer zeigt die gesamte App-Uptime an
     const updateTimer = () => {
       const elapsed = Math.floor((Date.now() - appStartTime) / 1000);
       let display;
@@ -296,11 +313,11 @@
     setInterval(updateTimer, 1000);
     
     // Pause-Funktionen
-    const pauseDuration = 300; // 5 Minuten in Sekunden
-    let pauseRemaining = pauseDuration;
+    let pauseRemaining = 0;
     let pauseInterval = null;
     let confettiShown = false;
     
+    // Aktualisiert das Pause-Overlay inklusive Sessionzähler
     const updatePauseOverlay = () => {
       const now = new Date();
       let hours = now.getHours();
@@ -308,22 +325,25 @@
       hours = hours < 10 ? "0" + hours : hours;
       minutes = minutes < 10 ? "0" + minutes : minutes;
       const timeString = hours + ":" + minutes;
-      
       const quotePercent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
-      
-      let pauseMinutes = Math.floor(pauseRemaining / 60);
-      let pauseSeconds = pauseRemaining % 60;
-      pauseMinutes = pauseMinutes < 10 ? "0" + pauseMinutes : pauseMinutes;
-      pauseSeconds = pauseSeconds < 10 ? "0" + pauseSeconds : pauseSeconds;
-      const pauseString = pauseMinutes + ":" + pauseSeconds;
-      
+      const pauseString = (pauseRemaining < 10 ? "0" + pauseRemaining : pauseRemaining);
       const overlay = document.getElementById("gameOverOverlay");
-      overlay.textContent = "SESSION PAUSIERT\n\nZEIT:\t" + timeString + "\nQUOTE:\t" + quotePercent + "%\n\nPAUSE:\t" + pauseString;
+      overlay.textContent = "SESSION " + sessionCount + " PAUSIERT\n\nZEIT:\t" + timeString +
+                            "\nQUOTE:\t" + quotePercent + "%\n\nPAUSE:\t" + pauseString + " s";
     };
     
+    // Startet den adaptiven Pausen-Countdown und erhöht den Sessionzähler
     const startPauseCountdown = () => {
       sessionPaused = true;
-      pauseRemaining = pauseDuration;
+      // Erhöhe den Sessionzähler (eine abgeschlossene Session)
+      sessionCount++;
+      const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
+      pauseRemaining = Math.floor(calculateAdaptiveBreakTime(responseTimes, hitRate));
+      // Konfetti-Effekt sofort auslösen
+      if (!confettiShown) {
+         confetti();
+         confettiShown = true;
+      }
       const overlay = document.getElementById("gameOverOverlay");
       overlay.style.display = "block";
       updatePauseOverlay();
@@ -347,10 +367,6 @@
          gongAudio && gongAudio.play();
       }
       if (!scoreRecorded) recordScore();
-      if (!confettiShown) {
-         confettiShown = true;
-         confetti();
-      }
       resetGame();
     };
     
@@ -364,8 +380,7 @@
       setTimeout(resetGame, 5000);
     };
     
-    // Beim Sessionabschluss wird der Score (inkl. Modus) aufgenommen.
-    // Die verstrichene Zeit basiert hier auf appStartTime und zeigt, wie lange man in der App ist.
+    // Beim Sessionabschluss wird der Score aufgenommen (basierend auf der gesamten App-Uptime)
     const recordScore = () => {
       if (totalAttempts <= 0) return;
       const durationMs = Date.now() - appStartTime;
@@ -383,7 +398,6 @@
       const scoreObj = { date: dateStr, accuracy: accuracy, duration: durationStr, seconds: secondsTotal, mode: selectedMode };
       let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       highScores.push(scoreObj);
-      // Sortierung: höchste Genauigkeit, bei Gleichstand kürzere Dauer
       highScores.sort((a, b) => {
         if (b.accuracy !== a.accuracy) return b.accuracy - a.accuracy;
         return a.seconds - b.seconds;
@@ -393,7 +407,7 @@
       scoreRecorded = true;
     };
     
-    // Zeigt nur die Highscores für den aktuellen Modus an
+    // Zeigt Highscores für den aktuellen Modus an
     const updateScoreboard = () => {
       const allScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const filtered = allScores.filter(score => score.mode === selectedMode);
@@ -404,7 +418,7 @@
       document.getElementById("scoreboardOverlay").textContent = html;
     };
     
-    // toggleScoreboard: Blendet das Scoreboard ein/aus (Klasse "hidden" wird hinzugefügt oder entfernt)
+    // Blendet das Scoreboard ein/aus
     const toggleScoreboard = () => {
       const overlay = document.getElementById("scoreboardOverlay");
       if (overlay.classList.contains("hidden")) {
@@ -510,7 +524,7 @@
       }, 500);
     };
     
-    // Automatische Moduswahl: Vergleicht bisherige Highscores für "left" und "right"
+    // Automatische Moduswahl: Vergleicht Highscores für "left" und "right"
     const autoSelectMode = () => {
       let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const leftScores = highScores.filter(score => score.mode === "left");
@@ -640,7 +654,7 @@
       setupFadeOnHover(settingsPanel);
       setupFadeOnHover(document.getElementById("clefTitle"));
       
-      // Automatische Moduswahl beim Start (basierend auf bisherigen Highscores)
+      // Automatische Moduswahl beim Start
       autoSelectMode();
       
       setTimeout(proceedToMainScreen, 3000);
@@ -663,7 +677,6 @@
       firstNotePlayed = false;
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
-      // Wähle Note – entweder aus Fehlerpool oder neu
       const chooseNote = (clef) => {
         const errorsForClef = errorNotes.filter(n => n.clef === clef);
         if (errorsForClef.length > 0 && Math.random() < 0.6) {
@@ -784,6 +797,11 @@
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
       if ((status & 0xf0) === 0x90 && data2 > 0) {
+        let currentTime = Date.now();
+        let responseTime = currentTime - lastNoteTimestamp;
+        responseTimes.push(responseTime);
+        lastNoteTimestamp = currentTime;
+        
         const midiInfo = midiNoteToName(data1);
         const noteName = midiInfo.note + midiInfo.octave;
         const noteDisplay = document.getElementById("noteNameDisplay");
@@ -849,7 +867,7 @@
       }
     };
     
-    // Beim Sessionende wird nun der Score aufgenommen, aber der Timer (appStartTime) bleibt unverändert.
+    // Beim Sessionende wird der Score aufgenommen – appStartTime bleibt unverändert
     const resetGame = () => {
       hearts = 4;
       gameOver = false;
@@ -863,7 +881,7 @@
       confettiShown = false;
       errorNotes = [];
       document.getElementById("gameOverOverlay").style.display = "none";
-      // WICHTIG: appStartTime wird NICHT zurückgesetzt, sodass der Timer die gesamte App-Uptime anzeigt!
+      // appStartTime bleibt erhalten, sodass die gesamte App-Uptime angezeigt wird!
       scoreRecorded = false;
       generateSeries();
       updateHeartsDisplay();
