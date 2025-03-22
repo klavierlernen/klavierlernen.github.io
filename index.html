@@ -60,7 +60,7 @@
     #notation svg *, #notationTreble svg *, #notationBass svg * {
       vector-effect: non-scaling-stroke;
     }
-    /* Im Dark Mode werden andere Elemente weiß gefärbt, aber inline-Styles (z. B. "red" oder "green") behalten */
+    /* Im Dark Mode: Elemente innerhalb der Notation erhalten weißen Stroke/Füllung */
     body.dark-mode #notation svg *,
     body.dark-mode #notationTreble svg *,
     body.dark-mode #notationBass svg * {
@@ -89,7 +89,7 @@
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
     }
-    /* Game Over Overlay (wird nun auch für Session-Pause genutzt) */
+    /* Game Over Overlay (auch für Session-Pause) */
     #gameOverOverlay {
       position: fixed;
       top: 50%;
@@ -122,7 +122,7 @@
       white-space: pre-line;
       display: block;
     }
-    /* Das Overlay wird durch die Klasse "hidden" ausgeblendet */
+    /* Standardmäßig ausgeblendet */
     .hidden {
       display: none !important;
     }
@@ -278,7 +278,7 @@
     // Toggle für unbegrenzte Leben
     let unlimitedLives = false;
     
-    // Timer: Sessiondauer (wird nun aus sessionStartTime berechnet)
+    // Timer: Sessiondauer
     const updateTimer = () => {
       const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
       let display;
@@ -293,7 +293,7 @@
     };
     setInterval(updateTimer, 1000);
     
-    // Pause-Variablen und -Funktionen
+    // Pause-Funktionen
     const pauseDuration = 300; // 5 Minuten in Sekunden
     let pauseRemaining = pauseDuration;
     let pauseInterval = null;
@@ -340,7 +340,6 @@
       const overlay = document.getElementById("gameOverOverlay");
       overlay.style.display = "none";
       sessionPaused = false;
-      // Gong abspielen, falls Sound aktiviert ist
       if (soundEnabled) {
          const gongAudio = document.getElementById("gongSound");
          gongAudio && gongAudio.play();
@@ -363,15 +362,14 @@
       setTimeout(resetGame, 5000);
     };
     
+    // Beim Sessionabschluss wird der Score (inkl. Modus) aufgenommen
     const recordScore = () => {
       if (totalAttempts <= 0) return;
-      // Berechne Dauer der Session
       const durationMs = Date.now() - sessionStartTime;
       const secondsTotal = Math.floor(durationMs / 1000);
       const minutes = Math.floor(secondsTotal / 60);
       const seconds = secondsTotal % 60;
       const durationStr = (minutes < 10 ? "0" + minutes : minutes) + ":" + (seconds < 10 ? "0" + seconds : seconds);
-      // Berechne Genauigkeit
       const accuracy = Math.round((correctAnswers / totalAttempts) * 100);
       const now = new Date();
       let dd = now.getDate();
@@ -379,8 +377,8 @@
       dd = dd < 10 ? "0" + dd : dd;
       mm = mm < 10 ? "0" + mm : mm;
       const dateStr = dd + "." + mm;
-      const scoreObj = { date: dateStr, accuracy: accuracy, duration: durationStr, seconds: secondsTotal };
-      // Highscores aus localStorage laden
+      // Speichere zusätzlich den aktuellen Modus
+      const scoreObj = { date: dateStr, accuracy: accuracy, duration: durationStr, seconds: secondsTotal, mode: selectedMode };
       let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       highScores.push(scoreObj);
       // Sortierung: höchste Genauigkeit, bei Gleichstand kürzere Dauer
@@ -393,17 +391,18 @@
       scoreRecorded = true;
     };
     
-    // Funktion zum Aktualisieren und Anzeigen des Scoreboards
+    // Zeigt nur die Highscores für den aktuellen Modus an
     const updateScoreboard = () => {
-      const highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
-      let html = "HIGHSCORES\n";
-      highScores.forEach((score, index) => {
+      const allScores = JSON.parse(localStorage.getItem("highScores") || "[]");
+      const filtered = allScores.filter(score => score.mode === selectedMode);
+      let html = "HIGHSCORES (" + selectedMode + ")\n";
+      filtered.forEach((score, index) => {
         html += (index + 1) + ". " + score.date + " \t " + score.accuracy + "% " + score.duration + "\n";
       });
       document.getElementById("scoreboardOverlay").textContent = html;
     };
     
-    // Angepasste toggleScoreboard-Funktion: entfernt/fügt die Klasse "hidden" hinzu
+    // toggleScoreboard: Blendet das Scoreboard ein/aus (indem die Klasse "hidden" entfernt bzw. hinzugefügt wird)
     const toggleScoreboard = () => {
       const overlay = document.getElementById("scoreboardOverlay");
       if (overlay.classList.contains("hidden")) {
@@ -507,6 +506,31 @@
         welcomeOverlay.classList.add("hidden");
         document.getElementById("mainContent").style.opacity = "1";
       }, 500);
+    };
+    
+    // Automatische Moduswahl: Vergleicht die bisherigen Highscores (nur für "left" und "right")
+    const autoSelectMode = () => {
+      let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
+      const leftScores = highScores.filter(score => score.mode === "left");
+      const rightScores = highScores.filter(score => score.mode === "right");
+      const bestLeft = leftScores.length ? Math.max(...leftScores.map(s => s.accuracy)) : 0;
+      const bestRight = rightScores.length ? Math.max(...rightScores.map(s => s.accuracy)) : 0;
+      if (bestLeft < bestRight) {
+        selectedMode = "left";
+        currentHandIndex = 0;
+      } else if (bestRight < bestLeft) {
+        selectedMode = "right";
+        currentHandIndex = 1;
+      } else {
+        selectedMode = "left";
+        currentHandIndex = 0;
+      }
+      // Aktualisiere den Hand-Toggle im Menü
+      const handToggle = document.getElementById("handToggle");
+      if (handToggle) {
+        handToggle.textContent = handOptions[currentHandIndex].symbol;
+        handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
+      }
     };
     
     // Lagewechsel-Button: wechselt die "Lage" und erzeugt neue Notation
@@ -614,6 +638,9 @@
       
       setupFadeOnHover(settingsPanel);
       setupFadeOnHover(document.getElementById("clefTitle"));
+      
+      // Automatische Moduswahl beim Start
+      autoSelectMode();
       
       setTimeout(proceedToMainScreen, 3000);
       // Starte Session: Setze Startzeit zurück
@@ -754,7 +781,7 @@
       }
     };
     
-    // Optimierte Funktion zur Verarbeitung, Bewertung, visuellen Rückmeldung und Fortschaltung der Note
+    // Verarbeitung, Bewertung, visuelles Feedback und Fortschaltung der Note
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
       if ((status & 0xf0) === 0x90 && data2 > 0) {
@@ -823,7 +850,7 @@
       }
     };
     
-    // Bei Sessionende wird die Score aufgenommen und Session zurückgesetzt
+    // Bei Sessionende: Score aufnehmen und Session zurücksetzen
     const resetGame = () => {
       hearts = 4;
       gameOver = false;
@@ -837,7 +864,6 @@
       confettiShown = false;
       errorNotes = [];
       document.getElementById("gameOverOverlay").style.display = "none";
-      // Setze Startzeit für neue Session
       sessionStartTime = Date.now();
       scoreRecorded = false;
       generateSeries();
