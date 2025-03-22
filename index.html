@@ -295,7 +295,8 @@
       }
     };
     
-    let unlimitedLives = false;
+    // Unendlichmodus ist standardmäßig aktiv
+    let unlimitedLives = true;
     
     // Der Timer zeigt die gesamte App-Uptime an
     const updateTimer = () => {
@@ -332,12 +333,11 @@
                             "\nQUOTE:\t" + quotePercent + "%\n\nPAUSE:\t" + pauseString + " s";
     };
     
-    // Startet den adaptiven Pausen-Countdown; die finale Pause ist: (adaptive Wert * Faktor) + 5 Minuten (300 s)
+    // Startet den adaptiven Pausen-Countdown; die finale Pause beträgt: (adaptive Zeit * 2) + 300 s
     const startPauseCountdown = () => {
       sessionPaused = true;
       sessionCount++;  // Erhöhe den Sessionzähler
       const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
-      // Berechne den adaptiven Teil und multipliziere ihn mit einem Faktor (hier 2), dann addiere mindestens 5 Minuten
       pauseRemaining = Math.floor(calculateAdaptiveBreakTime(responseTimes, hitRate) * 2 + 300);
       // Konfetti-Effekt sofort auslösen
       if (!confettiShown) {
@@ -380,7 +380,7 @@
       setTimeout(resetGame, 5000);
     };
     
-    // Beim Sessionabschluss wird der Score (inkl. Modus) aufgenommen.
+    // Beim Sessionende wird der Score aufgenommen (basierend auf der gesamten App-Uptime)
     const recordScore = () => {
       if (totalAttempts <= 0) return;
       const durationMs = Date.now() - appStartTime;
@@ -407,7 +407,7 @@
       scoreRecorded = true;
     };
     
-    // Zeigt nur die Highscores für den aktuellen Modus an
+    // Zeigt Highscores für den aktuellen Modus an
     const updateScoreboard = () => {
       const allScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const filtered = allScores.filter(score => score.mode === selectedMode);
@@ -602,10 +602,10 @@
       soundToggle.textContent = "🔊";
       settingsPanel.appendChild(soundToggle);
       
-      // Life-Toggle (unbegrenzte Leben)
+      // Life-Toggle (Unendlichmodus ist standardmäßig aktiv)
       const lifeToggle = document.createElement("span");
       lifeToggle.id = "lifeToggle";
-      lifeToggle.textContent = "⭐";
+      lifeToggle.textContent = "∞";
       settingsPanel.appendChild(lifeToggle);
       lifeToggle.addEventListener("click", () => {
         unlimitedLives = !unlimitedLives;
