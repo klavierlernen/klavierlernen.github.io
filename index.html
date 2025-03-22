@@ -459,7 +459,7 @@
     let soundEnabled = true;
     let firstNotePlayed = false;
     // Für den Zweihandmodus setzen wir currentPhase auf "pair"
-    let currentPhase = "treble";
+    let currentPhase = "pair";
     
     const motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
     const showMotivationMessage = () => {
@@ -824,55 +824,43 @@
           }
           updateTimer();
         } else {
-          // Zweihandmodus: Erwarte ein Notenpaar (Treble und Bass)
+          // Zweihandmodus: Notenpaar (Treble und Bass) verarbeiten
           if (pairInputs.firstNoteTime === 0) {
             // Erster Ton des Paares
             pairInputs.firstNoteTime = currentTime;
-            let matchTreble = isNoteCorrectForClef(midiInfo, currentSeriesTreble[seriesCounter]);
-            let matchBass = isNoteCorrectForClef(midiInfo, currentSeriesBass[seriesCounter]);
-            if (matchTreble) {
+          }
+          let timeDiff = currentTime - pairInputs.firstNoteTime;
+          let matchedTreble = isNoteCorrectForClef(midiInfo, currentSeriesTreble[seriesCounter]);
+          let matchedBass = isNoteCorrectForClef(midiInfo, currentSeriesBass[seriesCounter]);
+          
+          if (timeDiff < 200) {
+            // Simultanes Spielen: Akzeptiere beide unabhängig von der Reihenfolge
+            if (!pairInputs.treble && matchedTreble) {
               pairInputs.treble = true;
               currentSeriesTreble[seriesCounter].color = "green";
               correctAnswers++;
-            } else if (matchBass) {
-              // Wird die Bass-Note als erste gespielt, wird dies als Fehler gewertet.
-              currentSeriesBass[seriesCounter].color = "red";
-              errorNotes.push(currentSeriesBass[seriesCounter]);
+            } else if (!pairInputs.bass && matchedBass) {
               pairInputs.bass = true;
+              currentSeriesBass[seriesCounter].color = "green";
+              correctAnswers++;
             } else {
-              // Keine erwartete Note erkannt – Fehler bei Treble
-              currentSeriesTreble[seriesCounter].color = "red";
-              errorNotes.push(currentSeriesTreble[seriesCounter]);
-            }
-          } else {
-            // Zweiter Ton des Paares
-            let timeDiff = currentTime - pairInputs.firstNoteTime;
-            if (timeDiff < 200) {
-              // Simultan: Unabhängig von der Reihenfolge
-              if (!pairInputs.treble && isNoteCorrectForClef(midiInfo, currentSeriesTreble[seriesCounter])) {
-                pairInputs.treble = true;
-                currentSeriesTreble[seriesCounter].color = "green";
-                correctAnswers++;
-              } else if (!pairInputs.bass && isNoteCorrectForClef(midiInfo, currentSeriesBass[seriesCounter])) {
-                pairInputs.bass = true;
-                currentSeriesBass[seriesCounter].color = "green";
-                correctAnswers++;
-              } else {
-                // Falls der Ton nicht passt, als Fehler markieren
-                if (!pairInputs.treble) {
-                  currentSeriesTreble[seriesCounter].color = "red";
-                  errorNotes.push(currentSeriesTreble[seriesCounter]);
-                } else if (!pairInputs.bass) {
-                  currentSeriesBass[seriesCounter].color = "red";
-                  errorNotes.push(currentSeriesBass[seriesCounter]);
-                }
-              }
-            } else {
-              // Sequentielles Spielen: Es wird erwartet, dass zuerst die Treble-Note und dann die Bass-Note gespielt wird.
+              // Falls die Note zu keinem noch fehlenden Teil passt, markiere Fehler
               if (!pairInputs.treble) {
                 currentSeriesTreble[seriesCounter].color = "red";
                 errorNotes.push(currentSeriesTreble[seriesCounter]);
-              } else if (!pairInputs.bass && isNoteCorrectForClef(midiInfo, currentSeriesBass[seriesCounter])) {
+              }
+              if (!pairInputs.bass) {
+                currentSeriesBass[seriesCounter].color = "red";
+                errorNotes.push(currentSeriesBass[seriesCounter]);
+              }
+            }
+          } else {
+            // Sequentielles Spielen: Erwartet wird, dass zuerst die Treble-Note und dann die Bass-Note gespielt wird.
+            if (!pairInputs.treble) {
+              currentSeriesTreble[seriesCounter].color = "red";
+              errorNotes.push(currentSeriesTreble[seriesCounter]);
+            } else if (!pairInputs.bass) {
+              if (matchedBass) {
                 pairInputs.bass = true;
                 currentSeriesBass[seriesCounter].color = "green";
                 correctAnswers++;
@@ -882,6 +870,7 @@
               }
             }
           }
+          
           // Wenn beide Noten des Paares erkannt wurden, fahre fort:
           if (pairInputs.treble && pairInputs.bass) {
             seriesCounter++;
