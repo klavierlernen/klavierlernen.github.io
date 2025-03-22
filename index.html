@@ -231,84 +231,87 @@
     }
   </style>
   <script>
-    // Globale Variablen
-    var currentSeriesSingle = [];
-    var currentSeriesTreble = [];
-    var currentSeriesBass = [];
-    var seriesCounter = 0;
-    var seriesLength = 5;
-    var totalAttempts = 0;
-    var correctAnswers = 0;
+    // Globale Variablen und initiale Zustände
+    let currentSeriesSingle = [];
+    let currentSeriesTreble = [];
+    let currentSeriesBass = [];
+    let seriesCounter = 0;
+    const seriesLength = 5;
+    let totalAttempts = 0;
+    let correctAnswers = 0;
+    let correctNoteCount = 0;
+    let nextMotivationThreshold = getRandomThreshold();
+    
+    // Fehler-Noten-Pool für gezielte Wiederholung
+    let errorNotes = [];
 
     // Herz-System: 4 Herzen
-    var hearts = 4;
-    function updateHeartsDisplay() {
-      var heartsElem = document.getElementById("heartsContainer");
+    let hearts = 4;
+    const updateHeartsDisplay = () => {
+      const heartsElem = document.getElementById("heartsContainer");
       if (unlimitedLives) {
         heartsElem.textContent = "∞";
       } else {
         heartsElem.textContent = "❤️".repeat(hearts);
       }
-    }
+    };
 
-    // Neuer Session-Counter (korrekte Noten, startet bei 1000)
-    var sessionCounter = 1000;
-    var sessionPaused = false;
+    // Session-Counter (richtig gespielte Noten, startet bei 1000)
+    let sessionCounter = 1000;
+    let sessionPaused = false;
 
     // Toggle für unbegrenzte Leben
-    var unlimitedLives = false;
+    let unlimitedLives = false;
 
     // Timer: Startzeit bleibt erhalten, auch nach Game Over
-    var startTime = Date.now();
-    function updateTimer() {
-      var elapsed = Math.floor((Date.now() - startTime) / 1000);
-      var display;
+    const startTime = Date.now();
+    const updateTimer = () => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      let display;
       if (elapsed < 60) {
         display = elapsed + " s";
       } else {
-        var hours = Math.floor(elapsed / 3600);
-        var minutes = Math.floor((elapsed % 3600) / 60);
+        const hours = Math.floor(elapsed / 3600);
+        const minutes = Math.floor((elapsed % 3600) / 60);
         display = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
       }
       document.getElementById("timerContainer").textContent = display + " | Richtig übrig: " + sessionCounter;
-    }
+    };
     setInterval(updateTimer, 1000);
 
-    // Pause-Variablen
-    var pauseDuration = 300; // 5 Minuten in Sekunden
-    var pauseRemaining = pauseDuration;
-    var pauseInterval = null;
-    var confettiShown = false;
+    // Pause-Variablen und -Funktionen
+    const pauseDuration = 300; // 5 Minuten in Sekunden
+    let pauseRemaining = pauseDuration;
+    let pauseInterval = null;
+    let confettiShown = false;
 
-    // Aktualisiert den Inhalt des Pause-Overlays
-    function updatePauseOverlay() {
-      var now = new Date();
-      var hours = now.getHours();
-      var minutes = now.getMinutes();
+    const updatePauseOverlay = () => {
+      const now = new Date();
+      let hours = now.getHours();
+      let minutes = now.getMinutes();
       hours = hours < 10 ? "0" + hours : hours;
       minutes = minutes < 10 ? "0" + minutes : minutes;
-      var timeString = hours + ":" + minutes;
+      const timeString = hours + ":" + minutes;
       
-      var quotePercent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
+      const quotePercent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
       
-      var pauseMinutes = Math.floor(pauseRemaining / 60);
-      var pauseSeconds = pauseRemaining % 60;
+      let pauseMinutes = Math.floor(pauseRemaining / 60);
+      let pauseSeconds = pauseRemaining % 60;
       pauseMinutes = pauseMinutes < 10 ? "0" + pauseMinutes : pauseMinutes;
       pauseSeconds = pauseSeconds < 10 ? "0" + pauseSeconds : pauseSeconds;
-      var pauseString = pauseMinutes + ":" + pauseSeconds;
+      const pauseString = pauseMinutes + ":" + pauseSeconds;
       
-      var overlay = document.getElementById("gameOverOverlay");
+      const overlay = document.getElementById("gameOverOverlay");
       overlay.textContent = "SESSION PAUSIERT\n\nZEIT:\t" + timeString + "\nQUOTE:\t" + quotePercent + "%\n\nPAUSE:\t" + pauseString;
-    }
+    };
 
-    // Startet den 5-Minuten-Pausen-Countdown
-    function startPauseCountdown() {
+    const startPauseCountdown = () => {
       sessionPaused = true;
       pauseRemaining = pauseDuration;
-      var overlay = document.getElementById("gameOverOverlay");
+      const overlay = document.getElementById("gameOverOverlay");
       overlay.style.display = "block";
       updatePauseOverlay();
-      pauseInterval = setInterval(function(){
+      pauseInterval = setInterval(() => {
            pauseRemaining--;
            if (pauseRemaining <= 0) {
                clearInterval(pauseInterval);
@@ -317,19 +320,16 @@
                updatePauseOverlay();
            }
       }, 1000);
-    }
+    };
 
-    // Wird am Ende der Pause aufgerufen: Gong ertönen & Konfetti (nur 1x), danach Spiel fortsetzen
-    function endPause() {
-      var overlay = document.getElementById("gameOverOverlay");
+    const endPause = () => {
+      const overlay = document.getElementById("gameOverOverlay");
       overlay.style.display = "none";
       sessionPaused = false;
       // Gong abspielen, falls Sound aktiviert ist
       if (soundEnabled) {
-         var gongAudio = document.getElementById("gongSound");
-         if (gongAudio) {
-           gongAudio.play();
-         }
+         const gongAudio = document.getElementById("gongSound");
+         gongAudio && gongAudio.play();
       }
       // Konfetti nur einmal auslösen
       if (!confettiShown) {
@@ -337,69 +337,81 @@
          confetti();
       }
       resetGame();
-    }
+    };
 
-    // Spielende (Game Over) – bleibt unverändert
-    var gameOver = false;
-    function endGame() {
+    let gameOver = false;
+    const endGame = () => {
       gameOver = true;
-      var gameOverOverlay = document.getElementById("gameOverOverlay");
+      const gameOverOverlay = document.getElementById("gameOverOverlay");
       gameOverOverlay.textContent = "Game Over!";
       gameOverOverlay.style.display = "block";
       setTimeout(resetGame, 5000);
-    }
-    function resetGame() {
+    };
+
+    const resetGame = () => {
       hearts = 4;
       gameOver = false;
       seriesCounter = 0;
       totalAttempts = 0;
       correctAnswers = 0;
-      firstNotePlayed = false;
       correctNoteCount = 0;
+      nextMotivationThreshold = getRandomThreshold();
       sessionCounter = 1000;
       sessionPaused = false;
-      // Setzt auch die Konfetti-Flag zurück, falls gewünscht
       confettiShown = false;
-      nextMotivationThreshold = getRandomThreshold();
+      // Fehlerpool zurücksetzen
+      errorNotes = [];
       document.getElementById("gameOverOverlay").style.display = "none";
       generateSeries();
       updateHeartsDisplay();
-    }
+    };
 
     // Einstellungen für Hand, Level und Leben
-    var handOptions = [
+    const handOptions = [
       { mode: "left", symbol: "✋" },
       { mode: "right", symbol: "✋", flip: true },
       { mode: "both", symbol: "🙌" }
     ];
-    var levelOptions = [
+    const levelOptions = [
       { level: 1, symbol: "1️⃣" },
       { level: 2, symbol: "2️⃣" },
       { level: 3, symbol: "3️⃣" },
       { level: "random", symbol: "🎉" }
     ];
-    var currentHandIndex = 0;
-    var currentLevelIndex = 2;
-    var selectedMode = handOptions[currentHandIndex].mode;
-    var level = levelOptions[currentLevelIndex].level;
+    let currentHandIndex = 0;
+    let currentLevelIndex = 2;
+    let selectedMode = handOptions[currentHandIndex].mode;
+    let level = levelOptions[currentLevelIndex].level;
 
-    var rangeArray = ["C", "D", "F", "G", "MC"];
-    var currentRangeIndex = 0;
-    var currentRange = rangeArray[currentRangeIndex];
-    var soundEnabled = true;
-    var firstNotePlayed = false;
-    var correctNoteCount = 0;
-    var nextMotivationThreshold = getRandomThreshold();
-    var currentPhase = "treble";
+    const rangeArray = ["C", "D", "F", "G", "MC"];
+    let currentRangeIndex = 0;
+    let currentRange = rangeArray[currentRangeIndex];
+    let soundEnabled = true;
+    let firstNotePlayed = false;
+    let currentPhase = "treble";
+
+    // Motivationsnachrichten
+    const motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
+    const showMotivationMessage = () => {
+      const overlay = document.getElementById("motivationOverlay");
+      // Wähle eine zufällige Motivationsnachricht
+      const msg = motivationMessages[Math.floor(Math.random() * motivationMessages.length)];
+      overlay.textContent = msg;
+      overlay.classList.add("animate-motivation");
+      setTimeout(() => {
+        overlay.classList.remove("animate-motivation");
+        overlay.textContent = "";
+      }, 2500);
+    };
 
     function getRandomThreshold() {
       return Math.floor(Math.random() * 4) + 2;
     }
 
-    var motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
-    var synth = new Tone.Synth().toDestination();
+    // Synth initialisieren (Tone.js)
+    const synth = new Tone.Synth().toDestination();
 
-    var rangeNotes = {
+    const rangeNotes = {
       "C": ["c", "d", "e", "f", "g"],
       "D": ["d", "e", "f#", "g", "a"],
       "F": ["f", "g", "a", "bb", "c"],
@@ -407,23 +419,23 @@
       "MC": ["c", "d", "e", "f", "g"]
     };
 
-    function midiNoteToName(noteNumber) {
-      var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
-      var octave = Math.floor(noteNumber / 12) - 1;
-      var noteName = noteNames[noteNumber % 12];
+    const midiNoteToName = (noteNumber) => {
+      const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+      const octave = Math.floor(noteNumber / 12) - 1;
+      const noteName = noteNames[noteNumber % 12];
       return { note: noteName, octave: octave };
-    }
+    };
 
-    function isNoteCorrect(midiInfo) {
-      var expected;
+    const isNoteCorrect = (midiInfo) => {
+      let expected;
       if (selectedMode !== "both") {
         expected = currentSeriesSingle[seriesCounter];
       } else {
         expected = currentPhase === "treble" ? currentSeriesTreble[seriesCounter] : currentSeriesBass[seriesCounter];
       }
       if (!expected) return false;
-      var playedNote = midiInfo.note.toLowerCase();
-      var expectedNote = expected.note.toLowerCase();
+      let playedNote = midiInfo.note.toLowerCase();
+      let expectedNote = expected.note.toLowerCase();
       if (expectedNote === "bb" && playedNote === "a#") {
         playedNote = expectedNote;
       }
@@ -435,75 +447,82 @@
         return Math.random() < 0.5;
       }
       return false;
-    }
+    };
 
-    function proceedToMainScreen() {
-      var welcomeOverlay = document.getElementById("welcomeOverlay");
+    // Entfernt korrekt beantwortete Noten aus dem Fehlerpool
+    const removeFromErrorNotes = (noteObj) => {
+      errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
+    };
+
+    const proceedToMainScreen = () => {
+      const welcomeOverlay = document.getElementById("welcomeOverlay");
       welcomeOverlay.style.opacity = "0";
-      setTimeout(function() {
+      setTimeout(() => {
         welcomeOverlay.classList.add("hidden");
         document.getElementById("mainContent").style.opacity = "1";
       }, 500);
-    }
+    };
 
-    // Der Lagewechsel-Button: Wechselt die "Lage" und erzeugt neue Notation
-    function cycleRange() {
+    // Lagewechsel-Button: wechselt die "Lage" und erzeugt neue Notation
+    const cycleRange = () => {
       currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
       currentRange = rangeArray[currentRangeIndex];
       document.getElementById("clefTitle").textContent = currentRange + "-Lage";
       generateSeries();
       updateHeartsDisplay();
-    }
+    };
 
-    function toggleDarkMode() {
+    const toggleDarkMode = () => {
       document.body.classList.toggle("dark-mode");
-    }
+    };
 
-    function setupFadeOnHover(element) {
-      element.addEventListener("mouseenter", function() { element.classList.remove("faded"); });
-      element.addEventListener("mouseleave", function() { element.classList.add("faded"); });
-      element.addEventListener("touchstart", function() { element.classList.remove("faded"); });
-      element.addEventListener("touchend", function() { element.classList.add("faded"); });
-    }
+    const setupFadeOnHover = (element) => {
+      element.addEventListener("mouseenter", () => element.classList.remove("faded"));
+      element.addEventListener("mouseleave", () => element.classList.add("faded"));
+      element.addEventListener("touchstart", () => element.classList.remove("faded"));
+      element.addEventListener("touchend", () => element.classList.add("faded"));
+    };
 
     // Throttling für das Neuzeichnen der Notation
-    var redrawQueued = false;
-    function queueRedraw() {
+    let redrawQueued = false;
+    const queueRedraw = () => {
       if (!redrawQueued) {
         redrawQueued = true;
-        requestAnimationFrame(function() {
+        requestAnimationFrame(() => {
           drawSeries();
           redrawQueued = false;
         });
       }
-    }
+    };
 
-    document.addEventListener("DOMContentLoaded", function() {
-      var settingsPanel = document.getElementById("settingsPanel");
-      var handToggle = document.createElement("span");
+    document.addEventListener("DOMContentLoaded", () => {
+      const settingsPanel = document.getElementById("settingsPanel");
+      
+      // Hand-Toggle
+      const handToggle = document.createElement("span");
       handToggle.id = "handToggle";
       handToggle.textContent = handOptions[currentHandIndex].symbol;
-      if (handOptions[currentHandIndex].flip) {
-        handToggle.style.transform = "scaleX(-1)";
-      }
+      handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
       settingsPanel.appendChild(handToggle);
 
-      var levelToggle = document.createElement("span");
+      // Level-Toggle
+      const levelToggle = document.createElement("span");
       levelToggle.id = "levelToggle";
       levelToggle.textContent = levelOptions[currentLevelIndex].symbol;
       settingsPanel.appendChild(levelToggle);
 
-      var soundToggle = document.createElement("span");
+      // Sound-Toggle
+      const soundToggle = document.createElement("span");
       soundToggle.id = "soundToggle";
       soundToggle.textContent = "🔊";
       settingsPanel.appendChild(soundToggle);
 
-      // Neuer Toggle für Leben: Mit Klick auf ⭐ wird der Herzen-Modus deaktiviert (unbegrenzte Leben)
-      var lifeToggle = document.createElement("span");
+      // Life-Toggle (unbegrenzte Leben)
+      const lifeToggle = document.createElement("span");
       lifeToggle.id = "lifeToggle";
       lifeToggle.textContent = "⭐";
       settingsPanel.appendChild(lifeToggle);
-      lifeToggle.addEventListener("click", function() {
+      lifeToggle.addEventListener("click", () => {
         unlimitedLives = !unlimitedLives;
         if (unlimitedLives) {
           lifeToggle.textContent = "∞";
@@ -514,34 +533,31 @@
         }
       });
 
-      var darkModeToggle = document.createElement("span");
+      // Dark-Mode-Toggle
+      const darkModeToggle = document.createElement("span");
       darkModeToggle.id = "darkModeToggle";
       darkModeToggle.textContent = "🌙";
       settingsPanel.appendChild(darkModeToggle);
 
-      handToggle.addEventListener("click", function() {
+      // Toggle-Events
+      handToggle.addEventListener("click", () => {
         currentHandIndex = (currentHandIndex + 1) % handOptions.length;
         selectedMode = handOptions[currentHandIndex].mode;
         handToggle.textContent = handOptions[currentHandIndex].symbol;
         handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
         generateSeries();
       });
-
-      levelToggle.addEventListener("click", function() {
+      levelToggle.addEventListener("click", () => {
         currentLevelIndex = (currentLevelIndex + 1) % levelOptions.length;
         level = levelOptions[currentLevelIndex].level;
         levelToggle.textContent = levelOptions[currentLevelIndex].symbol;
         generateSeries();
       });
-
-      soundToggle.addEventListener("click", function() {
+      soundToggle.addEventListener("click", () => {
         soundEnabled = !soundEnabled;
         soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
       });
-
-      darkModeToggle.addEventListener("click", function() {
-        toggleDarkMode();
-      });
+      darkModeToggle.addEventListener("click", toggleDarkMode);
 
       setupFadeOnHover(settingsPanel);
       setupFadeOnHover(document.getElementById("clefTitle"));
@@ -550,62 +566,66 @@
       generateSeries();
       updateHeartsDisplay();
 
-      document.addEventListener("keydown", function(event) {
+      document.addEventListener("keydown", (event) => {
         if (event.code === "Space") {
           handleMIDIMessage(144, 60, 127);
-          console.log("Leertaste gedrückt: MIDI Signal gesendet.");
+          // Debug: MIDI Signal gesendet
         }
       });
     });
 
-    function generateSeries() {
+    // Generiert eine neue Notenserie unter Einbezug von Fehlern (gezielte Wiederholung)
+    const generateSeries = () => {
       seriesCounter = 0;
       firstNotePlayed = false;
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
 
-      if (selectedMode !== "both") {
-        currentSeriesSingle = [];
-        for (var i = 0; i < seriesLength; i++) {
-          var randomIndex = Math.floor(Math.random() * rangeNotes[currentRange].length);
-          var clef = (selectedMode === "left") ? "bass" : "treble";
-          var octave = (selectedMode === "left") ? 3 : 4;
-          currentSeriesSingle.push({
+      // Helper: Wählt zufällig entweder eine fehlerhafte Note (bei hoher Wahrscheinlichkeit) oder eine neue Note
+      const chooseNote = (clef) => {
+        const errorsForClef = errorNotes.filter(n => n.clef === clef);
+        if (errorsForClef.length > 0 && Math.random() < 0.6) {
+          // Fehler-Note auswählen und aus dem Pool entfernen
+          return errorNotes.splice(errorNotes.indexOf(errorsForClef[0]), 1)[0];
+        } else {
+          const randomIndex = Math.floor(Math.random() * rangeNotes[currentRange].length);
+          return {
             note: rangeNotes[currentRange][randomIndex],
-            octave: octave,
+            octave: (selectedMode === "left" || clef === "bass") ? 3 : 4,
             clef: clef,
             color: "black"
-          });
+          };
+        }
+      };
+
+      if (selectedMode !== "both") {
+        currentSeriesSingle = [];
+        const clef = selectedMode === "left" ? "bass" : "treble";
+        for (let i = 0; i < seriesLength; i++) {
+          currentSeriesSingle.push(chooseNote(clef));
         }
         currentPhase = "single";
         drawSeries();
       } else {
         currentSeriesTreble = [];
         currentSeriesBass = [];
-        for (var i = 0; i < seriesLength; i++) {
-          var randomIndexT = Math.floor(Math.random() * rangeNotes[currentRange].length);
-          var randomIndexB = Math.floor(Math.random() * rangeNotes[currentRange].length);
-          currentSeriesTreble.push({
-            note: rangeNotes[currentRange][randomIndexT],
-            octave: 4,
-            clef: "treble",
-            color: "black"
-          });
-          currentSeriesBass.push({
-            note: rangeNotes[currentRange][randomIndexB],
-            octave: 3,
-            clef: "bass",
-            color: "black"
-          });
+        for (let i = 0; i < seriesLength; i++) {
+          currentSeriesTreble.push(chooseNote("treble"));
+          currentSeriesBass.push(chooseNote("bass"));
         }
         currentPhase = "treble";
         drawSeries();
       }
-    }
+    };
 
-    function drawSeries() {
-      var notationDiv = document.getElementById("notation");
-      var container = document.getElementById("notationContainer");
+    // Zeichnet die Notenserie (SVG via VexFlow)
+    const drawSeries = () => {
+      const notationDiv = document.getElementById("notation");
+      const container = document.getElementById("notationContainer");
+      const ratio = window.devicePixelRatio || 1;
+      const baseWidth = 800;
+      const width = baseWidth * ratio;
+      const height = 300 * ratio;
 
       if (selectedMode !== "both") {
         notationDiv.style.display = "block";
@@ -613,167 +633,125 @@
         container.style.display = "none";
         container.innerHTML = "";
 
-        var ratio = window.devicePixelRatio || 1;
-        var baseWidth = 800;
-        var width = baseWidth * ratio;
-        var height = 300 * ratio;
-        var renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
+        const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
         renderer.resize(width, height);
-
-        var svg = notationDiv.querySelector("svg");
-        if (svg) {
-          svg.setAttribute("width", baseWidth);
-          svg.setAttribute("height", 300);
-        }
-
-        var context = renderer.getContext();
-        var stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
-        if (currentSeriesSingle.length > 0) {
-          stave.addClef(currentSeriesSingle[0].clef).setContext(context).draw();
-        }
-        var staveNotes = currentSeriesSingle.map(function(item) {
-          return new Vex.Flow.StaveNote({
-            clef: item.clef,
-            keys: [item.note + "/" + item.octave],
-            duration: "q"
-          }).setStyle({
-            fillStyle: item.color,
-            strokeStyle: item.color
-          });
-        });
-
-        var voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
-        staveNotes.forEach(function(note) {
-          voice.addTickable(note);
-        });
+        const svg = notationDiv.querySelector("svg");
+        svg && (svg.setAttribute("width", baseWidth), svg.setAttribute("height", 300));
+        const context = renderer.getContext();
+        const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
+        currentSeriesSingle.length && stave.addClef(currentSeriesSingle[0].clef).setContext(context).draw();
+        const staveNotes = currentSeriesSingle.map(item => new Vex.Flow.StaveNote({
+          clef: item.clef,
+          keys: [item.note + "/" + item.octave],
+          duration: "q"
+        }).setStyle({ fillStyle: item.color, strokeStyle: item.color }));
+        const voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
+        staveNotes.forEach(note => voice.addTickable(note));
         new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
         voice.draw(context, stave);
-
       } else {
         container.style.display = "flex";
         container.innerHTML = "";
         notationDiv.style.display = "none";
         notationDiv.innerHTML = "";
 
-        var ratio = window.devicePixelRatio || 1;
-        var baseWidth = 800;
-        var width = baseWidth * ratio;
-        var height = 300 * ratio;
-
-        var notationTreble = document.createElement("div");
+        // Treble
+        const notationTreble = document.createElement("div");
         notationTreble.id = "notationTreble";
         container.appendChild(notationTreble);
-
-        var rendererT = new Vex.Flow.Renderer(notationTreble, Vex.Flow.Renderer.Backends.SVG);
+        const rendererT = new Vex.Flow.Renderer(notationTreble, Vex.Flow.Renderer.Backends.SVG);
         rendererT.resize(width, height);
-        var svgT = notationTreble.querySelector("svg");
-        if (svgT) {
-          svgT.setAttribute("width", baseWidth);
-          svgT.setAttribute("height", 300);
-        }
-        var contextT = rendererT.getContext();
-        var staveT = new Vex.Flow.Stave(10, 40, baseWidth - 20);
-        if (currentSeriesTreble.length > 0) {
-          staveT.addClef("treble").setContext(contextT).draw();
-        }
-        var staveNotesT = currentSeriesTreble.map(function(item) {
-          return new Vex.Flow.StaveNote({
-            clef: "treble",
-            keys: [item.note + "/" + item.octave],
-            duration: "q"
-          }).setStyle({
-            fillStyle: item.color,
-            strokeStyle: item.color
-          });
-        });
-        var voiceT = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
-        staveNotesT.forEach(function(note) {
-          voiceT.addTickable(note);
-        });
+        const svgT = notationTreble.querySelector("svg");
+        svgT && (svgT.setAttribute("width", baseWidth), svgT.setAttribute("height", 300));
+        const contextT = rendererT.getContext();
+        const staveT = new Vex.Flow.Stave(10, 40, baseWidth - 20);
+        currentSeriesTreble.length && staveT.addClef("treble").setContext(contextT).draw();
+        const staveNotesT = currentSeriesTreble.map(item => new Vex.Flow.StaveNote({
+          clef: "treble",
+          keys: [item.note + "/" + item.octave],
+          duration: "q"
+        }).setStyle({ fillStyle: item.color, strokeStyle: item.color }));
+        const voiceT = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
+        staveNotesT.forEach(note => voiceT.addTickable(note));
         new Vex.Flow.Formatter().joinVoices([voiceT]).format([voiceT], staveT.getWidth() - 20);
         voiceT.draw(contextT, staveT);
 
-        var notationBass = document.createElement("div");
+        // Bass
+        const notationBass = document.createElement("div");
         notationBass.id = "notationBass";
         container.appendChild(notationBass);
-
-        var rendererB = new Vex.Flow.Renderer(notationBass, Vex.Flow.Renderer.Backends.SVG);
+        const rendererB = new Vex.Flow.Renderer(notationBass, Vex.Flow.Renderer.Backends.SVG);
         rendererB.resize(width, height);
-        var svgB = notationBass.querySelector("svg");
-        if (svgB) {
-          svgB.setAttribute("width", baseWidth);
-          svgB.setAttribute("height", 300);
-        }
-        var contextB = rendererB.getContext();
-        var staveB = new Vex.Flow.Stave(10, 40, baseWidth - 20);
-        if (currentSeriesBass.length > 0) {
-          staveB.addClef("bass").setContext(contextB).draw();
-        }
-        var staveNotesB = currentSeriesBass.map(function(item) {
-          return new Vex.Flow.StaveNote({
-            clef: "bass",
-            keys: [item.note + "/" + item.octave],
-            duration: "q"
-          }).setStyle({
-            fillStyle: item.color,
-            strokeStyle: item.color
-          });
-        });
-        var voiceB = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
-        staveNotesB.forEach(function(note) {
-          voiceB.addTickable(note);
-        });
+        const svgB = notationBass.querySelector("svg");
+        svgB && (svgB.setAttribute("width", baseWidth), svgB.setAttribute("height", 300));
+        const contextB = rendererB.getContext();
+        const staveB = new Vex.Flow.Stave(10, 40, baseWidth - 20);
+        currentSeriesBass.length && staveB.addClef("bass").setContext(contextB).draw();
+        const staveNotesB = currentSeriesBass.map(item => new Vex.Flow.StaveNote({
+          clef: "bass",
+          keys: [item.note + "/" + item.octave],
+          duration: "q"
+        }).setStyle({ fillStyle: item.color, strokeStyle: item.color }));
+        const voiceB = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
+        staveNotesB.forEach(note => voiceB.addTickable(note));
         new Vex.Flow.Formatter().joinVoices([voiceB]).format([voiceB], staveB.getWidth() - 20);
         voiceB.draw(contextB, staveB);
       }
-    }
+    };
 
-    // Optimierte Funktion zur Verarbeitung, Bewertung, Farbanpassung und Fortschaltung der Note
-    function handleMIDIMessage(status, data1, data2) {
+    // Optimierte Funktion zur Verarbeitung, Bewertung, visuellen Rückmeldung und Fortschaltung der Note
+    const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
-      
-      console.log("MIDI Message Received: status=" + status + ", data1=" + data1 + ", data2=" + data2);
+      // Nur Note-On Events mit data2 > 0 verarbeiten
       if ((status & 0xf0) === 0x90 && data2 > 0) {
-        var midiInfo = midiNoteToName(data1);
-        var noteName = midiInfo.note + midiInfo.octave;
-        var noteDisplay = document.getElementById("noteNameDisplay");
-        if (noteDisplay) {
-          noteDisplay.textContent = noteName;
-        }
-        // Note abspielen (nur wenn Sound aktiviert ist)
+        const midiInfo = midiNoteToName(data1);
+        const noteName = midiInfo.note + midiInfo.octave;
+        const noteDisplay = document.getElementById("noteNameDisplay");
+        noteDisplay && (noteDisplay.textContent = noteName);
+        // Sound auslösen, falls aktiviert
         if (soundEnabled) {
           synth.triggerAttackRelease(noteName, "8n");
         }
-        
         totalAttempts++;
-        var correct = isNoteCorrect(midiInfo);
+        const correct = isNoteCorrect(midiInfo);
         if (correct) {
+          // Korrekte Note: grün färben, Session und Motivations-Feedback aktualisieren
           if (selectedMode !== "both") {
             currentSeriesSingle[seriesCounter].color = "green";
           } else {
-            if (currentPhase === "treble") {
-              currentSeriesTreble[seriesCounter].color = "green";
-            } else {
-              currentSeriesBass[seriesCounter].color = "green";
-            }
+            currentPhase === "treble"
+              ? currentSeriesTreble[seriesCounter].color = "green"
+              : currentSeriesBass[seriesCounter].color = "green";
           }
           correctAnswers++;
+          correctNoteCount++;
+          // Entferne ggf. die Note aus dem Fehlerpool, falls vorhanden
+          removeFromErrorNotes(correct ? (selectedMode !== "both" ? currentSeriesSingle[seriesCounter] :
+            (currentPhase === "treble" ? currentSeriesTreble[seriesCounter] : currentSeriesBass[seriesCounter])) : {});
+          // Motivationsfeedback: zeige Nachricht, wenn Schwelle erreicht
+          if (correctNoteCount >= nextMotivationThreshold) {
+            showMotivationMessage();
+            nextMotivationThreshold = correctNoteCount + getRandomThreshold();
+          }
           sessionCounter--;
           if (sessionCounter <= 0) {
             sessionCounter = 0;
-            // Statt direktem "Session pausieren" starten wir den 5-Minuten-Pause-Countdown
             startPauseCountdown();
             updateTimer();
             return;
           }
         } else {
+          // Falsche Note: rot färben, Note dem Fehlerpool hinzufügen
           if (selectedMode !== "both") {
             currentSeriesSingle[seriesCounter].color = "red";
+            errorNotes.push(currentSeriesSingle[seriesCounter]);
           } else {
             if (currentPhase === "treble") {
               currentSeriesTreble[seriesCounter].color = "red";
+              errorNotes.push(currentSeriesTreble[seriesCounter]);
             } else {
               currentSeriesBass[seriesCounter].color = "red";
+              errorNotes.push(currentSeriesBass[seriesCounter]);
             }
           }
           if (!unlimitedLives) {
@@ -794,7 +772,7 @@
         }
         updateTimer();
       }
-    }
+    };
   </script>
 </head>
 <body>
