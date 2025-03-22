@@ -247,7 +247,7 @@
   </style>
   <script>
     /****************** Adaptive Pause Script ******************/
-    // Berechnet die empfohlene Pausendauer (in Sekunden) basierend auf durchschnittlichen Antwortzeiten (ms) und Trefferquote (0-1)
+    // Berechnet die adaptive Pausendauer (in Sekunden) basierend auf durchschnittlichen Antwortzeiten (ms) und Trefferquote (0-1)
     function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       if (responseTimes.length === 0) return 5;
       let sum = responseTimes.reduce((acc, time) => acc + time, 0);
@@ -281,7 +281,7 @@
     let sessionCounter = 1000;
     let sessionPaused = false;
     let scoreRecorded = false;
-    // Neuer Sessionzähler für Wiederholungen
+    // Sessionzähler (Anzahl abgeschlossener Sessions)
     let sessionCount = 0;
     
     // Herz-System: 4 Herzen
@@ -308,7 +308,7 @@
         const minutes = Math.floor((elapsed % 3600) / 60);
         display = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
       }
-      document.getElementById("timerContainer").textContent = display + " | Richtig übrig: " + sessionCounter;
+      document.getElementById("timerContainer").textContent = display + " | " + sessionCounter;
     };
     setInterval(updateTimer, 1000);
     
@@ -317,7 +317,7 @@
     let pauseInterval = null;
     let confettiShown = false;
     
-    // Aktualisiert das Pause-Overlay inklusive Sessionzähler
+    // Aktualisiert das Pause-Overlay inkl. Sessionzähler
     const updatePauseOverlay = () => {
       const now = new Date();
       let hours = now.getHours();
@@ -332,13 +332,13 @@
                             "\nQUOTE:\t" + quotePercent + "%\n\nPAUSE:\t" + pauseString + " s";
     };
     
-    // Startet den adaptiven Pausen-Countdown und erhöht den Sessionzähler
+    // Startet den adaptiven Pausen-Countdown; die finale Pause ist: (adaptive Wert * Faktor) + 5 Minuten (300 s)
     const startPauseCountdown = () => {
       sessionPaused = true;
-      // Erhöhe den Sessionzähler (eine abgeschlossene Session)
-      sessionCount++;
+      sessionCount++;  // Erhöhe den Sessionzähler
       const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
-      pauseRemaining = Math.floor(calculateAdaptiveBreakTime(responseTimes, hitRate));
+      // Berechne den adaptiven Teil und multipliziere ihn mit einem Faktor (hier 2), dann addiere mindestens 5 Minuten
+      pauseRemaining = Math.floor(calculateAdaptiveBreakTime(responseTimes, hitRate) * 2 + 300);
       // Konfetti-Effekt sofort auslösen
       if (!confettiShown) {
          confetti();
@@ -380,7 +380,7 @@
       setTimeout(resetGame, 5000);
     };
     
-    // Beim Sessionabschluss wird der Score aufgenommen (basierend auf der gesamten App-Uptime)
+    // Beim Sessionabschluss wird der Score (inkl. Modus) aufgenommen.
     const recordScore = () => {
       if (totalAttempts <= 0) return;
       const durationMs = Date.now() - appStartTime;
@@ -407,7 +407,7 @@
       scoreRecorded = true;
     };
     
-    // Zeigt Highscores für den aktuellen Modus an
+    // Zeigt nur die Highscores für den aktuellen Modus an
     const updateScoreboard = () => {
       const allScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const filtered = allScores.filter(score => score.mode === selectedMode);
@@ -867,7 +867,7 @@
       }
     };
     
-    // Beim Sessionende wird der Score aufgenommen – appStartTime bleibt unverändert
+    // Beim Sessionende wird der Score aufgenommen, aber appStartTime bleibt unverändert.
     const resetGame = () => {
       hearts = 4;
       gameOver = false;
@@ -881,7 +881,7 @@
       confettiShown = false;
       errorNotes = [];
       document.getElementById("gameOverOverlay").style.display = "none";
-      // appStartTime bleibt erhalten, sodass die gesamte App-Uptime angezeigt wird!
+      // appStartTime bleibt erhalten – die gesamte App-Uptime wird angezeigt!
       scoreRecorded = false;
       generateSeries();
       updateHeartsDisplay();
