@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>Notentraining</title>
-  <!-- Tone.js laden -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.37/Tone.js"></script>
   <!-- VexFlow laden -->
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   <!-- canvas-confetti laden -->
@@ -257,7 +255,7 @@
     let scoreRecorded = false;
     let sessionCount = 0;
     
-    // Neue Variable für unbegrenzte Leben (Standard: true)
+    // Variable für unbegrenzte Leben (Standard: true)
     let unlimitedLives = true;
 
     // Setze die Herzen je nach Modus
@@ -398,7 +396,6 @@
     const rangeArray = ["C", "D", "F", "G", "MC"];
     let currentRangeIndex = 0;
     let currentRange = rangeArray[currentRangeIndex];
-    let soundEnabled = true;
     let firstNotePlayed = false;
     
     const motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
@@ -416,8 +413,6 @@
     function getRandomThreshold() {
       return Math.floor(Math.random() * 4) + 2;
     }
-    
-    const synth = new Tone.Synth().toDestination();
     
     const rangeNotes = {
       "C": ["c", "d", "e", "f", "g"],
@@ -526,20 +521,11 @@
       settingsPanel.appendChild(randomToggle);
       randomToggle.addEventListener("click", () => {
         randomMode = !randomMode;
-        // Visuelles Feedback: z. B. Farbwechsel
         randomToggle.style.opacity = randomMode ? "1" : "0.5";
         generateSeries();
       });
       
-      // Weitere Buttons
-      const soundToggle = document.createElement("span");
-      soundToggle.id = "soundToggle";
-      soundToggle.textContent = "🔊";
-      settingsPanel.appendChild(soundToggle);
-      soundToggle.addEventListener("click", () => {
-        soundEnabled = !soundEnabled;
-        soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
-      });
+      // Weitere Buttons (Sound-Button wurde entfernt)
       
       const lifeToggle = document.createElement("span");
       lifeToggle.id = "lifeToggle";
@@ -683,9 +669,6 @@
         const noteName = midiInfo.note + midiInfo.octave;
         const noteDisplay = document.getElementById("noteNameDisplay");
         if(noteDisplay) noteDisplay.textContent = noteName;
-        if (soundEnabled) {
-          synth.triggerAttackRelease(noteName, "8n");
-        }
         totalAttempts++;
         if (isNoteCorrect(midiInfo)) {
           currentSeriesSingle[seriesCounter].color = "green";
@@ -778,7 +761,7 @@
   </div>
   <!-- Einstellungen-Menü -->
   <div id="settingsPanel"></div>
-  <!-- Audio-Element für den Gong -->
+  <!-- Audio-Element für den Gong (wird nicht mehr verwendet) -->
   <audio id="gongSound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
 </body>
 </html>
