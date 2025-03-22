@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Notentraining</title>
+  <title>Notentraining - Anpassung</title>
   <!-- VexFlow laden -->
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   <!-- canvas-confetti laden -->
@@ -31,8 +31,9 @@
       left: 0;
       width: 100%;
       height: 100%;
-      z-index: -2;
-      filter: blur(8px);
+      z-index: 0;
+      filter: blur(25px);
+      opacity: 0.2;
     }
     /* Einhand-Notation */
     #notation {
@@ -136,12 +137,11 @@
       transition: opacity 0.5s ease-in;
       padding-bottom: 50px;
     }
-    /* Einstellungen-Menü */
+    /* Einstellungen-Menü – nun oben rechts positioniert */
     #settingsPanel {
       position: fixed;
-      left: 30px;
-      top: 50%;
-      transform: translateY(-50%);
+      top: 20px;
+      right: 20px;
       background: #ffffff;
       border: 3px solid #000;
       border-radius: 20px;
@@ -403,7 +403,6 @@
     const rangeArray = ["C", "D", "F", "G", "MC"];
     let currentRangeIndex = 0;
     let currentRange = rangeArray[currentRangeIndex];
-    let firstNotePlayed = false;
     
     const motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
     const showMotivationMessage = () => {
@@ -504,23 +503,40 @@
     /**************** Animation (Hintergrund-Kreise) ****************/
     // Array für aktive Kreise
     let circles = [];
-    // Farbschemata
+    
+    // Mapping für Farbverläufe (dreistufig, ähnlich an Apple Card)
+    const gradients = {
+      "green": ["rgba(0,255,0,1)", "rgba(0,255,0,0.3)", "rgba(255,255,255,0)"],
+      "blue": ["rgba(0,0,255,1)", "rgba(0,0,255,0.3)", "rgba(255,255,255,0)"],
+      "pink": ["rgba(255,105,180,1)", "rgba(255,105,180,0.3)", "rgba(255,255,255,0)"],
+      "yellow": ["rgba(255,255,0,1)", "rgba(255,255,0,0.3)", "rgba(255,255,255,0)"],
+      "red": ["rgba(255,0,0,1)", "rgba(255,0,0,0.3)", "rgba(255,255,255,0)"],
+      "violet": ["rgba(238,130,238,1)", "rgba(238,130,238,0.3)", "rgba(255,255,255,0)"],
+      "gray": ["rgba(128,128,128,1)", "rgba(128,128,128,0.3)", "rgba(255,255,255,0)"],
+      "black": ["rgba(0,0,0,1)", "rgba(0,0,0,0.3)", "rgba(255,255,255,0)"]
+    };
+    // Positive und negative Farben – es werden jetzt nur beim Spielen von Noten Kreise erzeugt.
     const positiveColors = ["green", "blue", "pink", "yellow"];
-    const negativeColors = ["red", "violet", "gray", "black"];
-    // Füge einen Kreis hinzu (type: "positive" oder "negative")
+    const negativeColors = ["orange", "violet", "crimson"];
+    
+    // Füge einen Kreis hinzu (wird jetzt nur in handleMIDIMessage aufgerufen)
     function addCircle(type) {
       const canvas = document.getElementById("animationCanvas");
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
       const cw = canvas.width, ch = canvas.height;
-      const x = Math.random() * cw;
-      const y = Math.random() * ch;
-      const radius = Math.random() * 50 + 20;
+      // Position zufällig, aber vollständig im Sichtfeld
+      const margin = 10;
+      const x = Math.random() * (cw - 2 * margin) + margin;
+      const y = Math.random() * (ch - 2 * margin) + margin;
+      // Großer Radius: zwischen 40 und 140
+      const radius = Math.random() * 1000 + 800;
       const colors = type === "positive" ? positiveColors : negativeColors;
-      const color = colors[Math.floor(Math.random() * colors.length)];
+      const colorName = colors[Math.floor(Math.random() * colors.length)];
       const creationTime = Date.now();
-      const duration = 2000; // Gesamtdauer 2000 ms
-      circles.push({x, y, radius, color, creationTime, duration});
+      // Dauer von 2000 ms (2 Sekunden)
+      const duration = 2000;
+      circles.push({ x, y, radius, color: colorName, creationTime, duration });
     }
     
     function animateCircles() {
@@ -535,16 +551,21 @@
         if (t >= circle.duration) return false;
         let opacity = 0;
         if (t < 500) {
-          opacity = t / 500;         // Fade In (0-500 ms)
+          // Fade In
+          opacity = t / 500;
         } else if (t < 1500) {
-          opacity = 1;               // Haltephase (500-1500 ms)
+          // Haltephase
+          opacity = 1;
         } else {
-          opacity = (circle.duration - t) / 500;  // Fade Out (1500-2000 ms)
+          // Fade Out
+          opacity = (circle.duration - t) / 500;
         }
-        // Erstelle einen radialen Farbverlauf
+        // Erzeuge einen radialen Farbverlauf, der von der Farbe (mit voller Deckkraft) über einen Übergang in transparentes Weiß verläuft.
+        const gradColors = gradients[circle.color] || [circle.color, circle.color, "rgba(255,255,255,0)"];
         const grad = ctx.createRadialGradient(circle.x, circle.y, 0, circle.x, circle.y, circle.radius);
-        grad.addColorStop(0, circle.color);
-        grad.addColorStop(1, `rgba(0,0,0,0)`);
+        grad.addColorStop(0, gradColors[0]);
+        grad.addColorStop(0.7, gradColors[1]);
+        grad.addColorStop(1, gradColors[2]);
         ctx.globalAlpha = opacity;
         ctx.beginPath();
         ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
@@ -558,7 +579,7 @@
     /**************** Ende Animation ****************/
     
     document.addEventListener("DOMContentLoaded", () => {
-      // Erstelle das Canvas-Element für Animation, falls nicht bereits im HTML vorhanden
+      // Erstelle das Canvas-Element für Animation, falls nicht vorhanden
       let canvas = document.getElementById("animationCanvas");
       if (!canvas) {
         canvas = document.createElement("canvas");
@@ -575,7 +596,7 @@
       
       const settingsPanel = document.getElementById("settingsPanel");
       
-      // Button für Hand-Auswahl (links/rechts)
+      // Menü-Buttons
       const handToggle = document.createElement("span");
       handToggle.id = "handToggle";
       handToggle.textContent = handOptions[currentHandIndex].symbol;
@@ -591,7 +612,7 @@
         }
       });
       
-      // Neuer Button: RANDOM Mode (🐇)
+      // RANDOM Mode Button
       const randomToggle = document.createElement("span");
       randomToggle.id = "randomToggle";
       randomToggle.textContent = "🐇";
@@ -639,19 +660,16 @@
       document.getElementById("scoreboardOverlay").addEventListener("click", toggleScoreboard);
     });
     
-    // --- GEÄNDERTE Funktion generateSeries ---
+    // --- Funktion generateSeries ---
     const generateSeries = () => {
       seriesCounter = 0;
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
       
       // Bestimme einen einheitlichen Notenschlüssel für diese Serie:
-      // Im Random Mode wird zufällig zwischen "bass" und "treble" gewählt,
-      // andernfalls orientiert sich der Schlüssel am selectedMode.
       const seriesClef = randomMode ? (Math.random() < 0.5 ? "bass" : "treble") : ((selectedMode === "left") ? "bass" : "treble");
       
       const chooseNote = () => {
-        // Wenn Fehler vorhanden, werden nur jene wiederverwendet, die zum aktuellen Schlüssel passen.
         if (errorNotes.length > 0 && Math.random() < 0.6) {
           const idx = errorNotes.findIndex(note => note.clef === seriesClef);
           if (idx !== -1) {
@@ -686,7 +704,7 @@
       }
       drawSeries();
     };
-    // --- ENDE GEÄNDERTE Funktion generateSeries ---
+    // --- Ende generateSeries ---
     
     const drawSeries = () => {
       const notationDiv = document.getElementById("notation");
@@ -702,7 +720,6 @@
       const svg = notationDiv.querySelector("svg");
       svg && (svg.setAttribute("width", baseWidth), svg.setAttribute("height", 300));
       const context = renderer.getContext();
-      // Zeichne den Stab mit dem Schlüssel der ersten Note
       const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
       if (currentSeriesSingle.length) {
         stave.addClef(currentSeriesSingle[0].clef);
@@ -724,7 +741,6 @@
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
       if ((status & 0xf0) === 0x90 && data2 > 0) {
-        // Verhindere, dass seriesCounter über das Array hinausgeht
         if (seriesCounter >= currentSeriesSingle.length) return;
         
         let currentTime = Date.now();
@@ -751,8 +767,8 @@
             showMotivationMessage();
             nextMotivationThreshold = correctNoteCount + getRandomThreshold();
           }
-          // Verringere den Session-Counter bei jeder korrekten Note
           sessionCounter--;
+          // Erzeuge einen positiven Kreis beim Spielen einer korrekten Note
           addCircle("positive");
           if (sessionCounter <= 0) {
             sessionCounter = 0;
@@ -763,6 +779,7 @@
         } else {
           currentSeriesSingle[seriesCounter].color = "red";
           errorNotes.push(currentSeriesSingle[seriesCounter]);
+          // Erzeuge einen negativen Kreis beim Fehler
           addCircle("negative");
           if (!unlimitedLives) {
             hearts--;
@@ -785,7 +802,6 @@
     };
     
     const resetGame = () => {
-      // Setze den Session-Counter wieder auf 1000
       sessionCounter = 1000;
       hearts = unlimitedLives ? Infinity : 4;
       gameOver = false;
