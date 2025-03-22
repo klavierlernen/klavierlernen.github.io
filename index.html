@@ -686,9 +686,22 @@
             availableNotes = rangeNotes[currentRange];
           }
           const randomIndex = Math.floor(Math.random() * availableNotes.length);
+          const chosenNote = availableNotes[randomIndex];
+          let noteOctave;
+          if(currentRange === "MC"){
+            if(clef === "bass"){
+              // Für den Bass-Schlüssel in MC: C soll in Oktave 4 (Middle C) angezeigt werden,
+              // alle anderen Töne in Oktave 3.
+              noteOctave = (chosenNote === "c") ? 4 : 3;
+            } else {
+              noteOctave = 4;
+            }
+          } else {
+            noteOctave = (selectedMode === "left" || clef === "bass") ? 3 : 4;
+          }
           return {
-            note: availableNotes[randomIndex],
-            octave: (selectedMode === "left" || clef === "bass") ? 3 : 4,
+            note: chosenNote,
+            octave: noteOctave,
             clef: clef,
             color: "black"
           };
@@ -721,7 +734,6 @@
       const container = document.getElementById("notationContainer");
       const ratio = window.devicePixelRatio || 1;
       const baseWidth = 800;
-      const width = baseWidth * ratio;
       const height = 300 * ratio;
       
       if (selectedMode !== "both") {
@@ -731,7 +743,7 @@
         container.innerHTML = "";
         
         const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
-        renderer.resize(width, height);
+        renderer.resize(baseWidth * ratio, height);
         const svg = notationDiv.querySelector("svg");
         svg && (svg.setAttribute("width", baseWidth), svg.setAttribute("height", 300));
         const context = renderer.getContext();
@@ -757,7 +769,7 @@
         notationTreble.id = "notationTreble";
         container.appendChild(notationTreble);
         const rendererT = new Vex.Flow.Renderer(notationTreble, Vex.Flow.Renderer.Backends.SVG);
-        rendererT.resize(width, height);
+        rendererT.resize(baseWidth * ratio, height);
         const svgT = notationTreble.querySelector("svg");
         svgT && (svgT.setAttribute("width", baseWidth), svgT.setAttribute("height", 300));
         const contextT = rendererT.getContext();
@@ -778,7 +790,7 @@
         notationBass.id = "notationBass";
         container.appendChild(notationBass);
         const rendererB = new Vex.Flow.Renderer(notationBass, Vex.Flow.Renderer.Backends.SVG);
-        rendererB.resize(width, height);
+        rendererB.resize(baseWidth * ratio, height);
         const svgB = notationBass.querySelector("svg");
         svgB && (svgB.setAttribute("width", baseWidth), svgB.setAttribute("height", 300));
         const contextB = rendererB.getContext();
