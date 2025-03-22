@@ -24,8 +24,8 @@
       background-color: #121212;
       color: #e0e0e0;
     }
-    /* Notationscontainer (Einhand und Zweihand) – immer in der absoluten Mitte */
-    #notation, #notationContainer {
+    /* Einhand-Notation (einzelnes System) */
+    #notation {
       display: none;
       position: fixed;
       left: 50%;
@@ -36,21 +36,39 @@
       box-sizing: border-box;
       z-index: 1;
     }
-    /* Für Zweihand: beide Systeme (Treble & Bass) im Container mit Abstand */
+    /* Container für den 2-Handmodus – relative Positionierung */
     #notationContainer {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      row-gap: 20px;
-      height: auto;
+      display: none;
+      position: relative;
+      width: 800px;
+      height: 400px; /* Höhe anpassen, damit beide Systeme Platz haben */
+      left: 50%;
+      top: 75%;
+      transform: translate(-50%, -50%);
+      padding: 10px;
+      box-sizing: border-box;
+      z-index: 2;
     }
-    #notationTreble, #notationBass {
+    /* Treble-System: obere Ebene */
+    #notationTreble {
+      position: absolute;
+      top: 0; /* Oben im Container */
+      left: 50%;
+      transform: translateX(-50%);
       width: 100%;
       max-width: 1200px;
-      margin: 0 auto;
+      z-index: 2;
     }
-    #notationTreble { margin-bottom: 5px; }
+    /* Bass-System: untere Ebene */
+    #notationBass {
+      position: absolute;
+      top: 150px; /* Vertikaler Abstand – Wert anpassen, um den idealen Abstand einzustellen */
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 1200px;
+      z-index: 1;
+    }
     /* SVG-Optimierung */
     #notation svg, #notationTreble svg, #notationBass svg {
       width: 100%;
@@ -247,7 +265,6 @@
   </style>
   <script>
     /****************** Adaptive Pause Script ******************/
-    // Berechnet die adaptive Pausendauer (in Sekunden) basierend auf durchschnittlichen Antwortzeiten (ms) und Trefferquote (0-1)
     function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       if (responseTimes.length === 0) return 5;
       let sum = responseTimes.reduce((acc, time) => acc + time, 0);
@@ -273,15 +290,12 @@
     let correctNoteCount = 0;
     let nextMotivationThreshold = getRandomThreshold();
     let errorNotes = [];
-    // Für adaptive Pause: Antwortzeiten und Zeitstempel
     let responseTimes = [];
     let lastNoteTimestamp = Date.now();
-    // App-Uptime bleibt konstant (appStartTime wird nicht zurückgesetzt)
     let appStartTime = Date.now();
     let sessionCounter = 1000;
     let sessionPaused = false;
     let scoreRecorded = false;
-    // Sessionzähler (Anzahl abgeschlossener Sessions)
     let sessionCount = 0;
     
     // Herz-System: 4 Herzen
@@ -295,10 +309,8 @@
       }
     };
     
-    // Unendlichmodus ist standardmäßig aktiv
     let unlimitedLives = true;
     
-    // Der Timer zeigt die gesamte App-Uptime an
     const updateTimer = () => {
       const elapsed = Math.floor((Date.now() - appStartTime) / 1000);
       let display;
@@ -309,16 +321,14 @@
         const minutes = Math.floor((elapsed % 3600) / 60);
         display = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
       }
-      document.getElementById("timerContainer").textContent = display + " | Richtig übrig: " + sessionCounter;
+      document.getElementById("timerContainer").textContent = display + " | " + sessionCounter;
     };
     setInterval(updateTimer, 1000);
     
-    // Pause-Funktionen
     let pauseRemaining = 0;
     let pauseInterval = null;
     let confettiShown = false;
     
-    // Aktualisiert das Pause-Overlay inkl. Sessionzähler
     const updatePauseOverlay = () => {
       const now = new Date();
       let hours = now.getHours();
@@ -333,13 +343,11 @@
                             "\nQUOTE:\t" + quotePercent + "%\n\nPAUSE:\t" + pauseString + " s";
     };
     
-    // Startet den adaptiven Pausen-Countdown; die finale Pause beträgt: (adaptive Zeit * 2) + 300 s
     const startPauseCountdown = () => {
       sessionPaused = true;
-      sessionCount++;  // Erhöhe den Sessionzähler
+      sessionCount++;
       const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
       pauseRemaining = Math.floor(calculateAdaptiveBreakTime(responseTimes, hitRate) * 2 + 300);
-      // Konfetti-Effekt sofort auslösen
       if (!confettiShown) {
          confetti();
          confettiShown = true;
@@ -380,7 +388,6 @@
       setTimeout(resetGame, 5000);
     };
     
-    // Beim Sessionende wird der Score aufgenommen (basierend auf der gesamten App-Uptime)
     const recordScore = () => {
       if (totalAttempts <= 0) return;
       const durationMs = Date.now() - appStartTime;
@@ -407,7 +414,6 @@
       scoreRecorded = true;
     };
     
-    // Zeigt Highscores für den aktuellen Modus an
     const updateScoreboard = () => {
       const allScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const filtered = allScores.filter(score => score.mode === selectedMode);
@@ -418,7 +424,6 @@
       document.getElementById("scoreboardOverlay").textContent = html;
     };
     
-    // Blendet das Scoreboard ein/aus
     const toggleScoreboard = () => {
       const overlay = document.getElementById("scoreboardOverlay");
       if (overlay.classList.contains("hidden")) {
@@ -429,7 +434,6 @@
       }
     };
     
-    // Einstellungen für Hand, Level und Leben
     const handOptions = [
       { mode: "left", symbol: "✋" },
       { mode: "right", symbol: "✋", flip: true },
@@ -453,7 +457,6 @@
     let firstNotePlayed = false;
     let currentPhase = "treble";
     
-    // Motivationsnachrichten
     const motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
     const showMotivationMessage = () => {
       const overlay = document.getElementById("motivationOverlay");
@@ -470,7 +473,6 @@
       return Math.floor(Math.random() * 4) + 2;
     }
     
-    // Synth initialisieren (Tone.js)
     const synth = new Tone.Synth().toDestination();
     
     const rangeNotes = {
@@ -524,7 +526,6 @@
       }, 500);
     };
     
-    // Automatische Moduswahl: Vergleicht Highscores für "left" und "right"
     const autoSelectMode = () => {
       let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const leftScores = highScores.filter(score => score.mode === "left");
@@ -548,7 +549,6 @@
       }
     };
     
-    // Lagewechsel-Button: wechselt die "Lage" und erzeugt neue Notation
     const cycleRange = () => {
       currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
       currentRange = rangeArray[currentRangeIndex];
@@ -568,7 +568,6 @@
       element.addEventListener("touchend", () => element.classList.add("faded"));
     };
     
-    // Throttling für das Neuzeichnen der Notation
     let redrawQueued = false;
     const queueRedraw = () => {
       if (!redrawQueued) {
@@ -583,26 +582,22 @@
     document.addEventListener("DOMContentLoaded", () => {
       const settingsPanel = document.getElementById("settingsPanel");
       
-      // Hand-Toggle
       const handToggle = document.createElement("span");
       handToggle.id = "handToggle";
       handToggle.textContent = handOptions[currentHandIndex].symbol;
       handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
       settingsPanel.appendChild(handToggle);
       
-      // Level-Toggle
       const levelToggle = document.createElement("span");
       levelToggle.id = "levelToggle";
       levelToggle.textContent = levelOptions[currentLevelIndex].symbol;
       settingsPanel.appendChild(levelToggle);
       
-      // Sound-Toggle
       const soundToggle = document.createElement("span");
       soundToggle.id = "soundToggle";
       soundToggle.textContent = "🔊";
       settingsPanel.appendChild(soundToggle);
       
-      // Life-Toggle (Unendlichmodus ist standardmäßig aktiv)
       const lifeToggle = document.createElement("span");
       lifeToggle.id = "lifeToggle";
       lifeToggle.textContent = "∞";
@@ -618,19 +613,16 @@
         }
       });
       
-      // Dark-Mode-Toggle
       const darkModeToggle = document.createElement("span");
       darkModeToggle.id = "darkModeToggle";
       darkModeToggle.textContent = "🌙";
       settingsPanel.appendChild(darkModeToggle);
       
-      // Scoreboard-Toggle (über 🎯)
       const scoreboardToggle = document.createElement("span");
       scoreboardToggle.id = "scoreboardToggle";
       scoreboardToggle.textContent = "🎯";
       settingsPanel.appendChild(scoreboardToggle);
       
-      // Toggle-Events
       handToggle.addEventListener("click", () => {
         currentHandIndex = (currentHandIndex + 1) % handOptions.length;
         selectedMode = handOptions[currentHandIndex].mode;
@@ -654,7 +646,6 @@
       setupFadeOnHover(settingsPanel);
       setupFadeOnHover(document.getElementById("clefTitle"));
       
-      // Automatische Moduswahl beim Start
       autoSelectMode();
       
       setTimeout(proceedToMainScreen, 3000);
@@ -667,11 +658,9 @@
         }
       });
       
-      // Klick auf das Scoreboard-Overlay blendet es wieder aus
       document.getElementById("scoreboardOverlay").addEventListener("click", toggleScoreboard);
     });
     
-    // Generiert eine neue Notenserie unter Einbezug von Fehlern (gezielte Wiederholung)
     const generateSeries = () => {
       seriesCounter = 0;
       firstNotePlayed = false;
@@ -712,7 +701,6 @@
       }
     };
     
-    // Zeichnet die Notenserie (SVG via VexFlow)
     const drawSeries = () => {
       const notationDiv = document.getElementById("notation");
       const container = document.getElementById("notationContainer");
@@ -744,12 +732,12 @@
         new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
         voice.draw(context, stave);
       } else {
-        container.style.display = "flex";
+        container.style.display = "block";
         container.innerHTML = "";
         notationDiv.style.display = "none";
         notationDiv.innerHTML = "";
         
-        // Treble
+        // Treble-System
         const notationTreble = document.createElement("div");
         notationTreble.id = "notationTreble";
         container.appendChild(notationTreble);
@@ -770,7 +758,7 @@
         new Vex.Flow.Formatter().joinVoices([voiceT]).format([voiceT], staveT.getWidth() - 20);
         voiceT.draw(contextT, staveT);
         
-        // Bass
+        // Bass-System
         const notationBass = document.createElement("div");
         notationBass.id = "notationBass";
         container.appendChild(notationBass);
@@ -793,7 +781,6 @@
       }
     };
     
-    // Verarbeitung, Bewertung, visuelles Feedback und Fortschaltung der Note
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
       if ((status & 0xf0) === 0x90 && data2 > 0) {
@@ -867,7 +854,6 @@
       }
     };
     
-    // Beim Sessionende wird der Score aufgenommen, aber appStartTime bleibt unverändert.
     const resetGame = () => {
       hearts = 4;
       gameOver = false;
@@ -881,7 +867,6 @@
       confettiShown = false;
       errorNotes = [];
       document.getElementById("gameOverOverlay").style.display = "none";
-      // appStartTime bleibt erhalten – die gesamte App-Uptime wird angezeigt!
       scoreRecorded = false;
       generateSeries();
       updateHeartsDisplay();
@@ -903,9 +888,9 @@
   <div id="timerContainer"></div>
   <!-- Hauptinhalt -->
   <div id="mainContent" style="opacity: 0;">
-    <!-- Notation (Einhand) -->
+    <!-- Notation (Einhandmodus) -->
     <div id="notation"></div>
-    <!-- Container (Zweihand) -->
+    <!-- Container für 2-Handmodus -->
     <div id="notationContainer"></div>
     <!-- Lagewechsel-Button & Herzen -->
     <div id="buttonContainer" style="z-index:50;">
