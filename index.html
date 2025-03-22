@@ -9,6 +9,7 @@
   <!-- canvas-confetti laden -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
   <style>
+    /* Grundlayout */
     html, body {
       height: 100%;
       margin: 0;
@@ -17,10 +18,21 @@
       font-family: sans-serif;
       text-align: center;
       transition: background-color 0.3s, color 0.3s;
+      overflow: hidden;
     }
     body.dark-mode {
       background-color: #121212;
       color: #e0e0e0;
+    }
+    /* Vollbild-Canvas für Animation (Hintergrund) */
+    #animationCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+      filter: blur(8px);
     }
     /* Einhand-Notation */
     #notation {
@@ -238,7 +250,7 @@
     }
     /**********************************************/
 
-    // Globale Variablen
+    // Globale Variablen für Notentraining
     let currentSeriesSingle = [];
     let seriesCounter = 0;
     const seriesLength = 5;
@@ -257,7 +269,6 @@
     
     // Variable für unbegrenzte Leben (Standard: true)
     let unlimitedLives = true;
-    // Setze die Herzen je nach Modus
     let hearts = unlimitedLives ? Infinity : 4;
     const updateHeartsDisplay = () => {
       const heartsElem = document.getElementById("heartsContainer");
@@ -490,7 +501,78 @@
       }
     };
     
+    /**************** Animation (Hintergrund-Kreise) ****************/
+    // Array für aktive Kreise
+    let circles = [];
+    // Farbschemata
+    const positiveColors = ["green", "blue", "pink", "yellow"];
+    const negativeColors = ["red", "violet", "gray", "black"];
+    // Füge einen Kreis hinzu (type: "positive" oder "negative")
+    function addCircle(type) {
+      const canvas = document.getElementById("animationCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const cw = canvas.width, ch = canvas.height;
+      const x = Math.random() * cw;
+      const y = Math.random() * ch;
+      const radius = Math.random() * 50 + 20;
+      const colors = type === "positive" ? positiveColors : negativeColors;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const creationTime = Date.now();
+      const duration = 2000; // Gesamtdauer 2000 ms
+      circles.push({x, y, radius, color, creationTime, duration});
+    }
+    
+    function animateCircles() {
+      const canvas = document.getElementById("animationCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const now = Date.now();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Zeichne alle Kreise
+      circles = circles.filter(circle => {
+        const t = now - circle.creationTime;
+        if (t >= circle.duration) return false;
+        let opacity = 0;
+        if (t < 500) {
+          opacity = t / 500;         // Fade In (0-500 ms)
+        } else if (t < 1500) {
+          opacity = 1;               // Haltephase (500-1500 ms)
+        } else {
+          opacity = (circle.duration - t) / 500;  // Fade Out (1500-2000 ms)
+        }
+        // Erstelle einen radialen Farbverlauf
+        const grad = ctx.createRadialGradient(circle.x, circle.y, 0, circle.x, circle.y, circle.radius);
+        grad.addColorStop(0, circle.color);
+        grad.addColorStop(1, `rgba(0,0,0,0)`);
+        ctx.globalAlpha = opacity;
+        ctx.beginPath();
+        ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        return true;
+      });
+      requestAnimationFrame(animateCircles);
+    }
+    /**************** Ende Animation ****************/
+    
     document.addEventListener("DOMContentLoaded", () => {
+      // Erstelle das Canvas-Element für Animation, falls nicht bereits im HTML vorhanden
+      let canvas = document.getElementById("animationCanvas");
+      if (!canvas) {
+        canvas = document.createElement("canvas");
+        canvas.id = "animationCanvas";
+        document.body.appendChild(canvas);
+      }
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+      animateCircles();
+      
       const settingsPanel = document.getElementById("settingsPanel");
       
       // Button für Hand-Auswahl (links/rechts)
@@ -578,7 +660,7 @@
         }
         let availableNotes;
         if (currentRange === "MC") {
-          availableNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
+          availableNotes = seriesClef === "bass" ? ["f", "g", "a", "h", "c"] : ["c", "d", "e", "f", "g"];
         } else {
           availableNotes = rangeNotes[currentRange];
         }
@@ -642,6 +724,9 @@
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
       if ((status & 0xf0) === 0x90 && data2 > 0) {
+        // Verhindere, dass seriesCounter über das Array hinausgeht
+        if (seriesCounter >= currentSeriesSingle.length) return;
+        
         let currentTime = Date.now();
         let responseTime = currentTime - lastNoteTimestamp;
         responseTimes.push(responseTime);
@@ -655,7 +740,7 @@
         
         const noteName = midiInfo.note + midiInfo.octave;
         const noteDisplay = document.getElementById("noteNameDisplay");
-        if(noteDisplay) noteDisplay.textContent = noteName;
+        if (noteDisplay) noteDisplay.textContent = noteName;
         totalAttempts++;
         if (isNoteCorrect(midiInfo)) {
           currentSeriesSingle[seriesCounter].color = "green";
@@ -666,8 +751,9 @@
             showMotivationMessage();
             nextMotivationThreshold = correctNoteCount + getRandomThreshold();
           }
-          // Hier wird der Session-Counter immer verringert
+          // Verringere den Session-Counter bei jeder korrekten Note
           sessionCounter--;
+          addCircle("positive");
           if (sessionCounter <= 0) {
             sessionCounter = 0;
             startPauseCountdown();
@@ -677,6 +763,7 @@
         } else {
           currentSeriesSingle[seriesCounter].color = "red";
           errorNotes.push(currentSeriesSingle[seriesCounter]);
+          addCircle("negative");
           if (!unlimitedLives) {
             hearts--;
             updateHeartsDisplay();
@@ -698,7 +785,7 @@
     };
     
     const resetGame = () => {
-      // Setze den Session-Counter wieder auf 1000, damit die Session endet, sobald 1000 korrekte Noten erreicht wurden.
+      // Setze den Session-Counter wieder auf 1000
       sessionCounter = 1000;
       hearts = unlimitedLives ? Infinity : 4;
       gameOver = false;
@@ -718,6 +805,8 @@
   </script>
 </head>
 <body>
+  <!-- Canvas für Animation (Hintergrund) -->
+  <canvas id="animationCanvas"></canvas>
   <!-- Welcome Overlay -->
   <div id="welcomeOverlay">
     <div id="welcomeMessage">Hallo, schön dich zu sehen!</div>
