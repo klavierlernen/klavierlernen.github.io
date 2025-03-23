@@ -108,7 +108,7 @@
       #pauseProgressContainer {
         position: absolute;
         top: 18px;
-        left: 500px;
+        left: 330px;
         right: 10px;
         height: 20px;
         border-radius: 10px;
@@ -307,7 +307,7 @@
     let responseTimes = [];
     let lastNoteTimestamp = Date.now();
     let appStartTime = Date.now();
-    let sessionCounter = 5;
+    let sessionCounter = 1;
     let sessionPaused = false;
     let scoreRecorded = false;
     let sessionCount = 0;
@@ -953,7 +953,7 @@
     };
     
     const resetGame = () => {
-      sessionCounter = 5;
+      sessionCounter = 1;
       hearts = unlimitedLives ? Infinity : 4;
       gameOver = false;
       seriesCounter = 0;
