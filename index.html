@@ -82,7 +82,8 @@
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
     }
-    /* Pause-Overlay: Anzeige des Pause-Modus */
+    /* Pause-Overlay: Das Overlay füllt den Bildschirm,
+       aber der Info-Bereich (#pauseInfo) wird oben links positioniert */
     #pauseOverlay {
       position: fixed;
       top: 0;
@@ -91,35 +92,40 @@
       height: 100%;
       background: #ffffff;
       z-index: 1000;
-      display: none;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+      display: block;
     }
-    /* Container für den Pause-Info-Bereich */
+    /* Info-Bereich im Pause-Modus: oben links, horizontal angeordnet */
     #pauseInfo {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
       display: flex;
       align-items: center;
-      width: 100%;
-      max-width: 800px;
       gap: 10px;
-      padding: 10px;
     }
     #pauseHeader {
       font-size: 2em;
       font-weight: bold;
       color: #000;
+      white-space: nowrap;
     }
-    /* Roter Fortschrittsbalken: Erreicht 10px Abstand von beiden Seiten */
-    #pauseProgress {
+    /* Roter Fortschrittsbalken, ohne Hintergrund – passt sich über den restlichen Platz an */
+    #pauseProgressContainer {
       flex-grow: 1;
       height: 20px;
+      border-radius: 10px;
+      position: relative;
+    }
+    /* Der Balken selbst: seine Breite wird dynamisch per JS gesetzt */
+    #pauseProgress {
+      height: 100%;
+      width: 0%;
       background: red;
       border-radius: 10px;
       transition: width 1s linear;
-      position: relative;
     }
-    /* Verbleibende Zeit (mm:ss) */
+    /* Verbleibende Zeit im Format mm:ss */
     #pauseTime {
       font-size: 14px;
       color: #000;
@@ -168,7 +174,7 @@
     .hidden {
       display: none !important;
     }
-    /* Timer Container – initial während des Intros ausgeblendet */
+    /* Timer Container */
     #timerContainer {
       position: fixed;
       right: 10px;
@@ -179,7 +185,7 @@
       align-items: center;
       justify-content: center;
     }
-    /* Hauptinhalt (wird erst nach dem Intro eingeblendet) */
+    /* Hauptinhalt */
     #mainContent {
       display: none;
       position: relative;
@@ -188,7 +194,7 @@
       transition: opacity 0.5s ease-in;
       padding-bottom: 50px;
     }
-    /* Einstellungen-Menü – initial während des Intros ausgeblendet */
+    /* Einstellungen-Menü */
     #settingsPanel {
       position: fixed;
       top: 29%;
@@ -240,7 +246,7 @@
       border-color: #ffffff;
       color: #ffffff;
     }
-    /* Container für Lagewechsel-Button & Herzen */
+    /* Container für Button & Herzen */
     #buttonContainer {
       position: fixed;
       left: 50%;
@@ -263,7 +269,7 @@
       color: #000;
     }
     body.dark-mode #noteNameDisplay { color: #e0e0e0; }
-    /* Welcome Overlay – transparent */
+    /* Welcome Overlay */
     #welcomeOverlay {
       position: fixed;
       top: 0;
@@ -300,7 +306,6 @@
     }
     /**********************************************/
 
-    // Globale Variablen für Notentraining
     let currentSeriesSingle = [];
     let seriesCounter = 0;
     const seriesLength = 5;
@@ -312,8 +317,7 @@
     let responseTimes = [];
     let lastNoteTimestamp = Date.now();
     let appStartTime = Date.now();
-    // Für 5 korrekte Noten (Session endet dann)
-    let sessionCounter = 5;
+    let sessionCounter = 5;  // 5 korrekte Noten erforderlich
     let sessionPaused = false;
     let scoreRecorded = false;
     let sessionCount = 0;
@@ -325,7 +329,6 @@
       heartsElem.textContent = unlimitedLives ? "∞" : "❤️".repeat(hearts);
     };
 
-    // Timer
     const updateTimer = () => {
       const elapsed = Math.floor((Date.now() - appStartTime) / 1000);
       let display;
@@ -345,7 +348,7 @@
     let confettiShown = false;
     let pauseDuration = 0;
     
-    // Update des roten Fortschrittsbalkens und der Zeit in mm:ss
+    // Aktualisiert den Fortschrittsbalken und die verbleibende Zeit (im Format mm:ss) – beides wird im Info-Bereich angezeigt
     function updatePauseProgress() {
       const progressBar = document.getElementById("pauseProgress");
       const timeDisplay = document.getElementById("pauseTime");
@@ -389,19 +392,22 @@
       }
     }
     
-    // Neuer Pause-Modus: Blendet normalen Content aus und zeigt das Pause-Overlay mit Infozeile
+    // Startet den Pause-Modus: Blendet den normalen Content aus und zeigt oben links den Info-Bereich
     const startPauseCountdown = () => {
       sessionPaused = true;
       sessionCount++;
       const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
       pauseRemaining = Math.floor(calculateAdaptiveBreakTime(responseTimes, hitRate) * 2 + 300);
       pauseDuration = pauseRemaining;
+      
+      // Blende normalen Content aus
       document.getElementById("mainContent").style.display = "none";
       document.getElementById("timerContainer").style.display = "none";
       document.getElementById("settingsPanel").style.display = "none";
       
+      // Zeige das Pause-Overlay
       const pauseOverlay = document.getElementById("pauseOverlay");
-      pauseOverlay.style.display = "flex";
+      pauseOverlay.style.display = "block";
       
       updatePauseProgress();
       updatePauseMessage();
@@ -411,13 +417,13 @@
       }, 3000);
       
       pauseInterval = setInterval(() => {
-           pauseRemaining--;
-           updatePauseProgress();
-           if (pauseRemaining <= 0) {
-               clearInterval(pauseInterval);
-               clearInterval(msgInterval);
-               endPause();
-           }
+        pauseRemaining--;
+        updatePauseProgress();
+        if (pauseRemaining <= 0) {
+          clearInterval(pauseInterval);
+          clearInterval(msgInterval);
+          endPause();
+        }
       }, 1000);
     };
     
@@ -787,7 +793,7 @@
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
       document.getElementById("noteNameDisplay").textContent = "";
-      sessionCounter = 5; // Für 5 korrekte Noten erforderlich
+      sessionCounter = 5;
       const seriesClef = randomMode ? (Math.random() < 0.5 ? "bass" : "treble") : ((selectedMode === "left") ? "bass" : "treble");
       const chooseNote = () => {
         if (errorNotes.length > 0 && Math.random() < 0.6) {
@@ -950,10 +956,12 @@
   
   <!-- Pause-Overlay -->
   <div id="pauseOverlay">
-    <div id="pauseInfo" style="display:flex; align-items:center; width:100%; max-width:800px; gap:10px; padding:10px;">
+    <div id="pauseInfo">
       <div id="pauseHeader">SESSION PAUSIERT</div>
-      <div id="pauseProgress" style="flex-grow:1; height:20px; background:red; border-radius:10px; transition: width 1s linear;"></div>
-      <div id="pauseTime" style="font-size:14px; color:#000; white-space:nowrap;"></div>
+      <div id="pauseProgressContainer">
+        <div id="pauseProgress"></div>
+      </div>
+      <div id="pauseTime"></div>
     </div>
     <div id="pauseMessage"></div>
   </div>
