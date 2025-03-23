@@ -32,8 +32,8 @@
       width: 100%;
       height: 100%;
       z-index: 0;
-      filter: blur(25px);
-      opacity: 0.2;
+      filter: blur(5px);
+      opacity: 0.5;
     }
     /* Einhand-Notation */
     #notation {
@@ -118,26 +118,27 @@
     .hidden {
       display: none !important;
     }
-    /* Timer Container */
+    /* Timer Container – initial während des Intros ausgeblendet */
     #timerContainer {
       position: fixed;
       right: 10px;
       bottom: 30px;
       font-size: 1.5em;
       z-index: 10;
-      display: flex;
+      display: none;
       align-items: center;
       justify-content: center;
     }
-    /* Hauptinhalt */
+    /* Hauptinhalt (wird erst nach dem Intro eingeblendet) */
     #mainContent {
+      display: none;
       position: relative;
       z-index: 10;
       opacity: 0;
       transition: opacity 0.5s ease-in;
       padding-bottom: 50px;
     }
-    /* Einstellungen-Menü – nun oben rechts positioniert */
+    /* Einstellungen-Menü – initial während des Intros ausgeblendet */
     #settingsPanel {
       position: fixed;
       top: 29%;
@@ -147,7 +148,7 @@
       border-radius: 20px;
       padding: 10px;
       box-sizing: border-box;
-      display: flex;
+      display: none;
       flex-direction: column;
       align-items: center;
       z-index: 10;
@@ -212,22 +213,21 @@
       color: #000;
     }
     body.dark-mode #noteNameDisplay { color: #e0e0e0; }
-    /* Welcome Overlay */
+    /* Welcome Overlay – transparent, sodass die Blobs sichtbar bleiben und dennoch den Rest blockieren */
     #welcomeOverlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: #ffffff;
+      z-index: 1000;
+      transition: opacity 0.5s ease-out;
+      background-color: transparent;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      z-index: 1000;
-      transition: opacity 0.5s ease-out;
     }
-    body.dark-mode #welcomeOverlay { background-color: #121212; }
     #welcomeMessage {
       font-size: 2.5em;
       color: #000;
@@ -441,15 +441,25 @@
       errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
     };
     
+    // Übergang vom Intro zum Hauptbildschirm: Stoppe den Sound, blende das Welcome-Overlay aus und zeige den Hauptinhalt sowie Timer und Menü
     const proceedToMainScreen = () => {
+      // Sound stoppen
+      const audio = document.getElementById("backgroundSound");
+      if (audio) {
+        audio.pause();
+      }
       const welcomeOverlay = document.getElementById("welcomeOverlay");
       welcomeOverlay.style.opacity = "0";
       setTimeout(() => {
         welcomeOverlay.classList.add("hidden");
-        document.getElementById("mainContent").style.opacity = "1";
+        const mainContent = document.getElementById("mainContent");
+        mainContent.style.display = "block";
+        document.getElementById("timerContainer").style.display = "flex";
+        document.getElementById("settingsPanel").style.display = "flex";
+        setTimeout(() => { mainContent.style.opacity = "1"; }, 10);
       }, 500);
     };
-    
+
     const autoSelectMode = () => {
       let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const leftScores = highScores.filter(score => score.mode === "left");
@@ -519,56 +529,82 @@
     const positiveColors = ["green", "blue", "pink", "yellow"];
     const negativeColors = ["orange", "violet", "crimson"];
     
-    // Füge einen Kreis hinzu (wird jetzt nur in handleMIDIMessage aufgerufen)
+    // Füge einen Kreis hinzu (wird in handleMIDIMessage genutzt)
     function addCircle(type) {
       const canvas = document.getElementById("animationCanvas");
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
       const cw = canvas.width, ch = canvas.height;
-      // Position zufällig, aber vollständig im Sichtfeld
       const margin = 10;
       const x = Math.random() * (cw - 2 * margin) + margin;
       const y = Math.random() * (ch - 2 * margin) + margin;
-      // Großer Radius: zwischen 40 und 140
       const radius = Math.random() * 1000 + 800;
       const colors = type === "positive" ? positiveColors : negativeColors;
       const colorName = colors[Math.floor(Math.random() * colors.length)];
       const creationTime = Date.now();
-      // Dauer von 2000 ms (2 Sekunden)
       const duration = 2000;
       circles.push({ x, y, radius, color: colorName, creationTime, duration });
     }
     
+    /**************** Intro Farbtupfer Animation ****************/
+    // Erzeugt drei vordefinierte, animierte Kreise beim Intro.
+    // Sie erscheinen bereits in voller Größe und werden mittels Fade eingeblendet.
+    function spawnIntroBlobs() {
+      const canvas = document.getElementById("animationCanvas");
+      if (!canvas) return;
+      const cw = canvas.width, ch = canvas.height;
+      // Positionen: oben rechts, unten rechts und mitte links
+      const positions = [
+        { x: cw - 500, y: 100 },
+        { x: cw - 30, y: ch - 30 },
+        { x: 50, y: ch / 2 }
+      ];
+      // Fröhliche Farben (Beispiel: "yellow", "pink", "blue")
+      const colors = ["yellow", "pink", "blue"];
+      positions.forEach((pos, index) => {
+        // Zielradius wird zufällig groß gewählt (wie bei den anderen Kreisen)
+        const targetRadius = Math.random() * 1000 + 1000;
+        const duration = 5000;
+        // initialRadius entspricht dem targetRadius – es gibt keine Größeninterpolation, nur ein Fade-in
+        circles.push({
+          x: pos.x,
+          y: pos.y,
+          initialRadius: targetRadius,
+          radius: targetRadius,
+          color: colors[index % colors.length],
+          creationTime: Date.now(),
+          duration: duration
+        });
+      });
+    }
+    
+    // Angepasste animateCircles-Funktion, die bei Kreisen mit initialRadius nur einen Fade-In bewirkt
     function animateCircles() {
       const canvas = document.getElementById("animationCanvas");
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
       const now = Date.now();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // Zeichne alle Kreise
       circles = circles.filter(circle => {
         const t = now - circle.creationTime;
         if (t >= circle.duration) return false;
         let opacity = 0;
         if (t < 500) {
-          // Fade In
           opacity = t / 500;
         } else if (t < 1500) {
-          // Haltephase
           opacity = 1;
         } else {
-          // Fade Out
           opacity = (circle.duration - t) / 500;
         }
-        // Erzeuge einen radialen Farbverlauf, der von der Farbe (mit voller Deckkraft) über einen Übergang in transparentes Weiß verläuft.
+        let currentRadius = typeof circle.initialRadius !== "undefined" ? circle.radius : circle.radius;
         const gradColors = gradients[circle.color] || [circle.color, circle.color, "rgba(255,255,255,0)"];
-        const grad = ctx.createRadialGradient(circle.x, circle.y, 0, circle.x, circle.y, circle.radius);
+        const grad = ctx.createRadialGradient(circle.x, circle.y, 0, circle.x, circle.y, currentRadius);
         grad.addColorStop(0, gradColors[0]);
         grad.addColorStop(0.7, gradColors[1]);
         grad.addColorStop(1, gradColors[2]);
         ctx.globalAlpha = opacity;
         ctx.beginPath();
-        ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+        ctx.arc(circle.x, circle.y, currentRadius, 0, Math.PI * 2);
         ctx.fillStyle = grad;
         ctx.fill();
         ctx.globalAlpha = 1;
@@ -578,8 +614,32 @@
     }
     /**************** Ende Animation ****************/
     
+    /**************** Inaktivitäts-Blob ****************/
+    let inactivityTimeout;
+    function resetInactivityTimer() {
+      if (inactivityTimeout) clearTimeout(inactivityTimeout);
+      inactivityTimeout = setTimeout(spawnInactivityBlob, 180000); // 3 Minuten
+    }
+    
+    function spawnInactivityBlob() {
+      const canvas = document.getElementById("animationCanvas");
+      if (!canvas) return;
+      const cw = canvas.width, ch = canvas.height;
+      const margin = 10;
+      const x = Math.random() * (cw - 2 * margin) + margin;
+      const y = Math.random() * (ch - 2 * margin) + margin;
+      const radius = Math.random() * 1000 + 800;
+      const colors = ["green", "blue", "pink", "yellow"];
+      const colorName = colors[Math.floor(Math.random() * colors.length)];
+      const creationTime = Date.now();
+      const duration = 2000;
+      circles.push({ x, y, radius, color: colorName, creationTime, duration });
+      resetInactivityTimer();
+    }
+    /**************** Ende Inaktivitäts-Blob ****************/
+    
+    /**************** Änderungen beim DOMContentLoaded ****************/
     document.addEventListener("DOMContentLoaded", () => {
-      // Erstelle das Canvas-Element für Animation, falls nicht vorhanden
       let canvas = document.getElementById("animationCanvas");
       if (!canvas) {
         canvas = document.createElement("canvas");
@@ -593,6 +653,18 @@
       resizeCanvas();
       window.addEventListener("resize", resizeCanvas);
       animateCircles();
+      
+      // Inaktivitäts-Timer starten
+      resetInactivityTimer();
+      
+      // Intro-Blobs erzeugen (sie erscheinen jetzt bereits groß und werden gefadet)
+      spawnIntroBlobs();
+      
+      // Begrüßungstext setzen
+      document.getElementById("welcomeMessage").textContent = "Schön, dass du da bist!";
+      
+      // Nach 5 Sekunden zum Hauptbildschirm wechseln (Sound stoppen)
+      setTimeout(proceedToMainScreen, 5000);
       
       const settingsPanel = document.getElementById("settingsPanel");
       
@@ -623,7 +695,7 @@
         generateSeries();
       });
       
-      // Weitere Buttons (Sound-Button entfernt)
+      // Weitere Buttons (Life, Dark Mode, Scoreboard)
       const lifeToggle = document.createElement("span");
       lifeToggle.id = "lifeToggle";
       lifeToggle.textContent = "∞";
@@ -646,8 +718,6 @@
       setupFadeOnHover(document.getElementById("clefTitle"));
       
       autoSelectMode();
-      
-      setTimeout(proceedToMainScreen, 3000);
       generateSeries();
       updateHeartsDisplay();
       
@@ -660,13 +730,13 @@
       document.getElementById("scoreboardOverlay").addEventListener("click", toggleScoreboard);
     });
     
-    // --- Funktion generateSeries ---
+    /**************** Funktion generateSeries ****************/
     const generateSeries = () => {
       seriesCounter = 0;
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
       
-      // Bestimme einen einheitlichen Notenschlüssel für diese Serie:
+      // Bestimme Notenschlüssel für diese Serie:
       const seriesClef = randomMode ? (Math.random() < 0.5 ? "bass" : "treble") : ((selectedMode === "left") ? "bass" : "treble");
       
       const chooseNote = () => {
@@ -704,7 +774,7 @@
       }
       drawSeries();
     };
-    // --- Ende generateSeries ---
+    /**************** Ende generateSeries ****************/
     
     const drawSeries = () => {
       const notationDiv = document.getElementById("notation");
@@ -740,6 +810,8 @@
     
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
+      resetInactivityTimer();
+      
       if ((status & 0xf0) === 0x90 && data2 > 0) {
         if (seriesCounter >= currentSeriesSingle.length) return;
         
@@ -768,7 +840,6 @@
             nextMotivationThreshold = correctNoteCount + getRandomThreshold();
           }
           sessionCounter--;
-          // Erzeuge einen positiven Kreis beim Spielen einer korrekten Note
           addCircle("positive");
           if (sessionCounter <= 0) {
             sessionCounter = 0;
@@ -779,7 +850,6 @@
         } else {
           currentSeriesSingle[seriesCounter].color = "red";
           errorNotes.push(currentSeriesSingle[seriesCounter]);
-          // Erzeuge einen negativen Kreis beim Fehler
           addCircle("negative");
           if (!unlimitedLives) {
             hearts--;
@@ -823,9 +893,16 @@
 <body>
   <!-- Canvas für Animation (Hintergrund) -->
   <canvas id="animationCanvas"></canvas>
-  <!-- Welcome Overlay -->
+  
+  <!-- Audio-Element für den Sound "Relaxing Harp Sweep" aus GitHub -->
+  <audio id="backgroundSound" autoplay loop>
+    <source src="https://raw.githubusercontent.com/JP0024/piano.github.io/3d35e0a8d4eb3e018151018e36e225dc7a856ecd/mixkit-relaxing-harp-sweep-2628.wav" type="audio/wav">
+    Dein Browser unterstützt das Audio-Element nicht.
+  </audio>
+  
+  <!-- Welcome Overlay (Intro, 5 Sekunden) -->
   <div id="welcomeOverlay">
-    <div id="welcomeMessage">Hallo, schön dich zu sehen!</div>
+    <div id="welcomeMessage">Schön, dass du da bist!</div>
   </div>
   <!-- Game Over / Session-Pause Overlay -->
   <div id="gameOverOverlay"></div>
@@ -833,10 +910,10 @@
   <div id="scoreboardOverlay" class="hidden"></div>
   <!-- Motivationsfenster -->
   <div id="motivationOverlay"></div>
-  <!-- Timer Container -->
+  <!-- Timer Container (initial ausgeblendet) -->
   <div id="timerContainer"></div>
-  <!-- Hauptinhalt -->
-  <div id="mainContent" style="opacity: 0;">
+  <!-- Hauptinhalt (wird erst nach dem Intro eingeblendet) -->
+  <div id="mainContent">
     <!-- Notation (Einhandmodus) -->
     <div id="notation"></div>
     <!-- Lagewechsel-Button & Herzen -->
@@ -847,7 +924,7 @@
     <!-- Notenname-Anzeige -->
     <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:1.5em;"></div>
   </div>
-  <!-- Einstellungen-Menü -->
+  <!-- Einstellungen-Menü (initial ausgeblendet) -->
   <div id="settingsPanel"></div>
 </body>
 </html>
