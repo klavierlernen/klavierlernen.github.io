@@ -207,15 +207,13 @@
       font-size: 1.5em;
     }
     /* Notenname-Anzeige */
-    /* Hier erfolgt nun die Darstellung der gespielten Note (links in rot, falls falsch) und der korrekten Note (rechts in grün) */
+    /* Hier werden zwei Notennamen nebeneinander angezeigt, wenn die Note falsch gespielt wurde */
     #noteNameDisplay {
       margin-top: 10px;
       font-size: 24px;
       color: #000;
     }
-    body.dark-mode #noteNameDisplay {
-      color: #e0e0e0;
-    }
+    body.dark-mode #noteNameDisplay { color: #e0e0e0; }
     /* Welcome Overlay – transparent, sodass die Blobs sichtbar bleiben und dennoch den Rest blockieren */
     #welcomeOverlay {
       position: fixed;
@@ -832,7 +830,8 @@
           return { note: noteNames[data1 % 12], octave: octave };
         })();
         
-        const playedNote = midiInfo.note + midiInfo.octave;
+        // Für die Anzeige: Falls die Note "b" ist, zeige "h"
+        const displayPlayedNote = (midiInfo.note === "b" ? "h" : midiInfo.note) + midiInfo.octave;
         const noteDisplay = document.getElementById("noteNameDisplay");
         totalAttempts++;
         if (isNoteCorrect(midiInfo)) {
@@ -846,9 +845,9 @@
           }
           sessionCounter--;
           addCircle("positive");
-          // Bei korrekter Note: zeige den Notennamen in grün
+          // Korrekte Note: Anzeige in grün
           if (noteDisplay) {
-            noteDisplay.innerHTML = '<span style="color:green;">' + playedNote + '</span>';
+            noteDisplay.innerHTML = '<span style="color:green;">' + displayPlayedNote + '</span>';
           }
           if (sessionCounter <= 0) {
             sessionCounter = 0;
@@ -860,10 +859,12 @@
           currentSeriesSingle[seriesCounter].color = "red";
           errorNotes.push(currentSeriesSingle[seriesCounter]);
           addCircle("negative");
-          // Bei falscher Note: zeige links den gespielten Notennamen in rot und rechts den korrekten in grün
+          // Falsche Note: Gespielte Note in rot, korrekte Note in grün
           if (noteDisplay) {
-            const correctNote = currentSeriesSingle[seriesCounter].note + currentSeriesSingle[seriesCounter].octave;
-            noteDisplay.innerHTML = '<span style="color:red;">' + playedNote + '</span> <span style="color:green;">' + correctNote + '</span>';
+            // Korrekte Note wird aus dem aktuellen Series-Eintrag gelesen – auch hier: bei "b" soll "h" erscheinen
+            const correctNoteRaw = currentSeriesSingle[seriesCounter].note;
+            const correctNoteDisplay = (correctNoteRaw === "b" ? "h" : correctNoteRaw) + currentSeriesSingle[seriesCounter].octave;
+            noteDisplay.innerHTML = '<span style="color:red;">' + displayPlayedNote + '</span> <span style="color:green;">' + correctNoteDisplay + '</span>';
           }
           if (!unlimitedLives) {
             hearts--;
