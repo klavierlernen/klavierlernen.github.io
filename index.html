@@ -680,14 +680,22 @@
         }
       }, 1000);
     };
-    const endPause = () => {
-      document.getElementById("pauseOverlay").style.display = "none";
-      document.getElementById("mainContent").style.display = "block";
-      document.getElementById("timerContainer").style.display = "flex";
-      document.getElementById("settingsPanel").style.display = "flex";
-      sessionPaused = false;
-      resetGame();
-    };
+      
+      // Erstelle ein Audio-Objekt für den Gong
+      const gongSound = new Audio("https://raw.githubusercontent.com/JP0024/piano.github.io/main/gong-2-232435.mp3");
+      
+      // In deiner Funktion, die das Pausenfenster beendet, rufe den Sound ab:
+      const endPause = () => {
+        document.getElementById("pauseOverlay").style.display = "none";
+        document.getElementById("mainContent").style.display = "block";
+        document.getElementById("timerContainer").style.display = "flex";
+        document.getElementById("settingsPanel").style.display = "flex";
+        sessionPaused = false;
+        // Setze den Sound zurück und spiele ihn ab
+        gongSound.currentTime = 0;
+        gongSound.play();
+        resetGame();
+      };
     let gameOver = false;
     const endGame = () => {
       gameOver = true;
