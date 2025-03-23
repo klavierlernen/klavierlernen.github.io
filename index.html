@@ -882,7 +882,7 @@
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
       document.getElementById("noteNameDisplay").textContent = "";
-      sessionCounter = 1000;
+      
       const seriesClef = randomMode ? (Math.random() < 0.5 ? "bass" : "treble")
           : ((selectedMode === "left") ? "bass" : "treble");
       const chooseNote = () => {
