@@ -92,31 +92,28 @@
       background: #ffffff;
       z-index: 1000;
       display: none;
-      /* Wir setzen hier keine zentrale Flex-Ausrichtung, da der Info-Bereich oben links stehen soll */
-    }
-    /* Info-Bereich im Pause-Modus: oben links */
-    #pauseInfo {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      right: 10px;
-      display: flex;
+      flex-direction: column;
+      justify-content: center;
       align-items: center;
-      gap: 10px;
     }
+    /* Text oben links */
     #pauseHeader {
+      position: absolute;
+      top: 15px;
+      left: 10px;
       font-size: 2em;
       font-weight: bold;
       color: #000;
-      white-space: nowrap;
     }
-    /* Fortschrittsbalken – ohne grauen Hintergrund, passt sich über den restlichen Platz an */
+    /* Fortschrittsbalken (10px Abstand von den Rändern) */
     #pauseProgressContainer {
-      flex-grow: 1;
+      position: absolute;
+      top: 18px;
+      left: 10px;
+      right: 10px;
       height: 20px;
+      background: #ddd;
       border-radius: 10px;
-      position: relative;
-      /* kein Hintergrund, damit nur der rote Balken sichtbar ist */
     }
     #pauseProgress {
       height: 100%;
@@ -124,12 +121,6 @@
       background: red;
       border-radius: 10px;
       transition: width 1s linear;
-    }
-    /* Verbleibende Zeit in mm:ss */
-    #pauseTime {
-      font-size: 14px;
-      color: #000;
-      white-space: nowrap;
     }
     /* Zentrale Nachricht im Pause-Modus */
     #pauseMessage {
@@ -174,7 +165,7 @@
     .hidden {
       display: none !important;
     }
-    /* Timer Container */
+    /* Timer Container – initial während des Intros ausgeblendet */
     #timerContainer {
       position: fixed;
       right: 10px;
@@ -185,7 +176,7 @@
       align-items: center;
       justify-content: center;
     }
-    /* Hauptinhalt */
+    /* Hauptinhalt (wird erst nach dem Intro eingeblendet) */
     #mainContent {
       display: none;
       position: relative;
@@ -194,7 +185,7 @@
       transition: opacity 0.5s ease-in;
       padding-bottom: 50px;
     }
-    /* Einstellungen-Menü */
+    /* Einstellungen-Menü – initial während des Intros ausgeblendet */
     #settingsPanel {
       position: fixed;
       top: 29%;
@@ -246,7 +237,7 @@
       border-color: #ffffff;
       color: #ffffff;
     }
-    /* Container für Button & Herzen */
+    /* Container für Lagewechsel-Button & Herzen */
     #buttonContainer {
       position: fixed;
       left: 50%;
@@ -269,7 +260,7 @@
       color: #000;
     }
     body.dark-mode #noteNameDisplay { color: #e0e0e0; }
-    /* Welcome Overlay */
+    /* Welcome Overlay – transparent, sodass die Blobs sichtbar bleiben und dennoch den Rest blockieren */
     #welcomeOverlay {
       position: fixed;
       top: 0;
@@ -292,20 +283,21 @@
     body.dark-mode #welcomeMessage { color: #e0e0e0; }
   </style>
   <script>
-    // Zuerst globale Variablen, u.a. für Handoptionen
-    const handOptions = [
-      { mode: "left", symbol: "✋" },
-      { mode: "right", symbol: "✋", flip: true }
-    ];
-    let currentHandIndex = 0;
-    let selectedMode = handOptions[currentHandIndex].mode;
-    let randomMode = false;
-    
-    const rangeArray = ["C", "D", "F", "G", "MC"];
-    let currentRangeIndex = 0;
-    let currentRange = rangeArray[currentRangeIndex];
-    
-    // Weitere globale Variablen
+    /**************** Adaptive Pause ****************/
+    function calculateAdaptiveBreakTime(responseTimes, hitRate) {
+      if (responseTimes.length === 0) return 5;
+      let sum = responseTimes.reduce((acc, time) => acc + time, 0);
+      let avgResponseTime = sum / responseTimes.length;
+      const baseline = 500;
+      let slowdownFactor = avgResponseTime / baseline;
+      let fatigueIndex = slowdownFactor * (1 - hitRate);
+      const basePause = 10;
+      let breakTime = basePause * fatigueIndex;
+      return Math.max(5, Math.min(breakTime, 300));
+    }
+    /**********************************************/
+
+    // Globale Variablen für Notentraining
     let currentSeriesSingle = [];
     let seriesCounter = 0;
     const seriesLength = 5;
@@ -317,10 +309,13 @@
     let responseTimes = [];
     let lastNoteTimestamp = Date.now();
     let appStartTime = Date.now();
-    let sessionCounter = 5; // 5 korrekte Noten erforderlich
+    // Hier anpassen: Für 5 korrekte Noten muss sessionCounter auf 5 gesetzt werden.
+    let sessionCounter = 5;
     let sessionPaused = false;
     let scoreRecorded = false;
     let sessionCount = 0;
+    
+    // Variable für unbegrenzte Leben (Standard: true)
     let unlimitedLives = true;
     let hearts = unlimitedLives ? Infinity : 4;
     const updateHeartsDisplay = () => {
@@ -328,6 +323,7 @@
       heartsElem.textContent = unlimitedLives ? "∞" : "❤️".repeat(hearts);
     };
 
+    // Timer
     const updateTimer = () => {
       const elapsed = Math.floor((Date.now() - appStartTime) / 1000);
       let display;
@@ -341,38 +337,22 @@
       document.getElementById("timerContainer").textContent = display + " | " + sessionCounter;
     };
     setInterval(updateTimer, 1000);
-
-    function calculateAdaptiveBreakTime(responseTimes, hitRate) {
-      if (responseTimes.length === 0) return 5;
-      let sum = responseTimes.reduce((acc, time) => acc + time, 0);
-      let avgResponseTime = sum / responseTimes.length;
-      const baseline = 500;
-      let slowdownFactor = avgResponseTime / baseline;
-      let fatigueIndex = slowdownFactor * (1 - hitRate);
-      const basePause = 10;
-      let breakTime = basePause * fatigueIndex;
-      return Math.max(5, Math.min(breakTime, 300));
-    }
-
+    
     let pauseRemaining = 0;
     let pauseInterval = null;
     let confettiShown = false;
-    let pauseDuration = 0;
+    let pauseDuration = 0; // Gesamtdauer der Pause
     
+    // Update des roten Fortschrittsbalkens im Pause-Modus
     function updatePauseProgress() {
       const progressBar = document.getElementById("pauseProgress");
-      const timeDisplay = document.getElementById("pauseTime");
       if (progressBar && pauseDuration > 0) {
         const percent = ((pauseDuration - pauseRemaining) / pauseDuration) * 100;
         progressBar.style.width = percent + "%";
-        if (timeDisplay) {
-          const m = Math.floor(pauseRemaining / 60);
-          const s = pauseRemaining % 60;
-          timeDisplay.textContent = (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
-        }
       }
     }
     
+    // Update der zentralen Pausen-Nachricht (cycling)
     let pauseMsgIndex = 0;
     const pauseMessages = () => {
       const minutesLearning = Math.floor((Date.now() - appStartTime) / 60000);
@@ -386,11 +366,11 @@
         bestTime = (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
       }
       return [
-        "Du bist bereits " + minutesLearning + " Minuten am Lernen",
+        "Du bist bereits " + minutesLearning + " Minuten am lernen",
         correctPercent + "% sind korrekte Noten. Klasse!",
         "Nimm dir ruhig Zeit zum Pausieren",
         "Mit jeder Session wirst du besser",
-        "Lass dich nicht aufhalten. Deine Bestzeit liegt bei " + bestTime + " Minuten"
+        "Lass doch nicht aufhalten. Deine Bestzeit liegt bei " + bestTime + " Minuten"
       ];
     };
     function updatePauseMessage() {
@@ -402,21 +382,33 @@
       }
     }
     
+    const updatePauseOverlay = () => {
+      updatePauseProgress();
+      const now = new Date();
+      let hours = now.getHours();
+      let minutes = now.getMinutes();
+      hours = hours < 10 ? "0" + hours : hours;
+      minutes = minutes < 10 ? "0" + minutes : minutes;
+      const timeString = hours + ":" + minutes;
+      const quotePercent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
+      const pauseString = (pauseRemaining < 10 ? "0" + pauseRemaining : pauseRemaining);
+      const overlay = document.getElementById("gameOverOverlay");
+      overlay.textContent = "SESSION PAUSIERT";
+    };
+    
+    // Neuer Pause-Modus: Alle Inhalte ausblenden, Pause-Overlay anzeigen und Fortschrittsbalken animieren
     const startPauseCountdown = () => {
       sessionPaused = true;
       sessionCount++;
       const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
       pauseRemaining = Math.floor(calculateAdaptiveBreakTime(responseTimes, hitRate) * 2 + 300);
       pauseDuration = pauseRemaining;
-      
-      // Blende normalen Content aus
       document.getElementById("mainContent").style.display = "none";
       document.getElementById("timerContainer").style.display = "none";
       document.getElementById("settingsPanel").style.display = "none";
       
-      // Zeige das Pause-Overlay
       const pauseOverlay = document.getElementById("pauseOverlay");
-      pauseOverlay.style.display = "block";
+      pauseOverlay.style.display = "flex";
       
       updatePauseProgress();
       updatePauseMessage();
@@ -426,13 +418,13 @@
       }, 3000);
       
       pauseInterval = setInterval(() => {
-        pauseRemaining--;
-        updatePauseProgress();
-        if (pauseRemaining <= 0) {
-          clearInterval(pauseInterval);
-          clearInterval(msgInterval);
-          endPause();
-        }
+           pauseRemaining--;
+           updatePauseProgress();
+           if (pauseRemaining <= 0) {
+               clearInterval(pauseInterval);
+               clearInterval(msgInterval);
+               endPause();
+           }
       }, 1000);
     };
     
@@ -495,7 +487,78 @@
       if (!overlay.classList.contains("hidden")) updateScoreboard();
     };
     
-    function autoSelectMode() {
+    // Handoptionen
+    const handOptions = [
+      { mode: "left", symbol: "✋" },
+      { mode: "right", symbol: "✋", flip: true }
+    ];
+    let currentHandIndex = 0;
+    let selectedMode = handOptions[currentHandIndex].mode;
+    
+    // Random Mode
+    let randomMode = false;
+    
+    // Verfügbare Lagen
+    const rangeArray = ["C", "D", "F", "G", "MC"];
+    let currentRangeIndex = 0;
+    let currentRange = rangeArray[currentRangeIndex];
+    
+    const motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
+    const showMotivationMessage = () => {
+      const overlay = document.getElementById("motivationOverlay");
+      const msg = motivationMessages[Math.floor(Math.random() * motivationMessages.length)];
+      overlay.textContent = msg;
+      overlay.classList.add("animate-motivation");
+      setTimeout(() => {
+        overlay.classList.remove("animate-motivation");
+        overlay.textContent = "";
+      }, 2500);
+    };
+    
+    function getRandomThreshold() {
+      return Math.floor(Math.random() * 4) + 2;
+    }
+    
+    const rangeNotes = {
+      "C": ["c", "d", "e", "f", "g"],
+      "D": ["d", "e", "f#", "g", "a"],
+      "F": ["f", "g", "a", "bb", "c"],
+      "G": ["g", "a", "b", "c", "d"],
+      "MC": ["c", "d", "e", "f", "g"]
+    };
+    
+    // Korrektheitsprüfung
+    const isNoteCorrect = (midiInfo) => {
+      const expected = currentSeriesSingle[seriesCounter];
+      if (!expected) return false;
+      const playedNote = midiInfo.note.toLowerCase();
+      const expectedNote = expected.note.toLowerCase();
+      return playedNote === expectedNote && midiInfo.octave === expected.octave;
+    };
+    
+    const removeFromErrorNotes = (noteObj) => {
+      errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
+    };
+    
+    // Übergang vom Intro zum Hauptbildschirm
+    const proceedToMainScreen = () => {
+      const audio = document.getElementById("backgroundSound");
+      if (audio) {
+        audio.pause();
+      }
+      const welcomeOverlay = document.getElementById("welcomeOverlay");
+      welcomeOverlay.style.opacity = "0";
+      setTimeout(() => {
+        welcomeOverlay.classList.add("hidden");
+        const mainContent = document.getElementById("mainContent");
+        mainContent.style.display = "block";
+        document.getElementById("timerContainer").style.display = "flex";
+        document.getElementById("settingsPanel").style.display = "flex";
+        setTimeout(() => { mainContent.style.opacity = "1"; }, 10);
+      }, 500);
+    };
+
+    const autoSelectMode = () => {
       let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const leftScores = highScores.filter(score => score.mode === "left");
       const rightScores = highScores.filter(score => score.mode === "right");
@@ -513,7 +576,7 @@
         handToggle.textContent = handOptions[currentHandIndex].symbol;
         handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
       }
-    }
+    };
     
     const cycleRange = () => {
       currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
@@ -736,7 +799,9 @@
       seriesCounter = 0;
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
+      // Notenanzeige zurücksetzen
       document.getElementById("noteNameDisplay").textContent = "";
+      // SessionCounter für 5 korrekte Noten (dieser Wert wird bei jeder Session benötigt)
       sessionCounter = 5;
       const seriesClef = randomMode ? (Math.random() < 0.5 ? "bass" : "treble") : ((selectedMode === "left") ? "bass" : "treble");
       const chooseNote = () => {
@@ -817,6 +882,7 @@
           const octave = Math.floor(data1 / 12) - 1;
           return { note: noteNames[data1 % 12], octave: octave };
         })();
+        // Anzeige: "b" als "h"
         const playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note) + midiInfo.octave;
         const noteDisplay = document.getElementById("noteNameDisplay");
         totalAttempts++;
@@ -870,7 +936,7 @@
     };
     
     const resetGame = () => {
-      sessionCounter = 5;
+      sessionCounter = 5; // Bei neuem Spiel wieder 5 korrekte Noten erforderlich
       hearts = unlimitedLives ? Infinity : 4;
       gameOver = false;
       seriesCounter = 0;
@@ -892,7 +958,7 @@
   <!-- Canvas für Animation (Hintergrund) -->
   <canvas id="animationCanvas"></canvas>
   
-  <!-- Audio-Element für den Sound "Relaxing Harp Sweep" -->
+  <!-- Audio-Element für den Sound "Relaxing Harp Sweep" aus GitHub -->
   <audio id="backgroundSound" autoplay>
     <source src="https://raw.githubusercontent.com/JP0024/piano.github.io/3d35e0a8d4eb3e018151018e36e225dc7a856ecd/mixkit-relaxing-harp-sweep-2628.wav" type="audio/wav">
     Dein Browser unterstützt das Audio-Element nicht.
@@ -900,12 +966,11 @@
   
   <!-- Pause-Overlay -->
   <div id="pauseOverlay">
-    <div id="pauseInfo">
-      <div id="pauseHeader">SESSION PAUSIERT</div>
-      <div id="pauseProgressContainer">
-        <div id="pauseProgress"></div>
-      </div>
-      <div id="pauseTime"></div>
+    <div id="pauseHeader">SESSION PAUSIERT</div>
+    <div id="pauseProgressContainer">
+      <div id="pauseProgress"></div>
+      <!-- Anzeige der verbleibenden Zeit -->
+      <div id="pauseTime" style="position:absolute; left:0; top:0; font-size:14px; color:#000; padding:0 5px;"></div>
     </div>
     <div id="pauseMessage"></div>
   </div>
@@ -936,5 +1001,20 @@
   </div>
   <!-- Einstellungen-Menü -->
   <div id="settingsPanel"></div>
+  
+  <script>
+    // Im Pause-Modus wird zusätzlich die verbleibende Zeit im Container #pauseTime angezeigt.
+    function updatePauseProgress() {
+      const progressBar = document.getElementById("pauseProgress");
+      const timeDisplay = document.getElementById("pauseTime");
+      if (progressBar && pauseDuration > 0) {
+        const percent = ((pauseDuration - pauseRemaining) / pauseDuration) * 100;
+        progressBar.style.width = percent + "%";
+        if (timeDisplay) {
+          timeDisplay.textContent = pauseRemaining + " s";
+        }
+      }
+    }
+  </script>
 </body>
 </html>
