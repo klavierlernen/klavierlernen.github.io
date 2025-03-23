@@ -82,7 +82,7 @@
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
     }
-    /* Pause-Overlay */
+    /* Pause-Overlay: Anzeige des Pause-Modus */
     #pauseOverlay {
       position: fixed;
       top: 0;
@@ -96,31 +96,34 @@
       justify-content: center;
       align-items: center;
     }
-    /* Text oben links */
+    /* Container für den Pause-Info-Bereich */
+    #pauseInfo {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      max-width: 800px;
+      gap: 10px;
+      padding: 10px;
+    }
     #pauseHeader {
-      position: absolute;
-      top: 10px;
-      left: 10px;
       font-size: 2em;
       font-weight: bold;
       color: #000;
     }
-    /* Fortschrittsbalken (10px Abstand von den Rändern) */
-    #pauseProgressContainer {
-      position: absolute;
-      top: 18px;
-      left: 10px;
-      right: 10px;
-      height: 20px;
-      background: #ddd;
-      border-radius: 10px;
-    }
+    /* Roter Fortschrittsbalken: Erreicht 10px Abstand von beiden Seiten */
     #pauseProgress {
-      height: 100%;
-      width: 0%;
+      flex-grow: 1;
+      height: 20px;
       background: red;
       border-radius: 10px;
       transition: width 1s linear;
+      position: relative;
+    }
+    /* Verbleibende Zeit (mm:ss) */
+    #pauseTime {
+      font-size: 14px;
+      color: #000;
+      white-space: nowrap;
     }
     /* Zentrale Nachricht im Pause-Modus */
     #pauseMessage {
@@ -260,7 +263,7 @@
       color: #000;
     }
     body.dark-mode #noteNameDisplay { color: #e0e0e0; }
-    /* Welcome Overlay – transparent, sodass die Blobs sichtbar bleiben und dennoch den Rest blockieren */
+    /* Welcome Overlay – transparent */
     #welcomeOverlay {
       position: fixed;
       top: 0;
@@ -309,13 +312,12 @@
     let responseTimes = [];
     let lastNoteTimestamp = Date.now();
     let appStartTime = Date.now();
-    // Hier anpassen: Für 5 korrekte Noten muss sessionCounter auf 5 gesetzt werden.
+    // Für 5 korrekte Noten (Session endet dann)
     let sessionCounter = 5;
     let sessionPaused = false;
     let scoreRecorded = false;
     let sessionCount = 0;
     
-    // Variable für unbegrenzte Leben (Standard: true)
     let unlimitedLives = true;
     let hearts = unlimitedLives ? Infinity : 4;
     const updateHeartsDisplay = () => {
@@ -341,18 +343,23 @@
     let pauseRemaining = 0;
     let pauseInterval = null;
     let confettiShown = false;
-    let pauseDuration = 0; // Gesamtdauer der Pause
+    let pauseDuration = 0;
     
-    // Update des roten Fortschrittsbalkens im Pause-Modus
+    // Update des roten Fortschrittsbalkens und der Zeit in mm:ss
     function updatePauseProgress() {
       const progressBar = document.getElementById("pauseProgress");
+      const timeDisplay = document.getElementById("pauseTime");
       if (progressBar && pauseDuration > 0) {
         const percent = ((pauseDuration - pauseRemaining) / pauseDuration) * 100;
         progressBar.style.width = percent + "%";
+        if (timeDisplay) {
+          const m = Math.floor(pauseRemaining / 60);
+          const s = pauseRemaining % 60;
+          timeDisplay.textContent = (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+        }
       }
     }
     
-    // Update der zentralen Pausen-Nachricht (cycling)
     let pauseMsgIndex = 0;
     const pauseMessages = () => {
       const minutesLearning = Math.floor((Date.now() - appStartTime) / 60000);
@@ -366,11 +373,11 @@
         bestTime = (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
       }
       return [
-        "Du bist bereits " + minutesLearning + " Minuten am lernen",
+        "Du bist bereits " + minutesLearning + " Minuten am Lernen",
         correctPercent + "% sind korrekte Noten. Klasse!",
         "Nimm dir ruhig Zeit zum Pausieren",
         "Mit jeder Session wirst du besser",
-        "Lass doch nicht aufhalten. Deine Bestzeit liegt bei " + bestTime + " Minuten"
+        "Lass dich nicht aufhalten. Deine Bestzeit liegt bei " + bestTime + " Minuten"
       ];
     };
     function updatePauseMessage() {
@@ -382,21 +389,7 @@
       }
     }
     
-    const updatePauseOverlay = () => {
-      updatePauseProgress();
-      const now = new Date();
-      let hours = now.getHours();
-      let minutes = now.getMinutes();
-      hours = hours < 10 ? "0" + hours : hours;
-      minutes = minutes < 10 ? "0" + minutes : minutes;
-      const timeString = hours + ":" + minutes;
-      const quotePercent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
-      const pauseString = (pauseRemaining < 10 ? "0" + pauseRemaining : pauseRemaining);
-      const overlay = document.getElementById("gameOverOverlay");
-      overlay.textContent = "SESSION PAUSIERT";
-    };
-    
-    // Neuer Pause-Modus: Alle Inhalte ausblenden, Pause-Overlay anzeigen und Fortschrittsbalken animieren
+    // Neuer Pause-Modus: Blendet normalen Content aus und zeigt das Pause-Overlay mit Infozeile
     const startPauseCountdown = () => {
       sessionPaused = true;
       sessionCount++;
@@ -487,18 +480,14 @@
       if (!overlay.classList.contains("hidden")) updateScoreboard();
     };
     
-    // Handoptionen
     const handOptions = [
       { mode: "left", symbol: "✋" },
       { mode: "right", symbol: "✋", flip: true }
     ];
     let currentHandIndex = 0;
     let selectedMode = handOptions[currentHandIndex].mode;
-    
-    // Random Mode
     let randomMode = false;
     
-    // Verfügbare Lagen
     const rangeArray = ["C", "D", "F", "G", "MC"];
     let currentRangeIndex = 0;
     let currentRange = rangeArray[currentRangeIndex];
@@ -527,7 +516,6 @@
       "MC": ["c", "d", "e", "f", "g"]
     };
     
-    // Korrektheitsprüfung
     const isNoteCorrect = (midiInfo) => {
       const expected = currentSeriesSingle[seriesCounter];
       if (!expected) return false;
@@ -540,7 +528,6 @@
       errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
     };
     
-    // Übergang vom Intro zum Hauptbildschirm
     const proceedToMainScreen = () => {
       const audio = document.getElementById("backgroundSound");
       if (audio) {
@@ -799,10 +786,8 @@
       seriesCounter = 0;
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
-      // Notenanzeige zurücksetzen
       document.getElementById("noteNameDisplay").textContent = "";
-      // SessionCounter für 5 korrekte Noten (dieser Wert wird bei jeder Session benötigt)
-      sessionCounter = 5;
+      sessionCounter = 5; // Für 5 korrekte Noten erforderlich
       const seriesClef = randomMode ? (Math.random() < 0.5 ? "bass" : "treble") : ((selectedMode === "left") ? "bass" : "treble");
       const chooseNote = () => {
         if (errorNotes.length > 0 && Math.random() < 0.6) {
@@ -882,7 +867,6 @@
           const octave = Math.floor(data1 / 12) - 1;
           return { note: noteNames[data1 % 12], octave: octave };
         })();
-        // Anzeige: "b" als "h"
         const playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note) + midiInfo.octave;
         const noteDisplay = document.getElementById("noteNameDisplay");
         totalAttempts++;
@@ -936,7 +920,7 @@
     };
     
     const resetGame = () => {
-      sessionCounter = 5; // Bei neuem Spiel wieder 5 korrekte Noten erforderlich
+      sessionCounter = 5;
       hearts = unlimitedLives ? Infinity : 4;
       gameOver = false;
       seriesCounter = 0;
@@ -958,7 +942,7 @@
   <!-- Canvas für Animation (Hintergrund) -->
   <canvas id="animationCanvas"></canvas>
   
-  <!-- Audio-Element für den Sound "Relaxing Harp Sweep" aus GitHub -->
+  <!-- Audio-Element für den Sound "Relaxing Harp Sweep" -->
   <audio id="backgroundSound" autoplay>
     <source src="https://raw.githubusercontent.com/JP0024/piano.github.io/3d35e0a8d4eb3e018151018e36e225dc7a856ecd/mixkit-relaxing-harp-sweep-2628.wav" type="audio/wav">
     Dein Browser unterstützt das Audio-Element nicht.
@@ -966,11 +950,10 @@
   
   <!-- Pause-Overlay -->
   <div id="pauseOverlay">
-    <div id="pauseHeader">SESSION PAUSIERT</div>
-    <div id="pauseProgressContainer">
-      <div id="pauseProgress"></div>
-      <!-- Anzeige der verbleibenden Zeit -->
-      <div id="pauseTime" style="position:absolute; left:0; top:0; font-size:14px; color:#000; padding:0 5px;"></div>
+    <div id="pauseInfo" style="display:flex; align-items:center; width:100%; max-width:800px; gap:10px; padding:10px;">
+      <div id="pauseHeader">SESSION PAUSIERT</div>
+      <div id="pauseProgress" style="flex-grow:1; height:20px; background:red; border-radius:10px; transition: width 1s linear;"></div>
+      <div id="pauseTime" style="font-size:14px; color:#000; white-space:nowrap;"></div>
     </div>
     <div id="pauseMessage"></div>
   </div>
@@ -1001,20 +984,5 @@
   </div>
   <!-- Einstellungen-Menü -->
   <div id="settingsPanel"></div>
-  
-  <script>
-    // Im Pause-Modus wird zusätzlich die verbleibende Zeit im Container #pauseTime angezeigt.
-    function updatePauseProgress() {
-      const progressBar = document.getElementById("pauseProgress");
-      const timeDisplay = document.getElementById("pauseTime");
-      if (progressBar && pauseDuration > 0) {
-        const percent = ((pauseDuration - pauseRemaining) / pauseDuration) * 100;
-        progressBar.style.width = percent + "%";
-        if (timeDisplay) {
-          timeDisplay.textContent = pauseRemaining + " s";
-        }
-      }
-    }
-  </script>
 </body>
 </html>
