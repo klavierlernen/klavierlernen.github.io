@@ -84,7 +84,7 @@
     /* Pause-Overlay */
     #pauseOverlay {
       position: fixed;
-      top: 0;
+      top: 15;
       left: 0;
       width: 100%;
       height: 100%;
@@ -411,7 +411,7 @@
     };
     
     let currentSeriesSingle = [];
-    let seriesCounter = 0;
+    let seriesCounter = 1000;
     const seriesLength = 5;
     let totalAttempts = 0;
     let correctAnswers = 0;
@@ -1003,7 +1003,7 @@
       }
     };
     const resetGame = () => {
-      sessionCounter = 5;
+      sessionCounter = 1000;
       hearts = unlimitedLives ? Infinity : 4;
       gameOver = false;
       seriesCounter = 0;
