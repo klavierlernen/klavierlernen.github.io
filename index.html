@@ -417,6 +417,11 @@
         border-color: white;
       }
       
+      .tile.span-2 {
+        grid-column: span 2;
+        grid-row: span 1 !important;
+      }
+      
   </style>
   <script>
     /************** Funktionen, die vor der Verwendung deklariert sein müssen **************/
@@ -537,83 +542,137 @@
       function updatePauseTiles() {
         const container = document.getElementById("pauseTiles");
         if (!container) return;
+
+        // Berechne App‑Zeit
         const totalTimeSec = Math.floor((Date.now() - appStartTime) / 1000);
         const h = Math.floor(totalTimeSec / 3600);
         const m = Math.floor((totalTimeSec % 3600) / 60);
         const s = totalTimeSec % 60;
         const appTime = (h > 0 ? (h + "h ") : "") + m + "m " + s + "s";
+
+        // Berechne Prozent richtiger Noten
         const correctPercent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
-        
-        const errorCounts = {};
-        errorNotes.forEach(n => {
-          const key = n.note + "/" + n.octave;
-          errorCounts[key] = (errorCounts[key] || 0) + 1;
-        });
-        let mostFrequentError = "N/A";
-        let maxCount = 0;
-        for (let key in errorCounts) {
-          if (errorCounts[key] > maxCount) {
-            maxCount = errorCounts[key];
-            mostFrequentError = key;
-          }
-        }
-        
-        // Öffnungen pro Wochentag ermitteln
-        const openTimes = JSON.parse(localStorage.getItem("openTimes") || "[]");
-        const dayCounts = { Mo:0, Di:0, Mi:0, Do:0, Fr:0, Sa:0, So:0 };
-        if (openTimes.length > 0) {
-          openTimes.forEach(timeStr => {
-            const d = new Date(timeStr);
-            const day = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
-            if (dayCounts.hasOwnProperty(day)) { dayCounts[day]++; }
-          });
-        }
-        let popularDay = "N/A";
-        let maxVal = 0;
-        for (let day in dayCounts) {
-          if (dayCounts[day] > maxVal) {
-            maxVal = dayCounts[day];
-            popularDay = day;
-          }
-        }
-        
-        // Berechne den Durchschnitt der Antwortzeiten (in Sekunden)
+
+        // Durchschnittliche Bearbeitungszeit (in Sekunden)
         const avgTimeSec = responseTimes.length
-          ? (responseTimes.reduce((acc, time) => acc + time, 0) / responseTimes.length / 1000).toFixed(2)
+          ? (responseTimes.reduce((acc, t) => acc + t, 0) / responseTimes.length / 1000).toFixed(2)
           : "N/A";
 
         container.innerHTML = `
           <div class="tile">
             <div class="tileIcon">⏰</div>
-            <div class="tileTitle">Sessionzeit</div>
+            <div class="tileTitle">App‑Zeit</div>
             <div class="tileValue">${appTime}</div>
           </div>
           <div class="tile">
             <div class="tileIcon">✅</div>
-            <div class="tileTitle">Notenquote</div>
+            <div class="tileTitle">Richtige Noten</div>
             <div class="tileValue">${correctPercent}%</div>
-          </div>
-          <div class="tile">
-            <div class="tileIcon">❓</div>
-            <div class="tileTitle">Häufig falsch</div>
-            <div class="tileValue">${mostFrequentError}</div>
           </div>
           <div class="tile">
             <div class="tileTitle">Beliebtester Tag</div>
             <div class="barChart">
-              ${generateBarChartHTML()}
+               ${generateBarChartHTML()}
             </div>
           </div>
+          ${ generateLearningQualityGraphTile() }
           <div class="tile">
-            <div class="tileTitle">Gemeisterte Sessions</div>
+            <div class="tileTitle">Session</div>
             <div class="tileValue">${sessionCount}</div>
           </div>
           <div class="tile span-2">
             <div class="tileIcon">${handOptions[currentHandIndex].symbol} Ø ${avgTimeSec} s/Note</div>
-            <div class="tileTitle">Lieblingshand </div>
+            <div class="tileTitle">Lieblingshand</div>
           </div>
         `;
       }
+      
+      function getLastThreeSessions() {
+        // Beispiel: Session-Daten als Array von Objekten mit responseTimes (ms), errorCount, totalAttempts und sessionTime (in sec)
+        const sessions = JSON.parse(localStorage.getItem("sessionData") || "[]");
+        return sessions.slice(-3);
+      }
+
+      function calculateQuality(session) {
+        // Durchschnittliche Antwortzeit in Sekunden (niedriger ist besser)
+        const avgResponse = session.responseTimes.length
+          ? session.responseTimes.reduce((a, b) => a + b, 0) / session.responseTimes.length / 1000
+          : 0;
+        // Fehlerquote (niedriger ist besser)
+        const errorRate = session.totalAttempts ? (session.errorCount / session.totalAttempts) : 0;
+        // Die Session-Dauer in Sekunden – längere Sessions können auf mehr Engagement hinweisen
+        const learningTime = session.sessionTime || 0;
+        // Beispielhafte Gewichtung: Wir wollen, dass niedrigere Antwortzeiten und Fehlerquoten zu höheren Qualitätswerten führen.
+        // Hier eine einfache Rechnung, die in den meisten Fällen einen Wert zwischen 0 und 100 liefert.
+        let quality = 100 - (avgResponse * 10) - (errorRate * 100) + (learningTime / 60);
+        return Math.max(0, Math.min(quality, 100));
+      }
+      
+      function drawLearningQualityGraph(canvas, sessions) {
+        const ctx = canvas.getContext("2d");
+        const width = canvas.width;
+        const height = canvas.height;
+        ctx.clearRect(0, 0, width, height);
+
+        // Berechne die Qualitätswerte
+        const qualities = sessions.map(calculateQuality);
+
+        // Wir erwarten Werte zwischen 0 und 100, also skalieren wir den y-Wert entsprechend.
+        ctx.beginPath();
+        for (let i = 0; i < qualities.length; i++) {
+          const x = (i / (qualities.length - 1)) * width;
+          // Höhere Qualität => niedrigere y-Koordinate (oben ist 0)
+          const y = height - (qualities[i] / 100 * height);
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+          // Optional: Zeichne einen kleinen Kreis als Punkt
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.fillStyle = "#007aff";
+          ctx.fill();
+          ctx.beginPath(); // Beginne neuen Pfad für die Linie
+          if(i === 0) {
+            ctx.moveTo(x,y);
+          }
+        }
+        ctx.strokeStyle = "#007aff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      
+      function generateLearningQualityGraphTile() {
+        // Erstelle einen Container (div) für die Kachel – hier nutzen wir span-2, um sie breit anzuzeigen.
+        const container = document.createElement("div");
+        container.className = "tile span-2";
+        
+        const title = document.createElement("div");
+        title.className = "tileTitle";
+        title.textContent = "Lernqualität";
+        container.appendChild(title);
+        
+        // Erstelle ein Canvas für den Graphen
+        const canvas = document.createElement("canvas");
+        canvas.width = 280;  // Passe die Größe an die Kachel an
+        canvas.height = 100;
+        container.appendChild(canvas);
+        
+        // Hole die letzten drei Sessions und zeichne den Graph
+        const sessions = getLastThreeSessions();
+        drawLearningQualityGraph(canvas, sessions);
+        
+        // Berechne den durchschnittlichen Qualitätswert zur zusätzlichen Anzeige
+        let avgQuality = sessions.length ? (sessions.map(calculateQuality).reduce((a, b) => a + b, 0) / sessions.length).toFixed(2) : "N/A";
+        const qualityText = document.createElement("div");
+        qualityText.className = "tileValue";
+        qualityText.textContent = `Ø ${avgQuality} / 100`;
+        container.appendChild(qualityText);
+        
+        return container.outerHTML;
+      }
+                                            
       function generateBarChartHTML() {
         // Standardwerte: Jeder Tag wird initial auf 0 gesetzt.
         const dayCounts = { Mo: 0, Di: 0, Mi: 0, Do: 0, Fr: 0, Sa: 0, So: 0 };
