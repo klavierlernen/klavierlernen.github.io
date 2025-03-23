@@ -310,7 +310,7 @@
     let lastNoteTimestamp = Date.now();
     let appStartTime = Date.now();
     // Hier anpassen: Für 5 korrekte Noten muss sessionCounter auf 5 gesetzt werden.
-    let sessionCounter = 5;
+    let sessionCounter = 1000;
     let sessionPaused = false;
     let scoreRecorded = false;
     let sessionCount = 0;
@@ -936,7 +936,7 @@
     };
     
     const resetGame = () => {
-      sessionCounter = 5; // Bei neuem Spiel wieder 5 korrekte Noten erforderlich
+      sessionCounter = 1000; // Bei neuem Spiel wieder 5 korrekte Noten erforderlich
       hearts = unlimitedLives ? Infinity : 4;
       gameOver = false;
       seriesCounter = 0;
