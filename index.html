@@ -425,6 +425,45 @@
   </style>
   <script>
     /************** Funktionen, die vor der Verwendung deklariert sein müssen **************/
+    
+    // Speichert die relevanten Statistiken im localStorage
+    function saveStatistics() {
+      const stats = {
+        totalAttempts: totalAttempts,
+        correctAnswers: correctAnswers,
+        correctNoteCount: correctNoteCount,
+        responseTimes: responseTimes,
+        sessionCount: sessionCount,
+        hearts: hearts,
+        errorNotes: errorNotes,
+        // Du kannst hier auch weitere Variablen eintragen, z.B. openTimes, appStartTime etc.
+        appStartTime: appStartTime
+      };
+      localStorage.setItem("appStatistics", JSON.stringify(stats));
+    }
+
+    // Lädt die Statistiken aus dem localStorage und weist sie den globalen Variablen zu
+    function loadStatistics() {
+      const statsStr = localStorage.getItem("appStatistics");
+      if (statsStr) {
+        const stats = JSON.parse(statsStr);
+        totalAttempts = stats.totalAttempts || 0;
+        correctAnswers = stats.correctAnswers || 0;
+        correctNoteCount = stats.correctNoteCount || 0;
+        responseTimes = stats.responseTimes || [];
+        sessionCount = stats.sessionCount || 0;
+        hearts = stats.hearts || (unlimitedLives ? Infinity : 4);
+        errorNotes = stats.errorNotes || [];
+        appStartTime = stats.appStartTime || Date.now();
+      }
+    }
+
+    // Optional: Speichern der Statistiken, wenn die Seite geschlossen wird
+    window.addEventListener("beforeunload", saveStatistics);
+
+    // Beim Laden der Seite die Statistiken laden
+    document.addEventListener("DOMContentLoaded", loadStatistics);
+    
     function proceedToMainScreen() {
       const audio = document.getElementById("backgroundSound");
       if (audio) { audio.pause(); }
