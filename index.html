@@ -82,6 +82,50 @@
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
     }
+    /* Pause-Overlay */
+    #pauseOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    /* Text oben links */
+    #pauseHeader {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 2em;
+      font-weight: bold;
+      color: #000;
+    }
+    /* Roter Fortschrittsbalken */
+    #pauseProgressContainer {
+      position: absolute;
+      top: 10px;
+      left: 150px;
+      width: calc(100% - 160px);
+      height: 20px;
+      background: #ddd;
+    }
+    #pauseProgress {
+      height: 100%;
+      width: 0%;
+      background: red;
+    }
+    /* Zentrale Nachricht im Pause-Modus */
+    #pauseMessage {
+      font-size: 2em;
+      text-align: center;
+      margin-top: 20px;
+      color: #000;
+    }
     /* Game Over Overlay */
     #gameOverOverlay {
       position: fixed;
@@ -206,8 +250,7 @@
       vertical-align: middle;
       font-size: 1.5em;
     }
-    /* Notenname-Anzeige */
-    /* Hier werden zwei Notennamen nebeneinander angezeigt, wenn die Note falsch gespielt wurde */
+    /* Notenname-Anzeige (für den normalen Modus) */
     #noteNameDisplay {
       margin-top: 10px;
       font-size: 24px;
@@ -263,7 +306,7 @@
     let responseTimes = [];
     let lastNoteTimestamp = Date.now();
     let appStartTime = Date.now();
-    let sessionCounter = 1000;
+    let sessionCounter = 5;
     let sessionPaused = false;
     let scoreRecorded = false;
     let sessionCount = 0;
@@ -294,8 +337,52 @@
     let pauseRemaining = 0;
     let pauseInterval = null;
     let confettiShown = false;
+    let pauseDuration = 0; // Gesamtdauer der Pause
+    
+    // Neue Funktion: Update des roten Fortschrittsbalkens im Pause-Modus
+    function updatePauseProgress() {
+      const progressBar = document.getElementById("pauseProgress");
+      if (progressBar && pauseDuration > 0) {
+        const percent = ((pauseDuration - pauseRemaining) / pauseDuration) * 100;
+        progressBar.style.width = percent + "%";
+      }
+    }
+    
+    // Neue Funktion: Update der zentralen Pausen-Nachricht (cycling)
+    let pauseMsgIndex = 0;
+    const pauseMessages = () => {
+      // Berechne dynamisch Werte:
+      const minutesLearning = Math.floor((Date.now() - appStartTime) / 60000);
+      const correctPercent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
+      // Bestzeit aus highScores (falls vorhanden)
+      let bestTime = "00:00";
+      let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
+      if (highScores.length > 0) {
+        let bestSeconds = highScores[0].seconds || 0;
+        const m = Math.floor(bestSeconds / 60);
+        const s = bestSeconds % 60;
+        bestTime = (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+      }
+      return [
+        "Du bist bereits " + minutesLearning + " Minuten am lernen",
+        correctPercent + "% sind korrekte Noten. Klasse!",
+        "Nimm dir ruhig Zeit zum Pausieren",
+        "Mit jeder Session wirst du besser",
+        "Lass doch nicht aufhalten. Deine Bestzeit liegt bei " + bestTime + " Minuten"
+      ];
+    };
+    function updatePauseMessage() {
+      const msgDiv = document.getElementById("pauseMessage");
+      if (msgDiv) {
+        const msgs = pauseMessages();
+        msgDiv.textContent = msgs[pauseMsgIndex % msgs.length];
+        pauseMsgIndex++;
+      }
+    }
     
     const updatePauseOverlay = () => {
+      // Aktualisiere auch den Fortschrittsbalken
+      updatePauseProgress();
       const now = new Date();
       let hours = now.getHours();
       let minutes = now.getMinutes();
@@ -305,38 +392,55 @@
       const quotePercent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
       const pauseString = (pauseRemaining < 10 ? "0" + pauseRemaining : pauseRemaining);
       const overlay = document.getElementById("gameOverOverlay");
-      overlay.textContent = "SESSION " + sessionCount + " PAUSIERT\n\nZEIT:\t" + timeString +
-                            "\nQUOTE:\t" + quotePercent + "%\n\nPAUSE:\t" + pauseString + " s";
+      overlay.textContent = "SESSION PAUSIERT";
+      // (Wir nutzen jetzt das neue Pause-Overlay, daher ändern wir hier nichts weiter.)
     };
     
+    // Neuer Pause-Modus: Blendet alle Inhalte aus und zeigt stattdessen das Pause-Overlay
     const startPauseCountdown = () => {
       sessionPaused = true;
       sessionCount++;
       const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
       pauseRemaining = Math.floor(calculateAdaptiveBreakTime(responseTimes, hitRate) * 2 + 300);
-      if (!confettiShown) {
-         confetti();
-         confettiShown = true;
-      }
-      const overlay = document.getElementById("gameOverOverlay");
-      overlay.style.display = "block";
-      updatePauseOverlay();
+      pauseDuration = pauseRemaining; // Speichere Gesamtdauer
+      // Blende den normalen Content aus
+      document.getElementById("mainContent").style.display = "none";
+      document.getElementById("timerContainer").style.display = "none";
+      document.getElementById("settingsPanel").style.display = "none";
+      
+      // Blende das Pause-Overlay ein
+      const pauseOverlay = document.getElementById("pauseOverlay");
+      pauseOverlay.style.display = "flex";
+      
+      // Setze den Fortschrittsbalken und Pause-Nachricht
+      updatePauseProgress();
+      updatePauseMessage();
+      
+      // Alle 3 Sekunden wechselt die Pause-Nachricht
+      const msgInterval = setInterval(() => {
+        updatePauseMessage();
+      }, 3000);
+      
+      // Update des Fortschritts und der Zeit in 1-Sekunden-Schritten
       pauseInterval = setInterval(() => {
            pauseRemaining--;
+           updatePauseProgress();
            if (pauseRemaining <= 0) {
                clearInterval(pauseInterval);
+               clearInterval(msgInterval);
                endPause();
-           } else {
-               updatePauseOverlay();
            }
       }, 1000);
     };
     
     const endPause = () => {
-      const overlay = document.getElementById("gameOverOverlay");
-      overlay.style.display = "none";
+      // Blende das Pause-Overlay aus und stelle den normalen Content wieder her
+      const pauseOverlay = document.getElementById("pauseOverlay");
+      pauseOverlay.style.display = "none";
+      document.getElementById("mainContent").style.display = "block";
+      document.getElementById("timerContainer").style.display = "flex";
+      document.getElementById("settingsPanel").style.display = "flex";
       sessionPaused = false;
-      if (!scoreRecorded) recordScore();
       resetGame();
     };
     
@@ -563,10 +667,8 @@
       // Fröhliche Farben (Beispiel: "yellow", "pink", "blue")
       const colors = ["yellow", "pink", "blue"];
       positions.forEach((pos, index) => {
-        // Zielradius wird zufällig groß gewählt (wie bei den anderen Kreisen)
         const targetRadius = Math.random() * 1000 + 1000;
         const duration = 5000;
-        // initialRadius entspricht dem targetRadius – es gibt keine Größeninterpolation, nur ein Fade-in
         circles.push({
           x: pos.x,
           y: pos.y,
@@ -579,7 +681,7 @@
       });
     }
     
-    // Angepasste animateCircles-Funktion, die bei Kreisen mit initialRadius nur einen Fade-In bewirkt
+    // Angepasste animateCircles-Funktion
     function animateCircles() {
       const canvas = document.getElementById("animationCanvas");
       if (!canvas) return;
@@ -597,7 +699,7 @@
         } else {
           opacity = (circle.duration - t) / 500;
         }
-        let currentRadius = typeof circle.initialRadius !== "undefined" ? circle.radius : circle.radius;
+        let currentRadius = circle.radius;
         const gradColors = gradients[circle.color] || [circle.color, circle.color, "rgba(255,255,255,0)"];
         const grad = ctx.createRadialGradient(circle.x, circle.y, 0, circle.x, circle.y, currentRadius);
         grad.addColorStop(0, gradColors[0]);
@@ -619,7 +721,7 @@
     let inactivityTimeout;
     function resetInactivityTimer() {
       if (inactivityTimeout) clearTimeout(inactivityTimeout);
-      inactivityTimeout = setTimeout(spawnInactivityBlob, 180000); // 3 Minuten
+      inactivityTimeout = setTimeout(spawnInactivityBlob, 180000);
     }
     
     function spawnInactivityBlob() {
@@ -654,22 +756,12 @@
       resizeCanvas();
       window.addEventListener("resize", resizeCanvas);
       animateCircles();
-      
-      // Inaktivitäts-Timer starten
       resetInactivityTimer();
-      
-      // Intro-Blobs erzeugen (sie erscheinen jetzt bereits groß und werden gefadet)
       spawnIntroBlobs();
-      
-      // Begrüßungstext setzen
       document.getElementById("welcomeMessage").textContent = "Schön, dass du da bist!";
-      
-      // Nach 5 Sekunden zum Hauptbildschirm wechseln (Sound stoppen)
       setTimeout(proceedToMainScreen, 5000);
       
       const settingsPanel = document.getElementById("settingsPanel");
-      
-      // Menü-Buttons
       const handToggle = document.createElement("span");
       handToggle.id = "handToggle";
       handToggle.textContent = handOptions[currentHandIndex].symbol;
@@ -684,8 +776,6 @@
           generateSeries();
         }
       });
-      
-      // RANDOM Mode Button
       const randomToggle = document.createElement("span");
       randomToggle.id = "randomToggle";
       randomToggle.textContent = "🐇";
@@ -695,39 +785,31 @@
         randomToggle.style.opacity = randomMode ? "1" : "0.5";
         generateSeries();
       });
-      
-      // Weitere Buttons (Life, Dark Mode, Scoreboard)
       const lifeToggle = document.createElement("span");
       lifeToggle.id = "lifeToggle";
       lifeToggle.textContent = "∞";
       settingsPanel.appendChild(lifeToggle);
-      lifeToggle.addEventListener("click", () => { /* Lives bleiben unverändert */ });
-      
+      lifeToggle.addEventListener("click", () => {});
       const darkModeToggle = document.createElement("span");
       darkModeToggle.id = "darkModeToggle";
       darkModeToggle.textContent = "🌙";
       settingsPanel.appendChild(darkModeToggle);
       darkModeToggle.addEventListener("click", toggleDarkMode);
-      
       const scoreboardToggle = document.createElement("span");
       scoreboardToggle.id = "scoreboardToggle";
       scoreboardToggle.textContent = "🎯";
       settingsPanel.appendChild(scoreboardToggle);
       scoreboardToggle.addEventListener("click", toggleScoreboard);
-      
       setupFadeOnHover(settingsPanel);
       setupFadeOnHover(document.getElementById("clefTitle"));
-      
       autoSelectMode();
       generateSeries();
       updateHeartsDisplay();
-      
       document.addEventListener("keydown", (event) => {
         if (event.code === "Space") {
           handleMIDIMessage(144, 60, 127);
         }
       });
-      
       document.getElementById("scoreboardOverlay").addEventListener("click", toggleScoreboard);
     });
     
@@ -736,13 +818,8 @@
       seriesCounter = 0;
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
-      
-      // Notennamen-Anzeige zurücksetzen (beim Generieren neuer Noten)
       document.getElementById("noteNameDisplay").textContent = "";
-      
-      // Bestimme Notenschlüssel für diese Serie:
       const seriesClef = randomMode ? (Math.random() < 0.5 ? "bass" : "treble") : ((selectedMode === "left") ? "bass" : "treble");
-      
       const chooseNote = () => {
         if (errorNotes.length > 0 && Math.random() < 0.6) {
           const idx = errorNotes.findIndex(note => note.clef === seriesClef);
@@ -771,7 +848,6 @@
           color: "black"
         };
       };
-      
       currentSeriesSingle = [];
       for (let i = 0; i < seriesLength; i++) {
         currentSeriesSingle.push(chooseNote());
@@ -785,10 +861,8 @@
       const baseWidth = 800;
       const ratio = window.devicePixelRatio || 1;
       const height = 300 * ratio;
-      
       notationDiv.style.display = "block";
       notationDiv.innerHTML = "";
-      
       const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
       renderer.resize(baseWidth * ratio, height);
       const svg = notationDiv.querySelector("svg");
@@ -799,13 +873,11 @@
         stave.addClef(currentSeriesSingle[0].clef);
       }
       stave.setContext(context).draw();
-      
       const staveNotes = currentSeriesSingle.map(item => new Vex.Flow.StaveNote({
           clef: item.clef,
           keys: [item.note + "/" + item.octave],
           duration: "q"
       }).setStyle({ fillStyle: item.color, strokeStyle: item.color }));
-      
       const voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
       staveNotes.forEach(note => voice.addTickable(note));
       new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
@@ -815,23 +887,19 @@
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
       resetInactivityTimer();
-      
       if ((status & 0xf0) === 0x90 && data2 > 0) {
         if (seriesCounter >= currentSeriesSingle.length) return;
-        
         let currentTime = Date.now();
         let responseTime = currentTime - lastNoteTimestamp;
         responseTimes.push(responseTime);
         lastNoteTimestamp = currentTime;
-        
         const midiInfo = (() => {
           const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
           const octave = Math.floor(data1 / 12) - 1;
           return { note: noteNames[data1 % 12], octave: octave };
         })();
-        
-        // Für die Anzeige: Falls die Note "b" ist, zeige "h"
-        const displayPlayedNote = (midiInfo.note === "b" ? "h" : midiInfo.note) + midiInfo.octave;
+        // Für die Anzeige: Falls Note "b", dann als "h" darstellen
+        const playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note) + midiInfo.octave;
         const noteDisplay = document.getElementById("noteNameDisplay");
         totalAttempts++;
         if (isNoteCorrect(midiInfo)) {
@@ -845,9 +913,8 @@
           }
           sessionCounter--;
           addCircle("positive");
-          // Korrekte Note: Anzeige in grün
           if (noteDisplay) {
-            noteDisplay.innerHTML = '<span style="color:green;">' + displayPlayedNote + '</span>';
+            noteDisplay.innerHTML = '<span style="color:green;">' + playedNoteDisplay + '</span>';
           }
           if (sessionCounter <= 0) {
             sessionCounter = 0;
@@ -859,12 +926,10 @@
           currentSeriesSingle[seriesCounter].color = "red";
           errorNotes.push(currentSeriesSingle[seriesCounter]);
           addCircle("negative");
-          // Falsche Note: Gespielte Note in rot, korrekte Note in grün
           if (noteDisplay) {
-            // Korrekte Note wird aus dem aktuellen Series-Eintrag gelesen – auch hier: bei "b" soll "h" erscheinen
-            const correctNoteRaw = currentSeriesSingle[seriesCounter].note;
-            const correctNoteDisplay = (correctNoteRaw === "b" ? "h" : correctNoteRaw) + currentSeriesSingle[seriesCounter].octave;
-            noteDisplay.innerHTML = '<span style="color:red;">' + displayPlayedNote + '</span> <span style="color:green;">' + correctNoteDisplay + '</span>';
+            const correctRaw = currentSeriesSingle[seriesCounter].note;
+            const correctDisplay = (correctRaw === "b" ? "h" : correctRaw) + currentSeriesSingle[seriesCounter].octave;
+            noteDisplay.innerHTML = '<span style="color:red;">' + playedNoteDisplay + '</span> <span style="color:green;">' + correctDisplay + '</span>';
           }
           if (!unlimitedLives) {
             hearts--;
@@ -887,7 +952,7 @@
     };
     
     const resetGame = () => {
-      sessionCounter = 1000;
+      sessionCounter = 5;
       hearts = unlimitedLives ? Infinity : 4;
       gameOver = false;
       seriesCounter = 0;
@@ -898,7 +963,8 @@
       sessionPaused = false;
       confettiShown = false;
       errorNotes = [];
-      document.getElementById("gameOverOverlay").style.display = "none";
+      // Falls das Pause-Overlay aktiv war, ausblenden
+      document.getElementById("pauseOverlay").style.display = "none";
       scoreRecorded = false;
       generateSeries();
       updateHeartsDisplay();
@@ -915,11 +981,20 @@
     Dein Browser unterstützt das Audio-Element nicht.
   </audio>
   
+  <!-- Pause-Overlay (wird beim Pausieren angezeigt) -->
+  <div id="pauseOverlay">
+    <div id="pauseHeader">SESSION PAUSIERT</div>
+    <div id="pauseProgressContainer">
+      <div id="pauseProgress"></div>
+    </div>
+    <div id="pauseMessage"></div>
+  </div>
+  
   <!-- Welcome Overlay (Intro, 5 Sekunden) -->
   <div id="welcomeOverlay">
     <div id="welcomeMessage">Schön, dass du da bist!</div>
   </div>
-  <!-- Game Over / Session-Pause Overlay -->
+  <!-- Game Over / Session-Pause Overlay (wird nicht mehr genutzt) -->
   <div id="gameOverOverlay"></div>
   <!-- Scoreboard Overlay -->
   <div id="scoreboardOverlay" class="hidden"></div>
@@ -931,7 +1006,7 @@
   <div id="mainContent">
     <!-- Notation (Einhandmodus) -->
     <div id="notation"></div>
-    <!-- Notenname-Anzeige -->
+    <!-- Notenname-Anzeige (normaler Modus) -->
     <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase;"></div>
     <!-- Container für Lagewechsel-Button & Herzen -->
     <div id="buttonContainer">
