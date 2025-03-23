@@ -82,8 +82,7 @@
     .animate-motivation {
       animation: floatFade 2.5s ease-out forwards;
     }
-    /* Pause-Overlay: Das Overlay füllt den Bildschirm,
-       aber der Info-Bereich (#pauseInfo) wird oben links positioniert */
+    /* Pause-Overlay */
     #pauseOverlay {
       position: fixed;
       top: 0;
@@ -92,9 +91,10 @@
       height: 100%;
       background: #ffffff;
       z-index: 1000;
-      display: block;
+      display: none;
+      /* Wir setzen hier keine zentrale Flex-Ausrichtung, da der Info-Bereich oben links stehen soll */
     }
-    /* Info-Bereich im Pause-Modus: oben links, horizontal angeordnet */
+    /* Info-Bereich im Pause-Modus: oben links */
     #pauseInfo {
       position: absolute;
       top: 10px;
@@ -110,14 +110,14 @@
       color: #000;
       white-space: nowrap;
     }
-    /* Roter Fortschrittsbalken, ohne Hintergrund – passt sich über den restlichen Platz an */
+    /* Fortschrittsbalken – ohne grauen Hintergrund, passt sich über den restlichen Platz an */
     #pauseProgressContainer {
       flex-grow: 1;
       height: 20px;
       border-radius: 10px;
       position: relative;
+      /* kein Hintergrund, damit nur der rote Balken sichtbar ist */
     }
-    /* Der Balken selbst: seine Breite wird dynamisch per JS gesetzt */
     #pauseProgress {
       height: 100%;
       width: 0%;
@@ -125,7 +125,7 @@
       border-radius: 10px;
       transition: width 1s linear;
     }
-    /* Verbleibende Zeit im Format mm:ss */
+    /* Verbleibende Zeit in mm:ss */
     #pauseTime {
       font-size: 14px;
       color: #000;
@@ -292,20 +292,20 @@
     body.dark-mode #welcomeMessage { color: #e0e0e0; }
   </style>
   <script>
-    /**************** Adaptive Pause ****************/
-    function calculateAdaptiveBreakTime(responseTimes, hitRate) {
-      if (responseTimes.length === 0) return 5;
-      let sum = responseTimes.reduce((acc, time) => acc + time, 0);
-      let avgResponseTime = sum / responseTimes.length;
-      const baseline = 500;
-      let slowdownFactor = avgResponseTime / baseline;
-      let fatigueIndex = slowdownFactor * (1 - hitRate);
-      const basePause = 10;
-      let breakTime = basePause * fatigueIndex;
-      return Math.max(5, Math.min(breakTime, 300));
-    }
-    /**********************************************/
-
+    // Zuerst globale Variablen, u.a. für Handoptionen
+    const handOptions = [
+      { mode: "left", symbol: "✋" },
+      { mode: "right", symbol: "✋", flip: true }
+    ];
+    let currentHandIndex = 0;
+    let selectedMode = handOptions[currentHandIndex].mode;
+    let randomMode = false;
+    
+    const rangeArray = ["C", "D", "F", "G", "MC"];
+    let currentRangeIndex = 0;
+    let currentRange = rangeArray[currentRangeIndex];
+    
+    // Weitere globale Variablen
     let currentSeriesSingle = [];
     let seriesCounter = 0;
     const seriesLength = 5;
@@ -317,11 +317,10 @@
     let responseTimes = [];
     let lastNoteTimestamp = Date.now();
     let appStartTime = Date.now();
-    let sessionCounter = 5;  // 5 korrekte Noten erforderlich
+    let sessionCounter = 5; // 5 korrekte Noten erforderlich
     let sessionPaused = false;
     let scoreRecorded = false;
     let sessionCount = 0;
-    
     let unlimitedLives = true;
     let hearts = unlimitedLives ? Infinity : 4;
     const updateHeartsDisplay = () => {
@@ -342,13 +341,24 @@
       document.getElementById("timerContainer").textContent = display + " | " + sessionCounter;
     };
     setInterval(updateTimer, 1000);
-    
+
+    function calculateAdaptiveBreakTime(responseTimes, hitRate) {
+      if (responseTimes.length === 0) return 5;
+      let sum = responseTimes.reduce((acc, time) => acc + time, 0);
+      let avgResponseTime = sum / responseTimes.length;
+      const baseline = 500;
+      let slowdownFactor = avgResponseTime / baseline;
+      let fatigueIndex = slowdownFactor * (1 - hitRate);
+      const basePause = 10;
+      let breakTime = basePause * fatigueIndex;
+      return Math.max(5, Math.min(breakTime, 300));
+    }
+
     let pauseRemaining = 0;
     let pauseInterval = null;
     let confettiShown = false;
     let pauseDuration = 0;
     
-    // Aktualisiert den Fortschrittsbalken und die verbleibende Zeit (im Format mm:ss) – beides wird im Info-Bereich angezeigt
     function updatePauseProgress() {
       const progressBar = document.getElementById("pauseProgress");
       const timeDisplay = document.getElementById("pauseTime");
@@ -392,7 +402,6 @@
       }
     }
     
-    // Startet den Pause-Modus: Blendet den normalen Content aus und zeigt oben links den Info-Bereich
     const startPauseCountdown = () => {
       sessionPaused = true;
       sessionCount++;
@@ -486,72 +495,7 @@
       if (!overlay.classList.contains("hidden")) updateScoreboard();
     };
     
-    const handOptions = [
-      { mode: "left", symbol: "✋" },
-      { mode: "right", symbol: "✋", flip: true }
-    ];
-    let currentHandIndex = 0;
-    let selectedMode = handOptions[currentHandIndex].mode;
-    let randomMode = false;
-    
-    const rangeArray = ["C", "D", "F", "G", "MC"];
-    let currentRangeIndex = 0;
-    let currentRange = rangeArray[currentRangeIndex];
-    
-    const motivationMessages = ["🥳", "🎉", "🎈", "🪩", "👑"];
-    const showMotivationMessage = () => {
-      const overlay = document.getElementById("motivationOverlay");
-      const msg = motivationMessages[Math.floor(Math.random() * motivationMessages.length)];
-      overlay.textContent = msg;
-      overlay.classList.add("animate-motivation");
-      setTimeout(() => {
-        overlay.classList.remove("animate-motivation");
-        overlay.textContent = "";
-      }, 2500);
-    };
-    
-    function getRandomThreshold() {
-      return Math.floor(Math.random() * 4) + 2;
-    }
-    
-    const rangeNotes = {
-      "C": ["c", "d", "e", "f", "g"],
-      "D": ["d", "e", "f#", "g", "a"],
-      "F": ["f", "g", "a", "bb", "c"],
-      "G": ["g", "a", "b", "c", "d"],
-      "MC": ["c", "d", "e", "f", "g"]
-    };
-    
-    const isNoteCorrect = (midiInfo) => {
-      const expected = currentSeriesSingle[seriesCounter];
-      if (!expected) return false;
-      const playedNote = midiInfo.note.toLowerCase();
-      const expectedNote = expected.note.toLowerCase();
-      return playedNote === expectedNote && midiInfo.octave === expected.octave;
-    };
-    
-    const removeFromErrorNotes = (noteObj) => {
-      errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
-    };
-    
-    const proceedToMainScreen = () => {
-      const audio = document.getElementById("backgroundSound");
-      if (audio) {
-        audio.pause();
-      }
-      const welcomeOverlay = document.getElementById("welcomeOverlay");
-      welcomeOverlay.style.opacity = "0";
-      setTimeout(() => {
-        welcomeOverlay.classList.add("hidden");
-        const mainContent = document.getElementById("mainContent");
-        mainContent.style.display = "block";
-        document.getElementById("timerContainer").style.display = "flex";
-        document.getElementById("settingsPanel").style.display = "flex";
-        setTimeout(() => { mainContent.style.opacity = "1"; }, 10);
-      }, 500);
-    };
-
-    const autoSelectMode = () => {
+    function autoSelectMode() {
       let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const leftScores = highScores.filter(score => score.mode === "left");
       const rightScores = highScores.filter(score => score.mode === "right");
@@ -569,7 +513,7 @@
         handToggle.textContent = handOptions[currentHandIndex].symbol;
         handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
       }
-    };
+    }
     
     const cycleRange = () => {
       currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
