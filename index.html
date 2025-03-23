@@ -207,12 +207,15 @@
       font-size: 1.5em;
     }
     /* Notenname-Anzeige */
+    /* Hier erfolgt nun die Darstellung der gespielten Note (links in rot, falls falsch) und der korrekten Note (rechts in grün) */
     #noteNameDisplay {
       margin-top: 10px;
       font-size: 24px;
       color: #000;
     }
-    body.dark-mode #noteNameDisplay { color: #e0e0e0; }
+    body.dark-mode #noteNameDisplay {
+      color: #e0e0e0;
+    }
     /* Welcome Overlay – transparent, sodass die Blobs sichtbar bleiben und dennoch den Rest blockieren */
     #welcomeOverlay {
       position: fixed;
@@ -736,6 +739,9 @@
       correctNoteCount = 0;
       nextMotivationThreshold = getRandomThreshold();
       
+      // Notennamen-Anzeige zurücksetzen (beim Generieren neuer Noten)
+      document.getElementById("noteNameDisplay").textContent = "";
+      
       // Bestimme Notenschlüssel für diese Serie:
       const seriesClef = randomMode ? (Math.random() < 0.5 ? "bass" : "treble") : ((selectedMode === "left") ? "bass" : "treble");
       
@@ -826,9 +832,8 @@
           return { note: noteNames[data1 % 12], octave: octave };
         })();
         
-        const noteName = midiInfo.note + midiInfo.octave;
+        const playedNote = midiInfo.note + midiInfo.octave;
         const noteDisplay = document.getElementById("noteNameDisplay");
-        if (noteDisplay) noteDisplay.textContent = noteName;
         totalAttempts++;
         if (isNoteCorrect(midiInfo)) {
           currentSeriesSingle[seriesCounter].color = "green";
@@ -841,6 +846,10 @@
           }
           sessionCounter--;
           addCircle("positive");
+          // Bei korrekter Note: zeige den Notennamen in grün
+          if (noteDisplay) {
+            noteDisplay.innerHTML = '<span style="color:green;">' + playedNote + '</span>';
+          }
           if (sessionCounter <= 0) {
             sessionCounter = 0;
             startPauseCountdown();
@@ -851,6 +860,11 @@
           currentSeriesSingle[seriesCounter].color = "red";
           errorNotes.push(currentSeriesSingle[seriesCounter]);
           addCircle("negative");
+          // Bei falscher Note: zeige links den gespielten Notennamen in rot und rechts den korrekten in grün
+          if (noteDisplay) {
+            const correctNote = currentSeriesSingle[seriesCounter].note + currentSeriesSingle[seriesCounter].octave;
+            noteDisplay.innerHTML = '<span style="color:red;">' + playedNote + '</span> <span style="color:green;">' + correctNote + '</span>';
+          }
           if (!unlimitedLives) {
             hearts--;
             updateHeartsDisplay();
@@ -916,13 +930,13 @@
   <div id="mainContent">
     <!-- Notation (Einhandmodus) -->
     <div id="notation"></div>
-    <!-- Lagewechsel-Button & Herzen -->
+    <!-- Notenname-Anzeige -->
+    <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase;"></div>
+    <!-- Container für Lagewechsel-Button & Herzen -->
     <div id="buttonContainer">
       <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
       <div id="heartsContainer" style="margin-left:10px;"></div>
     </div>
-    <!-- Notenname-Anzeige -->
-    <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase;"></div>
   </div>
   <!-- Einstellungen-Menü (initial ausgeblendet) -->
   <div id="settingsPanel"></div>
