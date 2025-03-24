@@ -1053,12 +1053,23 @@ function generateBarChartHTML() {
         generateSeries();
       });
       // Pausen-Button
+      function blinkGreenBackground() {
+        // Ursprüngliche Hintergrundfarbe speichern (falls gesetzt, sonst Standardwert)
+        const originalBg = document.body.style.backgroundColor || "";
+        // Setze den Hintergrund auf den bekannten Grünton
+        document.body.style.backgroundColor = "LightBlue"; // hier den gewünschten Grünton anpassen
+        // Nach 300 Millisekunden wieder zurücksetzen
+        setTimeout(function() {
+          document.body.style.backgroundColor = originalBg;
+        }, 300);
+      }
+      
       const pauseButton = document.createElement("span");
       pauseButton.id = "pauseButton";
-      pauseButton.textContent = "⏸";
+      pauseButton.textContent = "💾";
       settingsPanel.appendChild(pauseButton);
       pauseButton.addEventListener("click", () => {
-        if (!sessionPaused) { startPauseCountdown(); }
+        if (!sessionPaused) { saveStatistics(); blinkGreenBackground(); console.log("Statistiken gespeichert und grüner Blinkeffekt ausgeführt."); }
       });
       // Life-Toggle
       const lifeToggle = document.createElement("span");
@@ -1230,6 +1241,9 @@ function generateBarChartHTML() {
       generateSeries();
       updateHeartsDisplay();
     };
+                                            
+
+// Funktion, die den Hintergrund für kurze Zeit grün färbt und danach wieder zurücksetzt
   </script>
 </head>
 <body>
