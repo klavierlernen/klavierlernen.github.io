@@ -427,6 +427,12 @@
   <script>
     /************** Funktionen, die vor der Verwendung deklariert sein müssen **************/
     
+    function logSessionStart() {
+      const sessionTimes = JSON.parse(localStorage.getItem("sessionTimes") || "[]");
+      sessionTimes.push(new Date().toISOString());
+      localStorage.setItem("sessionTimes", JSON.stringify(sessionTimes));
+    }
+      
     // Speichert die relevanten Statistiken im localStorage
     function saveStatistics() {
       const stats = {
@@ -610,7 +616,7 @@
             <div class="tileValue">${correctPercent}%</div>
           </div>
           <div class="tile">
-            <div class="tileTitle">Wan übst du am meisten?</div>
+            <div class="tileTitle">Wann übst du am meisten?</div>
             <div class="barChart">
                ${generateBarChartHTML()}
             </div>
@@ -713,55 +719,62 @@
         return container.outerHTML;
       }
                                             
-      function generateBarChartHTML() {
-        // Standardwerte: Jeder Tag wird initial auf 0 gesetzt.
-        const dayCounts = { Mo: 0, Di: 0, Mi: 0, Do: 0, Fr: 0, Sa: 0, So: 0 };
-        
-        // Lese gespeicherte Zeiten und zähle pro Wochentag
-        const openTimes = JSON.parse(localStorage.getItem("openTimes") || "[]");
-        openTimes.forEach(timeStr => {
-          const d = new Date(timeStr);
-          const day = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
-          if (dayCounts.hasOwnProperty(day)) {
-            dayCounts[day]++;
-          }
-        });
-        
-        const days = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-        // maxVal soll mindestens 1 sein, damit bei 0-Daten die Division nicht fehlschlägt
-        const maxVal = Math.max(...Object.values(dayCounts), 1);
-        
-        // Erstelle Container als Flex-Layout, in dem jede Säule (Bar) und ihr Label in einem eigenen Block stehen
-        const container = document.createElement("div");
-        container.className = "bar-chart-container";
-        
-        days.forEach(day => {
-          const val = dayCounts[day] || 0;
-          
-          // Einzelner Block für Balken und Beschriftung
-          const barItem = document.createElement("div");
-          barItem.className = "bar-item";
-          
-          const bar = document.createElement("div");
-          bar.className = "bar";
-          // Berechne die Höhe in px (maximal 100px). Ist der Wert 0, bleibt die Höhe 0px.
-          const height = Math.round((val / maxVal) * 100);
-          bar.style.height = `${height}px`;
-          
-          const label = document.createElement("div");
-          label.className = "bar-label";
-          label.textContent = day;
-          
-          barItem.appendChild(bar);
-          barItem.appendChild(label);
-          container.appendChild(barItem);
-        });
-        
-        return container.outerHTML;
-      }
+function generateBarChartHTML() {
+  // Standardwerte: Jeder Tag wird initial auf 0 gesetzt.
+  const dayCounts = { Mo: 0, Di: 0, Mi: 0, Do: 0, Fr: 0, Sa: 0, So: 0 };
+  
+  // Zähle Öffnungszeiten
+  const openTimes = JSON.parse(localStorage.getItem("openTimes") || "[]");
+  openTimes.forEach(timeStr => {
+    const d = new Date(timeStr);
+    const day = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
+    if (dayCounts.hasOwnProperty(day)) {
+      dayCounts[day]++;
+    }
+  });
+  
+  // Zähle Session-Zeitpunkte
+  const sessionTimes = JSON.parse(localStorage.getItem("sessionTimes") || "[]");
+  sessionTimes.forEach(timeStr => {
+    const d = new Date(timeStr);
+    const day = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
+    if (dayCounts.hasOwnProperty(day)) {
+      dayCounts[day]++;
+    }
+  });
+  
+  const days = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+  const maxVal = Math.max(...Object.values(dayCounts), 1);
+  
+  // Erstelle Container als Flex-Layout für das Balkendiagramm
+  const container = document.createElement("div");
+  container.className = "bar-chart-container";
+  
+  days.forEach(day => {
+    const val = dayCounts[day] || 0;
+    const barItem = document.createElement("div");
+    barItem.className = "bar-item";
+    
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    const height = Math.round((val / maxVal) * 100);
+    bar.style.height = `${height}px`;
+    
+    const label = document.createElement("div");
+    label.className = "bar-label";
+    label.textContent = day;
+    
+    barItem.appendChild(bar);
+    barItem.appendChild(label);
+    container.appendChild(barItem);
+  });
+  
+  return container.outerHTML;
+}
       
       
     const startPauseCountdown = () => {
+            logSessionStart(); // Neuen Session-Zeitstempel speichern
       sessionPaused = true;
       sessionCount++;
       const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
