@@ -423,10 +423,62 @@
         grid-row: span 1 !important;
       }
       
+      #streakDisplay {
+        position: fixed;
+        left: 20px;
+        bottom: 30px;
+        font-size: 1.5em;
+        z-index: 50;
+      }
+      
   </style>
   <script>
     /************** Funktionen, die vor der Verwendung deklariert sein müssen **************/
     
+    function updateStreak() {
+      // Hole den bisherigen Streak (falls vorhanden)
+      let streak = Number(localStorage.getItem("streak")) || 0;
+      // Hole das Datum der letzten Lernsession, falls vorhanden
+      let lastDateStr = localStorage.getItem("lastLearnDate");
+      // Bestimme heute (ohne Uhrzeit)
+      let today = new Date();
+      today.setHours(0,0,0,0);
+      
+      if (lastDateStr) {
+        let lastDate = new Date(lastDateStr);
+        lastDate.setHours(0,0,0,0);
+        // Berechne den Unterschied in Tagen
+        let diffDays = (today - lastDate) / (1000 * 60 * 60 * 24);
+        if (diffDays === 1) {
+          // Konsekutiver Tag: Erhöhe den Streak
+          streak++;
+        } else if (diffDays > 1) {
+          // Mehr als ein Tag Pause: Streak zurücksetzen
+          streak = 1;
+        }
+        // Falls diffDays === 0: wir sind noch am gleichen Tag; der Streak bleibt unverändert
+      } else {
+        streak = 1;
+      }
+      
+      // Speichere das heutige Datum und den aktuellen Streak
+      localStorage.setItem("lastLearnDate", today.toISOString());
+      localStorage.setItem("streak", streak);
+      
+      return streak;
+    }
+      
+      document.addEventListener("DOMContentLoaded", () => {
+        // ... (deine bestehenden Initialisierungen)
+        
+        // Aktualisiere und zeige den Streak an:
+        const currentStreak = updateStreak();
+        const streakDisplay = document.getElementById("streakDisplay");
+        streakDisplay.textContent = "🔥 " + currentStreak;
+        
+        // Restlicher Code...
+      });
+      
     function logSessionStart() {
       const sessionTimes = JSON.parse(localStorage.getItem("sessionTimes") || "[]");
       sessionTimes.push(new Date().toISOString());
@@ -1247,6 +1299,7 @@ function generateBarChartHTML() {
   </script>
 </head>
 <body>
+    <div id="streakDisplay"></div>
   <!-- Canvas für Animation (Hintergrund) -->
   <canvas id="animationCanvas"></canvas>
   <!-- Audio-Element -->
