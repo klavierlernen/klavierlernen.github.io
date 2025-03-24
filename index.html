@@ -131,7 +131,7 @@
       white-space: nowrap;
       margin-left: 10px;
     }
-    /* Kachelwand im Pausenmodus – Füllt den restlichen Raum wie eine Tapete */
+    /* Kachelwand im Pausenmodus */
     #pauseTiles {
       flex-grow: 1;
       width: 100%;
@@ -143,7 +143,7 @@
       gap: 12px;
       overflow-y: auto;
     }
-    /* Variierende Kacheln (Mauerstein-Effekt) */
+    /* Variierende Kacheln */
     .tile:nth-child(3n) {
       grid-row: span 2;
     }
@@ -302,7 +302,7 @@
       border-color: #fff;
       color: #fff;
     }
-    /* Neuer Pausen-Button im Menü */
+    /* Neuer Pausen-Button */
     #pauseButton {
       display: inline-block;
       background: #fff;
@@ -336,7 +336,7 @@
       vertical-align: middle;
       font-size: 1.5em;
     }
-    /* Notenname-Anzeige (normaler Modus) */
+    /* Notenname-Anzeige */
     #noteNameDisplay {
       margin-top: 10px;
       font-size: 24px;
@@ -366,154 +366,172 @@
       font-weight: bold;
     }
     body.dark-mode #welcomeMessage { color: #e0e0e0; }
-    
+    /* Streak Anzeige */
+    #streakDisplay {
+      position: fixed;
+      left: 20px;
+      bottom: 30px;
+      font-size: 1.5em;
+      z-index: 50;
+    }
+    /* Bar Chart Container */
     .bar-chart-container {
       display: flex;
       justify-content: space-between;
       gap: 4px;
       width: 100%;
       padding: 10px;
-      height: 120px; /* Gesamthöhe inkl. Label */
+      height: 120px;
     }
-
     .bar-item {
       display: flex;
       flex-direction: column;
       align-items: center;
       flex: 1;
     }
-
     .bar {
       width: 100%;
       background: linear-gradient(to top, black, grey);
       border-radius: 4px 4px 0 0;
       transition: height 0.5s ease-in-out;
     }
-
     .bar-label {
       margin-top: 4px;
       font-size: 0.9em;
       text-align: center;
       color: #000;
     }
-      
-      /* Beispiel: Klasse für eine breite, aber nur 1 Zeile hohe Kachel */
-      .tile.span-2 {
-        grid-column: span 2;
-        /* Falls eine andere Regel (nth-child(3n)) sie hochskalieren würde, überschreiben wir das: */
-        grid-row: span 1 !important;
-      }
-      
-      body.dark-mode #pauseOverlay {
-        background: #121212; /* dunkler Hintergrund */
-      }
-
-      body.dark-mode #pauseHeader,
-      body.dark-mode #pauseTime {
-        color: white; /* helle Schrift */
-      }
-
-      body.dark-mode #pauseProgressContainer {
-        background: black; /* evtl. noch dunklerer Hintergrund für den Fortschrittsbalken */
-        border-color: white;
-      }
-      
-      .tile.span-2 {
-        grid-column: span 2;
-        grid-row: span 1 !important;
-      }
-      
-      #streakDisplay {
-        position: fixed;
-        left: 20px;
-        bottom: 30px;
-        font-size: 1.5em;
-        z-index: 50;
-      }
-      
+    /* Beispiel: Kachelspan */
+    .tile.span-2 {
+      grid-column: span 2;
+      grid-row: span 1 !important;
+    }
+    body.dark-mode #pauseOverlay {
+      background: #121212;
+    }
+    body.dark-mode #pauseHeader,
+    body.dark-mode #pauseTime {
+      color: white;
+    }
+    body.dark-mode #pauseProgressContainer {
+      background: black;
+      border-color: white;
+    }
   </style>
   <script>
-    /************** Funktionen, die vor der Verwendung deklariert sein müssen **************/
+    /********** Globale Variablen & Adaptive Difficulty **********/
+    let baseSeriesLength = 10;
+    let baseSwitchInterval = 3000;
+    let currentSwitchInterval = baseSwitchInterval;
+    let difficultyParameter = 0;
+    const minDifficulty = -3;
+    const maxDifficulty = 3;
+    let seriesLength = baseSeriesLength; // dynamisch veränderlich
+
+    const handOptions = [
+      { mode: "left", symbol: "✋" },
+      { mode: "right", symbol: "✋", flip: true }
+    ];
+    let currentHandIndex = 0;
+    let selectedMode = handOptions[currentHandIndex].mode;
+    let randomMode = false;
     
-    // Neue Funktion, die einen grünen Farbtupfer erzeugt
+    const rangeArray = ["C", "D", "F", "G", "MC"];
+    let currentRangeIndex = 0;
+    let currentRange = rangeArray[currentRangeIndex];
+    
+    const rangeNotes = {
+      "C": ["c", "d", "e", "f", "g"],
+      "D": ["d", "e", "f#", "g", "a"],
+      "F": ["f", "g", "a", "bb", "c"],
+      "G": ["g", "a", "b", "c", "d"],
+      "MC": ["c", "d", "e", "f", "g"]
+    };
+    
+    let currentSeriesSingle = [];
+    let seriesCounter = 1000;
+    let totalAttempts = 0;
+    let correctAnswers = 0;
+    let correctNoteCount = 0;
+    let nextMotivationThreshold = getRandomThreshold();
+    let errorNotes = [];
+    let responseTimes = [];
+    let lastNoteTimestamp = Date.now();
+    let appStartTime = Date.now();
+    let sessionCounter = 1000;
+    let sessionPaused = false;
+    let scoreRecorded = false;
+    let sessionCount = 0;
+    let unlimitedLives = true;
+    let hearts = unlimitedLives ? Infinity : 4;
+    let inactivityTimeout = null;
+    
+    /********** Adaptive Difficulty & Allgemeine Funktionen **********/
+    function adjustDifficulty() {
+      const recentResponses = responseTimes.slice(-10);
+      const avgResponseTime = recentResponses.reduce((acc, t) => acc + t, 0) / (recentResponses.length || 1);
+      const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
+      const fastThreshold = 500;
+      const highHitRate = 0.9;
+      const slowThreshold = 800;
+      const lowHitRate = 0.7;
+      
+      if (avgResponseTime < fastThreshold && hitRate > highHitRate) {
+        difficultyParameter++;
+      } else if (avgResponseTime > slowThreshold || hitRate < lowHitRate) {
+        difficultyParameter--;
+      }
+      difficultyParameter = Math.max(minDifficulty, Math.min(maxDifficulty, difficultyParameter));
+      seriesLength = baseSeriesLength + difficultyParameter;
+      currentSwitchInterval = Math.max(1000, baseSwitchInterval - difficultyParameter * 500);
+      console.log("Adaptive Difficulty:", difficultyParameter, "SeriesLength:", seriesLength, "SwitchInterval:", currentSwitchInterval);
+    }
+    setInterval(adjustDifficulty, 5000);
+    
     function saveButtonEffect() {
       const canvas = document.getElementById("animationCanvas");
       if (!canvas) return;
-      
-      // Hole die Position des Menüs (settingsPanel)
       const settingsPanel = document.getElementById("settingsPanel");
       let x, y;
       if (settingsPanel) {
         const rect = settingsPanel.getBoundingClientRect();
-        // Tupfer soll in der Mitte des Menüs erscheinen
         x = rect.left + rect.width / 2;
         y = rect.top + rect.height / 2;
       } else {
-        // Fallback: Mitte des Canvas
         x = canvas.width / 2;
         y = canvas.height / 2;
       }
-      
-      // Definiere Parameter für den Tupfer
-      const radius = Math.random() * 200 + 200; // Größe anpassen
+      const radius = Math.random() * 200 + 200;
       const creationTime = Date.now();
-      const duration = 1500; // Dauer in Millisekunden
-      
-      // Erzeuge den Tupfer (Farbtupfer wird zur globalen circles-Array hinzugefügt)
+      const duration = 1500;
       circles.push({ x, y, radius, color: "green", creationTime, duration });
     }
-      
+    
     function updateStreak() {
-      // Hole den bisherigen Streak (falls vorhanden)
       let streak = Number(localStorage.getItem("streak")) || 0;
-      // Hole das Datum der letzten Lernsession, falls vorhanden
       let lastDateStr = localStorage.getItem("lastLearnDate");
-      // Bestimme heute (ohne Uhrzeit)
       let today = new Date();
       today.setHours(0,0,0,0);
-      
       if (lastDateStr) {
         let lastDate = new Date(lastDateStr);
         lastDate.setHours(0,0,0,0);
-        // Berechne den Unterschied in Tagen
         let diffDays = (today - lastDate) / (1000 * 60 * 60 * 24);
-        if (diffDays === 1) {
-          // Konsekutiver Tag: Erhöhe den Streak
-          streak++;
-        } else if (diffDays > 1) {
-          // Mehr als ein Tag Pause: Streak zurücksetzen
-          streak = 1;
-        }
-        // Falls diffDays === 0: wir sind noch am gleichen Tag; der Streak bleibt unverändert
+        if (diffDays === 1) { streak++; }
+        else if (diffDays > 1) { streak = 1; }
       } else {
         streak = 1;
       }
-      
-      // Speichere das heutige Datum und den aktuellen Streak
       localStorage.setItem("lastLearnDate", today.toISOString());
       localStorage.setItem("streak", streak);
-      
       return streak;
     }
-      
-      document.addEventListener("DOMContentLoaded", () => {
-        // ... (deine bestehenden Initialisierungen)
-        
-        // Aktualisiere und zeige den Streak an:
-        const currentStreak = updateStreak();
-        const streakDisplay = document.getElementById("streakDisplay");
-        streakDisplay.textContent = "🔥 " + currentStreak;
-        
-        // Restlicher Code...
-      });
-      
+    
     function logSessionStart() {
       const sessionTimes = JSON.parse(localStorage.getItem("sessionTimes") || "[]");
       sessionTimes.push(new Date().toISOString());
       localStorage.setItem("sessionTimes", JSON.stringify(sessionTimes));
     }
-      
-    // Speichert die relevanten Statistiken im localStorage
+    
     function saveStatistics() {
       const stats = {
         totalAttempts: totalAttempts,
@@ -523,13 +541,11 @@
         sessionCount: sessionCount,
         hearts: hearts,
         errorNotes: errorNotes,
-        // Du kannst hier auch weitere Variablen eintragen, z.B. openTimes, appStartTime etc.
         appStartTime: appStartTime
       };
       localStorage.setItem("appStatistics", JSON.stringify(stats));
     }
-
-    // Lädt die Statistiken aus dem localStorage und weist sie den globalen Variablen zu
+    
     function loadStatistics() {
       const statsStr = localStorage.getItem("appStatistics");
       if (statsStr) {
@@ -544,11 +560,8 @@
         appStartTime = stats.appStartTime || Date.now();
       }
     }
-
-    // Optional: Speichern der Statistiken, wenn die Seite geschlossen wird
+    
     window.addEventListener("beforeunload", saveStatistics);
-
-    // Beim Laden der Seite die Statistiken laden
     document.addEventListener("DOMContentLoaded", loadStatistics);
     
     function proceedToMainScreen() {
@@ -558,92 +571,23 @@
       welcomeOverlay.style.opacity = "0";
       setTimeout(() => {
         welcomeOverlay.classList.add("hidden");
-        const mainContent = document.getElementById("mainContent");
-        mainContent.style.display = "block";
+        document.getElementById("mainContent").style.display = "block";
         document.getElementById("timerContainer").style.display = "flex";
         document.getElementById("settingsPanel").style.display = "flex";
-        setTimeout(() => { mainContent.style.opacity = "1"; }, 10);
+        setTimeout(() => { document.getElementById("mainContent").style.opacity = "1"; }, 10);
       }, 500);
     }
+    
     function getRandomThreshold() {
       return Math.floor(Math.random() * 4) + 2;
     }
     
-    document.addEventListener("DOMContentLoaded", () => {
-      // Erstelle den Pause-Button und füge ihn dem Einstellungen-Panel hinzu
-      const settingsPanel = document.getElementById("settingsPanel");
-      const pauseButton = document.createElement("span");
-      pauseButton.id = "pauseButton";
-      pauseButton.textContent = "💾";
-      settingsPanel.appendChild(pauseButton);
-
-      // Füge den Event Listener hinzu
-      pauseButton.addEventListener("click", () => {
-        if (!sessionPaused) {
-          saveStatistics();
-          saveButtonEffect();
-          console.log("Statistiken gespeichert und grüner Farbtupfer ausgelöst.");
-        }
-      });
-    });
-      
-    /************** Globale Variablen & Konstanten **************/
-    // Handoptionen
-    const handOptions = [
-      { mode: "left", symbol: "✋" },
-      { mode: "right", symbol: "✋", flip: true }
-    ];
-    let currentHandIndex = 0;
-    let selectedMode = handOptions[currentHandIndex].mode;
-    let randomMode = false;
-    
-    // Verfügbare Lagen
-    const rangeArray = ["C", "D", "F", "G", "MC"];
-    let currentRangeIndex = 0;
-    let currentRange = rangeArray[currentRangeIndex];
-    
-    // Wichtig: Definition der rangeNotes – Zuordnung von Lage zu Noten
-    const rangeNotes = {
-      "C": ["c", "d", "e", "f", "g"],
-      "D": ["d", "e", "f#", "g", "a"],
-      "F": ["f", "g", "a", "bb", "c"],
-      "G": ["g", "a", "b", "c", "d"],
-      "MC": ["c", "d", "e", "f", "g"]
-    };
-    
-    let currentSeriesSingle = [];
-    let seriesCounter = 1000;
-    const seriesLength = 5;
-    let totalAttempts = 0;
-    let correctAnswers = 0;
-    let correctNoteCount = 0;
-    let nextMotivationThreshold = getRandomThreshold();
-    let errorNotes = [];
-    let responseTimes = [];
-    let lastNoteTimestamp = Date.now();
-    let appStartTime = Date.now();
-    let sessionCounter = 1000; // 5 korrekte Noten erforderlich
-    let sessionPaused = false;
-    let scoreRecorded = false;
-    let sessionCount = 0;
-    let unlimitedLives = true;
-    let hearts = unlimitedLives ? Infinity : 4;
-    let inactivityTimeout = null; 
-    
-    // Beim Laden der Seite oder zu Beginn eines Trainings:
-    const saveOpenTime = () => {
-      const openTimes = JSON.parse(localStorage.getItem("openTimes") || "[]");
-      openTimes.push(new Date().toISOString());
-      localStorage.setItem("openTimes", JSON.stringify(openTimes));
-    };
-
-    document.addEventListener("DOMContentLoaded", saveOpenTime);
-    
-    const updateHeartsDisplay = () => {
+    function updateHeartsDisplay() {
       const heartsElem = document.getElementById("heartsContainer");
       heartsElem.textContent = unlimitedLives ? "∞" : "❤️".repeat(hearts);
-    };
-    const updateTimer = () => {
+    }
+    
+    function updateTimer() {
       const elapsed = Math.floor((Date.now() - appStartTime) / 1000);
       let display;
       if (elapsed < 60) { display = elapsed + " s"; }
@@ -653,8 +597,9 @@
         display = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
       }
       document.getElementById("timerContainer").textContent = display + " | " + sessionCounter;
-    };
+    }
     setInterval(updateTimer, 1000);
+    
     function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       if (responseTimes.length === 0) return 5;
       let sum = responseTimes.reduce((acc, time) => acc + time, 0);
@@ -666,10 +611,12 @@
       let breakTime = basePause * fatigueIndex;
       return Math.max(5, Math.min(breakTime, 300));
     }
+    
     let pauseRemaining = 0;
     let pauseInterval = null;
     let confettiShown = false;
     let pauseDuration = 0;
+    
     function updatePauseProgress() {
       const progressBar = document.getElementById("pauseProgress");
       const timeDisplay = document.getElementById("pauseTime");
@@ -683,196 +630,146 @@
         }
       }
     }
-      function updatePauseTiles() {
-        const container = document.getElementById("pauseTiles");
-        if (!container) return;
-
-        // Berechne App‑Zeit
-        const totalTimeSec = Math.floor((Date.now() - appStartTime) / 1000);
-        const h = Math.floor(totalTimeSec / 3600);
-        const m = Math.floor((totalTimeSec % 3600) / 60);
-        const s = totalTimeSec % 60;
-        const appTime = (h > 0 ? (h + "h ") : "") + m + "m " + s + "s";
-
-        // Berechne Prozent richtiger Noten
-        const correctPercent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
-
-        // Durchschnittliche Bearbeitungszeit (in Sekunden)
-        const avgTimeSec = responseTimes.length
-          ? (responseTimes.reduce((acc, t) => acc + t, 0) / responseTimes.length / 1000).toFixed(2)
-          : "N/A";
-
-        container.innerHTML = `
-          <div class="tile">
-            <div class="tileIcon">⏰</div>
-            <div class="tileTitle">App‑Zeit</div>
-            <div class="tileValue">${appTime}</div>
+    
+    function updatePauseTiles() {
+      const container = document.getElementById("pauseTiles");
+      if (!container) return;
+      const totalTimeSec = Math.floor((Date.now() - appStartTime) / 1000);
+      const h = Math.floor(totalTimeSec / 3600);
+      const m = Math.floor((totalTimeSec % 3600) / 60);
+      const s = totalTimeSec % 60;
+      const appTime = (h > 0 ? (h + "h ") : "") + m + "m " + s + "s";
+      const correctPercent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
+      const avgTimeSec = responseTimes.length
+        ? (responseTimes.reduce((acc, t) => acc + t, 0) / responseTimes.length / 1000).toFixed(2)
+        : "N/A";
+      container.innerHTML = `
+        <div class="tile">
+          <div class="tileIcon">⏰</div>
+          <div class="tileTitle">App‑Zeit</div>
+          <div class="tileValue">${appTime}</div>
+        </div>
+        <div class="tile">
+          <div class="tileIcon">✅</div>
+          <div class="tileTitle">Richtige Noten</div>
+          <div class="tileValue">${correctPercent}%</div>
+        </div>
+        <div class="tile">
+          <div class="tileTitle">Wann übst du am meisten?</div>
+          <div class="barChart">
+             ${generateBarChartHTML()}
           </div>
-          <div class="tile">
-            <div class="tileIcon">✅</div>
-            <div class="tileTitle">Richtige Noten</div>
-            <div class="tileValue">${correctPercent}%</div>
-          </div>
-          <div class="tile">
-            <div class="tileTitle">Wann übst du am meisten?</div>
-            <div class="barChart">
-               ${generateBarChartHTML()}
-            </div>
-          </div>
-          ${ generateLearningQualityGraphTile() }
-          <div class="tile">
-            <div class="tileTitle">Session</div>
-            <div class="tileValue">${sessionCount}</div>
-          </div>
-          <div class="tile span-2">
-            <div class="tileIcon">${handOptions[currentHandIndex].symbol} Ø ${avgTimeSec} s/Note</div>
-            <div class="tileTitle">Lieblingshand</div>
-          </div>
-        `;
-      }
-      
-      function getLastThreeSessions() {
-        // Beispiel: Session-Daten als Array von Objekten mit responseTimes (ms), errorCount, totalAttempts und sessionTime (in sec)
-        const sessions = JSON.parse(localStorage.getItem("sessionData") || "[]");
-        return sessions.slice(-3);
-      }
-
-      function calculateQuality(session) {
-        // Durchschnittliche Antwortzeit in Sekunden (niedriger ist besser)
-        const avgResponse = session.responseTimes.length
-          ? session.responseTimes.reduce((a, b) => a + b, 0) / session.responseTimes.length / 1000
-          : 0;
-        // Fehlerquote (niedriger ist besser)
-        const errorRate = session.totalAttempts ? (session.errorCount / session.totalAttempts) : 0;
-        // Die Session-Dauer in Sekunden – längere Sessions können auf mehr Engagement hinweisen
-        const learningTime = session.sessionTime || 0;
-        // Beispielhafte Gewichtung: Wir wollen, dass niedrigere Antwortzeiten und Fehlerquoten zu höheren Qualitätswerten führen.
-        // Hier eine einfache Rechnung, die in den meisten Fällen einen Wert zwischen 0 und 100 liefert.
-        let quality = 100 - (avgResponse * 10) - (errorRate * 100) + (learningTime / 60);
-        return Math.max(0, Math.min(quality, 100));
-      }
-      
-      function drawLearningQualityGraph(canvas, sessions) {
-        const ctx = canvas.getContext("2d");
-        const width = canvas.width;
-        const height = canvas.height;
-        ctx.clearRect(0, 0, width, height);
-
-        // Berechne die Qualitätswerte
-        const qualities = sessions.map(calculateQuality);
-
-        // Wir erwarten Werte zwischen 0 und 100, also skalieren wir den y-Wert entsprechend.
+        </div>
+        ${ generateLearningQualityGraphTile() }
+        <div class="tile">
+          <div class="tileTitle">Session</div>
+          <div class="tileValue">${sessionCount}</div>
+        </div>
+        <div class="tile span-2">
+          <div class="tileIcon">${handOptions[currentHandIndex].symbol} Ø ${avgTimeSec} s/Note</div>
+          <div class="tileTitle">Lieblingshand</div>
+        </div>
+      `;
+    }
+    
+    function getLastThreeSessions() {
+      const sessions = JSON.parse(localStorage.getItem("sessionData") || "[]");
+      return sessions.slice(-3);
+    }
+    
+    function calculateQuality(session) {
+      const avgResponse = session.responseTimes.length
+        ? session.responseTimes.reduce((a, b) => a + b, 0) / session.responseTimes.length / 1000
+        : 0;
+      const errorRate = session.totalAttempts ? (session.errorCount / session.totalAttempts) : 0;
+      const learningTime = session.sessionTime || 0;
+      let quality = 100 - (avgResponse * 10) - (errorRate * 100) + (learningTime / 60);
+      return Math.max(0, Math.min(quality, 100));
+    }
+    
+    function drawLearningQualityGraph(canvas, sessions) {
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
+      const qualities = sessions.map(calculateQuality);
+      ctx.beginPath();
+      for (let i = 0; i < qualities.length; i++) {
+        const x = (i / (qualities.length - 1)) * width;
+        const y = height - (qualities[i] / 100 * height);
+        if (i === 0) { ctx.moveTo(x, y); }
+        else { ctx.lineTo(x, y); }
         ctx.beginPath();
-        for (let i = 0; i < qualities.length; i++) {
-          const x = (i / (qualities.length - 1)) * width;
-          // Höhere Qualität => niedrigere y-Koordinate (oben ist 0)
-          const y = height - (qualities[i] / 100 * height);
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
-          // Optional: Zeichne einen kleinen Kreis als Punkt
-          ctx.beginPath();
-          ctx.arc(x, y, 3, 0, Math.PI * 2);
-          ctx.fillStyle = "#007aff";
-          ctx.fill();
-          ctx.beginPath(); // Beginne neuen Pfad für die Linie
-          if(i === 0) {
-            ctx.moveTo(x,y);
-          }
-        }
-        ctx.strokeStyle = "#007aff";
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = "#007aff";
+        ctx.fill();
+        ctx.beginPath();
+        if(i === 0) { ctx.moveTo(x,y); }
       }
-      
-      function generateLearningQualityGraphTile() {
-        // Erstelle einen Container (div) für die Kachel – hier nutzen wir span-2, um sie breit anzuzeigen.
-        const container = document.createElement("div");
-        container.className = "tile span-2";
-        
-        const title = document.createElement("div");
-        title.className = "tileTitle";
-        title.textContent = "Lernqualität";
-        container.appendChild(title);
-        
-        // Erstelle ein Canvas für den Graphen
-        const canvas = document.createElement("canvas");
-        canvas.width = 280;  // Passe die Größe an die Kachel an
-        canvas.height = 100;
-        container.appendChild(canvas);
-        
-        // Hole die letzten drei Sessions und zeichne den Graph
-        const sessions = getLastThreeSessions();
-        drawLearningQualityGraph(canvas, sessions);
-        
-        // Berechne den durchschnittlichen Qualitätswert zur zusätzlichen Anzeige
-        let avgQuality = sessions.length ? (sessions.map(calculateQuality).reduce((a, b) => a + b, 0) / sessions.length).toFixed(2) : "N/A";
-        const qualityText = document.createElement("div");
-        qualityText.className = "tileValue";
-        qualityText.textContent = `Ø ${avgQuality} / 100`;
-        container.appendChild(qualityText);
-        
-        return container.outerHTML;
-      }
-                                            
-function generateBarChartHTML() {
-  // Standardwerte: Jeder Tag wird initial auf 0 gesetzt.
-  const dayCounts = { Mo: 0, Di: 0, Mi: 0, Do: 0, Fr: 0, Sa: 0, So: 0 };
-  
-  // Zähle Öffnungszeiten
-  const openTimes = JSON.parse(localStorage.getItem("openTimes") || "[]");
-  openTimes.forEach(timeStr => {
-    const d = new Date(timeStr);
-    const day = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
-    if (dayCounts.hasOwnProperty(day)) {
-      dayCounts[day]++;
+      ctx.strokeStyle = "#007aff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
     }
-  });
-  
-  // Zähle Session-Zeitpunkte
-  const sessionTimes = JSON.parse(localStorage.getItem("sessionTimes") || "[]");
-  sessionTimes.forEach(timeStr => {
-    const d = new Date(timeStr);
-    const day = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
-    if (dayCounts.hasOwnProperty(day)) {
-      dayCounts[day]++;
+    
+    function generateLearningQualityGraphTile() {
+      const container = document.createElement("div");
+      container.className = "tile span-2";
+      const title = document.createElement("div");
+      title.className = "tileTitle";
+      title.textContent = "Lernqualität";
+      container.appendChild(title);
+      const canvas = document.createElement("canvas");
+      canvas.width = 280;
+      canvas.height = 100;
+      container.appendChild(canvas);
+      const sessions = getLastThreeSessions();
+      drawLearningQualityGraph(canvas, sessions);
+      let avgQuality = sessions.length ? (sessions.map(calculateQuality).reduce((a, b) => a + b, 0) / sessions.length).toFixed(2) : "N/A";
+      const qualityText = document.createElement("div");
+      qualityText.className = "tileValue";
+      qualityText.textContent = `Ø ${avgQuality} / 100`;
+      container.appendChild(qualityText);
+      return container.outerHTML;
     }
-  });
-  
-  const days = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-  const maxVal = Math.max(...Object.values(dayCounts), 1);
-  
-  // Erstelle Container als Flex-Layout für das Balkendiagramm
-  const container = document.createElement("div");
-  container.className = "bar-chart-container";
-  
-  days.forEach(day => {
-    const val = dayCounts[day] || 0;
-    const barItem = document.createElement("div");
-    barItem.className = "bar-item";
     
-    const bar = document.createElement("div");
-    bar.className = "bar";
-    const height = Math.round((val / maxVal) * 100);
-    bar.style.height = `${height}px`;
+    function generateBarChartHTML() {
+      const dayCounts = { Mo: 0, Di: 0, Mi: 0, Do: 0, Fr: 0, Sa: 0, So: 0 };
+      const openTimes = JSON.parse(localStorage.getItem("openTimes") || "[]");
+      openTimes.forEach(timeStr => {
+        const d = new Date(timeStr);
+        const day = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
+        if (dayCounts.hasOwnProperty(day)) { dayCounts[day]++; }
+      });
+      const sessionTimes = JSON.parse(localStorage.getItem("sessionTimes") || "[]");
+      sessionTimes.forEach(timeStr => {
+        const d = new Date(timeStr);
+        const day = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
+        if (dayCounts.hasOwnProperty(day)) { dayCounts[day]++; }
+      });
+      const days = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+      const maxVal = Math.max(...Object.values(dayCounts), 1);
+      const container = document.createElement("div");
+      container.className = "bar-chart-container";
+      days.forEach(day => {
+        const val = dayCounts[day] || 0;
+        const barItem = document.createElement("div");
+        barItem.className = "bar-item";
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        const height = Math.round((val / maxVal) * 100);
+        bar.style.height = `${height}px`;
+        const label = document.createElement("div");
+        label.className = "bar-label";
+        label.textContent = day;
+        barItem.appendChild(bar);
+        barItem.appendChild(label);
+        container.appendChild(barItem);
+      });
+      return container.outerHTML;
+    }
     
-    const label = document.createElement("div");
-    label.className = "bar-label";
-    label.textContent = day;
-    
-    barItem.appendChild(bar);
-    barItem.appendChild(label);
-    container.appendChild(barItem);
-  });
-  
-  return container.outerHTML;
-}
-      
-      
-    const startPauseCountdown = () => {
-            logSessionStart(); // Neuen Session-Zeitstempel speichern
+    function startPauseCountdown() {
+      logSessionStart();
       sessionPaused = true;
       sessionCount++;
       const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
@@ -895,33 +792,32 @@ function generateBarChartHTML() {
           endPause();
         }
       }, 1000);
-    };
-      
-      // Erstelle ein Audio-Objekt für den Gong
-      const gongSound = new Audio("https://raw.githubusercontent.com/JP0024/piano.github.io/main/gong-2-232435.mp3");
-      
-      // In deiner Funktion, die das Pausenfenster beendet, rufe den Sound ab:
-      const endPause = () => {
-        document.getElementById("pauseOverlay").style.display = "none";
-        document.getElementById("mainContent").style.display = "block";
-        document.getElementById("timerContainer").style.display = "flex";
-        document.getElementById("settingsPanel").style.display = "flex";
-        sessionPaused = false;
-        // Setze den Sound zurück und spiele ihn ab
-        gongSound.currentTime = 0;
-        gongSound.play();
-        resetGame();
-      };
+    }
+    
+    const gongSound = new Audio("https://raw.githubusercontent.com/JP0024/piano.github.io/main/gong-2-232435.mp3");
+    
+    function endPause() {
+      document.getElementById("pauseOverlay").style.display = "none";
+      document.getElementById("mainContent").style.display = "block";
+      document.getElementById("timerContainer").style.display = "flex";
+      document.getElementById("settingsPanel").style.display = "flex";
+      sessionPaused = false;
+      gongSound.currentTime = 0;
+      gongSound.play();
+      resetGame();
+    }
+    
     let gameOver = false;
-    const endGame = () => {
+    function endGame() {
       gameOver = true;
       const gameOverOverlay = document.getElementById("gameOverOverlay");
       gameOverOverlay.textContent = "Game Over!";
       gameOverOverlay.style.display = "block";
       if (!scoreRecorded) recordScore();
       setTimeout(resetGame, 5000);
-    };
-    const recordScore = () => {
+    }
+    
+    function recordScore() {
       if (totalAttempts <= 0) return;
       const durationMs = Date.now() - appStartTime;
       const secondsTotal = Math.floor(durationMs / 1000);
@@ -942,8 +838,9 @@ function generateBarChartHTML() {
       highScores = highScores.slice(0, 5);
       localStorage.setItem("highScores", JSON.stringify(highScores));
       scoreRecorded = true;
-    };
-    const updateScoreboard = () => {
+    }
+    
+    function updateScoreboard() {
       const allScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const filtered = allScores.filter(score => score.mode === (randomMode ? "random" : selectedMode));
       let html = "HIGHSCORES (" + (randomMode ? "random" : selectedMode) + ")\n";
@@ -951,13 +848,15 @@ function generateBarChartHTML() {
         html += (index + 1) + ". " + score.date + " \t " + score.accuracy + "% " + score.duration + "\n";
       });
       document.getElementById("scoreboardOverlay").textContent = html;
-    };
-    const toggleScoreboard = () => {
+    }
+    
+    function toggleScoreboard() {
       const overlay = document.getElementById("scoreboardOverlay");
       overlay.classList.toggle("hidden");
       if (!overlay.classList.contains("hidden")) updateScoreboard();
-    };
-    const autoSelectMode = () => {
+    }
+    
+    function autoSelectMode() {
       let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const leftScores = highScores.filter(score => score.mode === "left");
       const rightScores = highScores.filter(score => score.mode === "right");
@@ -975,26 +874,29 @@ function generateBarChartHTML() {
         handToggle.textContent = handOptions[currentHandIndex].symbol;
         handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
       }
-    };
-    const cycleRange = () => {
+    }
+    
+    function cycleRange() {
       currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
       currentRange = rangeArray[currentRangeIndex];
       document.getElementById("clefTitle").textContent = currentRange + "-Lage";
       generateSeries();
       updateHeartsDisplay();
-    };
-    const toggleDarkMode = () => {
+    }
+    
+    function toggleDarkMode() {
       document.body.classList.toggle("dark-mode");
-    };
-    // Passive Listener für Touch-Events in setupFadeOnHover
-    const setupFadeOnHover = (element) => {
+    }
+    
+    function setupFadeOnHover(element) {
       element.addEventListener("mouseenter", () => element.classList.remove("faded"));
       element.addEventListener("mouseleave", () => element.classList.add("faded"));
       element.addEventListener("touchstart", () => element.classList.remove("faded"), {passive: true});
       element.addEventListener("touchend", () => element.classList.add("faded"), {passive: true});
-    };
+    }
+    
     let redrawQueued = false;
-    const queueRedraw = () => {
+    function queueRedraw() {
       if (!redrawQueued) {
         redrawQueued = true;
         requestAnimationFrame(() => {
@@ -1002,7 +904,8 @@ function generateBarChartHTML() {
           redrawQueued = false;
         });
       }
-    };
+    }
+    
     /* Animation (Hintergrund-Kreise) */
     let circles = [];
     const gradients = {
@@ -1017,6 +920,7 @@ function generateBarChartHTML() {
     };
     const positiveColors = ["green", "blue", "pink", "yellow"];
     const negativeColors = ["orange", "violet", "crimson"];
+    
     function addCircle(type) {
       const canvas = document.getElementById("animationCanvas");
       if (!canvas) return;
@@ -1032,6 +936,7 @@ function generateBarChartHTML() {
       const duration = 2000;
       circles.push({ x, y, radius, color: colorName, creationTime, duration });
     }
+    
     /* Intro-Animation */
     function spawnIntroBlobs() {
       const canvas = document.getElementById("animationCanvas");
@@ -1057,6 +962,7 @@ function generateBarChartHTML() {
         });
       });
     }
+    
     function animateCircles() {
       const canvas = document.getElementById("animationCanvas");
       if (!canvas) return;
@@ -1086,10 +992,12 @@ function generateBarChartHTML() {
       });
       requestAnimationFrame(animateCircles);
     }
+    
     function resetInactivityTimer() {
       if (inactivityTimeout) clearTimeout(inactivityTimeout);
       inactivityTimeout = setTimeout(spawnInactivityBlob, 180000);
     }
+    
     function spawnInactivityBlob() {
       const canvas = document.getElementById("animationCanvas");
       if (!canvas) return;
@@ -1105,7 +1013,15 @@ function generateBarChartHTML() {
       circles.push({ x, y, radius, color: colorName, creationTime, duration });
       resetInactivityTimer();
     }
+    
+    /********** DOM-Initialisierung **********/
     document.addEventListener("DOMContentLoaded", () => {
+      // Streak-Anzeige
+      const currentStreak = updateStreak();
+      const streakDisplay = document.getElementById("streakDisplay");
+      streakDisplay.textContent = "🔥 " + currentStreak;
+      
+      // Canvas erstellen falls nicht vorhanden
       let canvas = document.getElementById("animationCanvas");
       if (!canvas) {
         canvas = document.createElement("canvas");
@@ -1125,6 +1041,7 @@ function generateBarChartHTML() {
       setTimeout(proceedToMainScreen, 5000);
       
       const settingsPanel = document.getElementById("settingsPanel");
+      
       // Handtoggle
       const handToggle = document.createElement("span");
       handToggle.id = "handToggle";
@@ -1140,6 +1057,7 @@ function generateBarChartHTML() {
           generateSeries();
         }
       });
+      
       // Randomtoggle
       const randomToggle = document.createElement("span");
       randomToggle.id = "randomToggle";
@@ -1151,19 +1069,11 @@ function generateBarChartHTML() {
         generateSeries();
       });
       
-      
-      // Pausen-Button
-      function blinkGreenBackground() {
-        // Ursprüngliche Hintergrundfarbe speichern (falls gesetzt, sonst Standardwert)
-        const originalBg = document.body.style.backgroundColor || "";
-        // Setze den Hintergrund auf den bekannten Grünton
-        document.body.style.backgroundColor = "LightBlue"; // hier den gewünschten Grünton anpassen
-        // Nach 300 Millisekunden wieder zurücksetzen
-        setTimeout(function() {
-          document.body.style.backgroundColor = originalBg;
-        }, 300);
-      }
-      
+      // Pausen-Button (Save-Button)
+      const pauseButton = document.createElement("span");
+      pauseButton.id = "pauseButton";
+      pauseButton.textContent = "💾";
+      settingsPanel.appendChild(pauseButton);
       pauseButton.addEventListener("click", () => {
         if (!sessionPaused) {
           saveStatistics();
@@ -1172,36 +1082,40 @@ function generateBarChartHTML() {
         }
       });
       
-      
-      
       // Life-Toggle
       const lifeToggle = document.createElement("span");
       lifeToggle.id = "lifeToggle";
       lifeToggle.textContent = "∞";
       settingsPanel.appendChild(lifeToggle);
       lifeToggle.addEventListener("click", () => {});
+      
       // DarkMode-Toggle
       const darkModeToggle = document.createElement("span");
       darkModeToggle.id = "darkModeToggle";
       darkModeToggle.textContent = "🌙";
       settingsPanel.appendChild(darkModeToggle);
       darkModeToggle.addEventListener("click", toggleDarkMode);
+      
       // Scoreboard-Toggle
       const scoreboardToggle = document.createElement("span");
       scoreboardToggle.id = "scoreboardToggle";
       scoreboardToggle.textContent = "🎯";
       settingsPanel.appendChild(scoreboardToggle);
       scoreboardToggle.addEventListener("click", toggleScoreboard);
+      
       setupFadeOnHover(settingsPanel);
       setupFadeOnHover(document.getElementById("clefTitle"));
       autoSelectMode();
       generateSeries();
       updateHeartsDisplay();
+      
       document.addEventListener("keydown", (event) => {
         if (event.code === "Space") { handleMIDIMessage(144, 60, 127); }
       });
+      
       document.getElementById("scoreboardOverlay").addEventListener("click", toggleScoreboard);
     });
+    
     const generateSeries = () => {
       seriesCounter = 0;
       correctNoteCount = 0;
@@ -1237,6 +1151,7 @@ function generateBarChartHTML() {
       }
       drawSeries();
     };
+    
     const drawSeries = () => {
       const notationDiv = document.getElementById("notation");
       const baseWidth = 800;
@@ -1261,6 +1176,7 @@ function generateBarChartHTML() {
       new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
       voice.draw(context, stave);
     };
+    
     const isNoteCorrect = (midiInfo) => {
       const expected = currentSeriesSingle[seriesCounter];
       if (!expected) return false;
@@ -1268,9 +1184,11 @@ function generateBarChartHTML() {
       const expectedNote = expected.note.toLowerCase();
       return playedNote === expectedNote && midiInfo.octave === expected.octave;
     };
+    
     const removeFromErrorNotes = (noteObj) => {
       errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
     };
+    
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
       resetInactivityTimer();
@@ -1323,10 +1241,13 @@ function generateBarChartHTML() {
         if (seriesCounter >= seriesLength) {
           queueRedraw();
           setTimeout(generateSeries, 300);
-        } else { queueRedraw(); }
+        } else {
+          queueRedraw();
+        }
         updateTimer();
       }
     };
+    
     const resetGame = () => {
       sessionCounter = 1000;
       hearts = unlimitedLives ? Infinity : 4;
@@ -1344,13 +1265,10 @@ function generateBarChartHTML() {
       generateSeries();
       updateHeartsDisplay();
     };
-                                            
-
-// Funktion, die den Hintergrund für kurze Zeit grün färbt und danach wieder zurücksetzt
   </script>
 </head>
 <body>
-    <div id="streakDisplay"></div>
+  <div id="streakDisplay"></div>
   <!-- Canvas für Animation (Hintergrund) -->
   <canvas id="animationCanvas"></canvas>
   <!-- Audio-Element -->
