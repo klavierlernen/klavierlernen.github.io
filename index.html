@@ -435,6 +435,34 @@
   <script>
     /************** Funktionen, die vor der Verwendung deklariert sein müssen **************/
     
+    // Neue Funktion, die einen grünen Farbtupfer erzeugt
+    function saveButtonEffect() {
+      const canvas = document.getElementById("animationCanvas");
+      if (!canvas) return;
+      
+      // Hole die Position des Menüs (settingsPanel)
+      const settingsPanel = document.getElementById("settingsPanel");
+      let x, y;
+      if (settingsPanel) {
+        const rect = settingsPanel.getBoundingClientRect();
+        // Tupfer soll in der Mitte des Menüs erscheinen
+        x = rect.left + rect.width / 2;
+        y = rect.top + rect.height / 2;
+      } else {
+        // Fallback: Mitte des Canvas
+        x = canvas.width / 2;
+        y = canvas.height / 2;
+      }
+      
+      // Definiere Parameter für den Tupfer
+      const radius = Math.random() * 200 + 200; // Größe anpassen
+      const creationTime = Date.now();
+      const duration = 1500; // Dauer in Millisekunden
+      
+      // Erzeuge den Tupfer (Farbtupfer wird zur globalen circles-Array hinzugefügt)
+      circles.push({ x, y, radius, color: "green", creationTime, duration });
+    }
+      
     function updateStreak() {
       // Hole den bisherigen Streak (falls vorhanden)
       let streak = Number(localStorage.getItem("streak")) || 0;
@@ -541,6 +569,24 @@
       return Math.floor(Math.random() * 4) + 2;
     }
     
+    document.addEventListener("DOMContentLoaded", () => {
+      // Erstelle den Pause-Button und füge ihn dem Einstellungen-Panel hinzu
+      const settingsPanel = document.getElementById("settingsPanel");
+      const pauseButton = document.createElement("span");
+      pauseButton.id = "pauseButton";
+      pauseButton.textContent = "💾";
+      settingsPanel.appendChild(pauseButton);
+
+      // Füge den Event Listener hinzu
+      pauseButton.addEventListener("click", () => {
+        if (!sessionPaused) {
+          saveStatistics();
+          saveButtonEffect();
+          console.log("Statistiken gespeichert und grüner Farbtupfer ausgelöst.");
+        }
+      });
+    });
+      
     /************** Globale Variablen & Konstanten **************/
     // Handoptionen
     const handOptions = [
@@ -1104,6 +1150,8 @@ function generateBarChartHTML() {
         randomToggle.style.opacity = randomMode ? "1" : "0.5";
         generateSeries();
       });
+      
+      
       // Pausen-Button
       function blinkGreenBackground() {
         // Ursprüngliche Hintergrundfarbe speichern (falls gesetzt, sonst Standardwert)
@@ -1116,13 +1164,16 @@ function generateBarChartHTML() {
         }, 300);
       }
       
-      const pauseButton = document.createElement("span");
-      pauseButton.id = "pauseButton";
-      pauseButton.textContent = "💾";
-      settingsPanel.appendChild(pauseButton);
       pauseButton.addEventListener("click", () => {
-        if (!sessionPaused) { saveStatistics(); blinkGreenBackground(); console.log("Statistiken gespeichert und grüner Blinkeffekt ausgeführt."); }
+        if (!sessionPaused) {
+          saveStatistics();
+          saveButtonEffect();
+          console.log("Statistiken gespeichert und grüner Farbtupfer ausgelöst.");
+        }
       });
+      
+      
+      
       // Life-Toggle
       const lifeToggle = document.createElement("span");
       lifeToggle.id = "lifeToggle";
