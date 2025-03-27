@@ -439,7 +439,22 @@
   </style>
   <script>
     /************** Funktionen, die vor der Verwendung deklariert sein müssen **************/
-    
+    // Eigene Prompt-Funktion, die in Swift-Umgebungen den Message-Handler nutzt
+      function customPrompt(message) {
+    if (typeof prompt === 'function') {
+          return prompt(message);
+    } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
+          // Sende die Nachricht an Swift; Swift muss dann eine Antwort zurückliefern,
+          // z. B. indem es window.customPromptResponse setzt.
+          window.webkit.messageHandlers.customPrompt.postMessage(message);
+          // Hier nehmen wir an, dass Swift synchron oder zeitnah eine Antwort liefert und
+          // diese in window.customPromptResponse speichert. (Alternativ muss hier asynchron vorgegangen werden.)
+          return window.customPromptResponse || "";
+        } else {
+          console.log("Kein Prompt verfügbar.");
+          return "";
+        }
+      }
       
     // Metronom-Variablen und Funktionen
       let metronomeOn = false;
@@ -1204,14 +1219,14 @@ function generateBarChartHTML() {
       settingsPanel.appendChild(metronomeToggle);
       metronomeToggle.addEventListener("click", () => {
               if (!metronomeOn) {
-                const bpmInput = prompt("Bitte gib die BPM-Zahl für das Metronom ein:");
-      const bpm = Number(bpmInput);
-      if (bpm > 0) {
-      metronomeOn = true;
-      metronomeBPM = bpm;
-      metronomeInterval = 60000 / bpm;
-      startMetronome();
-      metronomeToggle.style.opacity = "1";
+                const bpmInput = customPrompt("Bitte gib die BPM-Zahl für das Metronom ein:");
+               const bpm = Number(bpmInput);
+                if (bpm > 0) {
+                  metronomeOn = true;
+                  metronomeBPM = bpm;
+                  metronomeInterval = 60000 / bpm;
+                  startMetronome();
+                  metronomeToggle.style.opacity = "1";
                 }
               } else {
                 metronomeOn = false;
@@ -1221,13 +1236,13 @@ function generateBarChartHTML() {
             });
       
       document.getElementById("timerContainer").addEventListener("click", () => {
-        const input = prompt("Bitte gib die Anzahl der zu lernenden Noten ein:");
-        const num = parseInt(input, 10);
-        if (!isNaN(num) && num > 0) {
-          sessionCounter = num;
-          updateTimer();
-        }
-      });
+              const input = customPrompt("Bitte gib die Anzahl der zu lernenden Noten ein:");
+              const num = parseInt(input, 10);
+              if (!isNaN(num) && num > 0) {
+                sessionCounter = num;
+                updateTimer();
+              }
+            });
       
       // DarkMode-Toggle
       const darkModeToggle = document.createElement("span");
