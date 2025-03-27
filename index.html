@@ -55,8 +55,8 @@
     #notation svg * {
       vector-effect: non-scaling-stroke;
     }
-    body.dark-mode #notation svg * {
-      stroke: #fff;
+    /* Dark Mode – nur SVG-Text weiß, damit inline-Farben erhalten bleiben */
+    body.dark-mode #notation svg text {
       fill: #fff;
     }
     /* Motivationsfenster */
@@ -473,7 +473,9 @@
     let selectedMode = handOptions[currentHandIndex].mode;
     let randomMode = false;
 
-    const rangeArray = ["C", "D", "F", "G", "MC"];
+    // Arrays zur Definition der Lagen
+    const rangeArray = ["C", "D", "F", "G", "MC"]; // Normalmodus
+    const hasenmodusRanges = ["C", "D", "MC"];       // Im Hasenmodus
     let currentRangeIndex = 0;
     let currentRange = rangeArray[currentRangeIndex];
 
@@ -899,75 +901,28 @@
       drawSeries();
     }
 
-    function startPauseCountdown() {
-      logSessionStart();
-      sessionPaused = true;
-      sessionCount++;
-      const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
-      pauseRemaining = Math.floor(calculateAdaptiveBreakTime(responseTimes, hitRate) * 2 + 300);
-      pauseDuration = pauseRemaining;
-      document.getElementById("mainContent").style.display = "none";
-      document.getElementById("timerContainer").style.display = "none";
-      document.getElementById("settingsPanel").style.display = "none";
-      const pauseOverlay = document.getElementById("pauseOverlay");
-      pauseOverlay.style.display = "flex";
-      updatePauseProgress();
-      updatePauseTiles();
-      const msgInterval = setInterval(updatePauseTiles, 3000);
-      pauseInterval = setInterval(() => {
-        pauseRemaining--;
-        updatePauseProgress();
-        if (pauseRemaining <= 0) {
-          clearInterval(pauseInterval);
-          clearInterval(msgInterval);
-          endPause();
-        }
-      }, 1000);
+    // Bei Lagewechsel im Hasenmodus: spiele Dong-Sound und lasse den Button kurz rot blinken
+    function cycleRange() {
+      const rangeOptions = randomMode ? hasenmodusRanges : rangeArray;
+      currentRangeIndex = (currentRangeIndex + 1) % rangeOptions.length;
+      currentRange = rangeOptions[currentRangeIndex];
+      document.getElementById("clefTitle").textContent = currentRange + "-Lage";
+      generateSeries();
+      updateHeartsDisplay();
+      if(randomMode) {
+        // Lagenbutton blinkt kurz rot, dann schwarz
+        const clefButton = document.getElementById("clefTitle");
+        clefButton.style.backgroundColor = "red";
+        gongSound.currentTime = 0;
+        gongSound.play();
+        setTimeout(() => {
+          // Setze den Button auf schwarz (alternativ: Standardstil wiederherstellen)
+          clefButton.style.backgroundColor = "black";
+        }, 200);
+      }
     }
 
-    function endPause() {
-      document.getElementById("pauseOverlay").style.display = "none";
-      document.getElementById("mainContent").style.display = "block";
-      document.getElementById("timerContainer").style.display = "flex";
-      document.getElementById("settingsPanel").style.display = "flex";
-      sessionPaused = false;
-      gongSound.currentTime = 0;
-      gongSound.play();
-      resetGame();
-    }
-
-    function endGame() {
-      gameOver = true;
-      const gameOverOverlay = document.getElementById("gameOverOverlay");
-      gameOverOverlay.textContent = "Game Over!";
-      gameOverOverlay.style.display = "block";
-      if (!scoreRecorded) recordScore();
-      setTimeout(resetGame, 5000);
-    }
-
-    function recordScore() {
-      if (totalAttempts <= 0) return;
-      const durationMs = Date.now() - appStartTime;
-      const secondsTotal = Math.floor(durationMs / 1000);
-      const minutes = Math.floor(secondsTotal / 60);
-      const seconds = secondsTotal % 60;
-      const durationStr = (minutes < 10 ? "0" + minutes : minutes) + ":" + (seconds < 10 ? "0" + seconds : seconds);
-      const accuracy = Math.round((correctAnswers / totalAttempts) * 100);
-      const now = new Date();
-      let dd = now.getDate();
-      let mm = now.getMonth() + 1;
-      dd = dd < 10 ? "0" + dd : dd;
-      mm = mm < 10 ? "0" + mm : mm;
-      const dateStr = dd + "." + mm;
-      const scoreObj = { date: dateStr, accuracy: accuracy, duration: durationStr, seconds: secondsTotal, mode: randomMode ? "random" : selectedMode };
-      let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
-      highScores.push(scoreObj);
-      highScores.sort((a, b) => (b.accuracy !== a.accuracy ? b.accuracy - a.accuracy : a.seconds - b.seconds));
-      highScores = highScores.slice(0, 5);
-      localStorage.setItem("highScores", JSON.stringify(highScores));
-      scoreRecorded = true;
-    }
-
+    // Funktion, um das Scoreboard zu aktualisieren
     function updateScoreboard() {
       const allScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const filtered = allScores.filter(score => score.mode === (randomMode ? "random" : selectedMode));
@@ -984,12 +939,14 @@
       if (!overlay.classList.contains("hidden")) updateScoreboard();
     }
 
+    // Funktion, um den Modus anhand der Highscores auszuwählen (hier einfach als Beispiel)
     function autoSelectMode() {
       let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
       const leftScores = highScores.filter(score => score.mode === "left");
       const rightScores = highScores.filter(score => score.mode === "right");
       const bestLeft = leftScores.length ? Math.max(...leftScores.map(s => s.accuracy)) : 0;
       const bestRight = rightScores.length ? Math.max(...rightScores.map(s => s.accuracy)) : 0;
+      // Beispiel: Wähle "left", falls Highscores in diesem Modus niedriger sind
       if (bestLeft < bestRight) {
         selectedMode = "left";
         currentHandIndex = 0;
@@ -1002,14 +959,6 @@
         handToggle.textContent = handOptions[currentHandIndex].symbol;
         handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
       }
-    }
-
-    function cycleRange() {
-      currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
-      currentRange = rangeArray[currentRangeIndex];
-      document.getElementById("clefTitle").textContent = currentRange + "-Lage";
-      generateSeries();
-      updateHeartsDisplay();
     }
 
     function toggleDarkMode() {
@@ -1107,12 +1056,10 @@
         const playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note) + midiInfo.octave;
         const noteDisplay = document.getElementById("noteNameDisplay");
         totalAttempts++;
-        // Hier muss die Funktion isNoteCorrect definiert sein – Beispiel: Vergleich mit currentSeriesSingle[seriesCounter]
         if (isNoteCorrect(midiInfo)) {
           currentSeriesSingle[seriesCounter].color = "green";
           correctAnswers++;
           correctNoteCount++;
-          // removeFromErrorNotes muss definiert sein, um fehlerhafte Noten zu entfernen
           removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
           sessionCounter--;
           addCircle("positive");
@@ -1151,7 +1098,7 @@
       }
     }
 
-    // Dummy-Funktion zur Überprüfung der Note – bitte an deine Logik anpassen!
+    // Dummy-Funktion zur Überprüfung der Note
     function isNoteCorrect(midiInfo) {
       const currentNote = currentSeriesSingle[seriesCounter];
       return midiInfo.note === currentNote.note && midiInfo.octave === currentNote.octave;
@@ -1161,9 +1108,54 @@
       errorNotes = errorNotes.filter(n => n !== note);
     }
 
+    /************ Melodie-Funktionen (infinite) ************/
+    // Erstelle einen AudioContext für die Melodie
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    // Berechnet die Frequenz eines Tones anhand des Notennamens und Oktave (A4 = 440 Hz)
+    function getFrequency(note, octave) {
+      const notes = { "c": 0, "c#": 1, "d": 2, "d#": 3, "e": 4, "f": 5, "f#": 6, "g": 7, "g#": 8, "a": 9, "a#": 10, "b": 11 };
+      const semitones = notes[note.toLowerCase()] - 9 + (octave - 4) * 12;
+      return 440 * Math.pow(2, semitones / 12);
+    }
+    // Spielt einen Ton mit gegebener Frequenz und Dauer
+    function playNote(frequency, duration) {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.frequency.value = frequency;
+      oscillator.type = "sine"; // Alternative: "triangle" für einen raueren Klang
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + duration);
+    }
+    // Endlose Melodie-Funktion: Wählt in regelmäßigen Abständen einen Ton aus einer C-Dur-Skala
+    function playInfiniteMelody() {
+      const scale = ["c", "d", "e", "f", "g", "a", "b"];
+      const note = scale[Math.floor(Math.random() * scale.length)];
+      const octave = 4;
+      const freq = getFrequency(note, octave);
+      playNote(freq, 0.5);
+      setTimeout(playInfiniteMelody, 600);
+    }
+
+    /************ MIDI-Anbindung (WebMIDI API) ************/
+    if (navigator.requestMIDIAccess) {
+      navigator.requestMIDIAccess().then(function(midiAccess) {
+        midiAccess.inputs.forEach(function(input) {
+          input.onmidimessage = function(event) {
+            const data = event.data;
+            handleMIDIMessage(data[0], data[1], data[2]);
+          }
+        });
+        midiAccess.onstatechange = function(e) {
+          // Hier können Gerätewechsel oder Verbindungsänderungen behandelt werden
+        }
+      });
+    }
+
     /************ Event Listener & Initialisierung ************/
     document.addEventListener("DOMContentLoaded", () => {
-      // Statistik laden und OpenTime speichern
       loadStatistics();
       const openTimes = JSON.parse(localStorage.getItem("openTimes") || "[]");
       openTimes.push(new Date().toISOString());
@@ -1187,7 +1179,6 @@
       animateCircles();
       resetInactivityTimer();
       
-      // Intro-Animation: Beispiel-Blobs
       function spawnIntroBlobs() {
         const cw = canvas.width, ch = canvas.height;
         const positions = [
@@ -1205,10 +1196,8 @@
       document.getElementById("welcomeMessage").textContent = "Schön, dass du da bist!";
       setTimeout(proceedToMainScreen, 5000);
       
-      // Einstellungen-Menü erzeugen
       const settingsPanel = document.getElementById("settingsPanel");
       
-      // Pausen-Button
       const pauseButton = document.createElement("span");
       pauseButton.id = "pauseButton";
       pauseButton.textContent = "💾";
@@ -1221,7 +1210,6 @@
         }
       });
       
-      // Handtoggle
       const handToggle = document.createElement("span");
       handToggle.id = "handToggle";
       handToggle.textContent = handOptions[currentHandIndex].symbol;
@@ -1237,7 +1225,6 @@
         }
       });
       
-      // Randomtoggle
       const randomToggle = document.createElement("span");
       randomToggle.id = "randomToggle";
       randomToggle.textContent = "🐇";
@@ -1248,7 +1235,6 @@
         generateSeries();
       });
       
-      // Life-Toggle
       const lifeToggle = document.createElement("span");
       lifeToggle.id = "lifeToggle";
       lifeToggle.textContent = "∞";
@@ -1257,14 +1243,12 @@
         // Hier kann eine Funktion für Life-Toggle ergänzt werden
       });
       
-      // DarkMode-Toggle
       const darkModeToggle = document.createElement("span");
       darkModeToggle.id = "darkModeToggle";
       darkModeToggle.textContent = "🌙";
       settingsPanel.appendChild(darkModeToggle);
       darkModeToggle.addEventListener("click", toggleDarkMode);
       
-      // Scoreboard-Toggle
       const scoreboardToggle = document.createElement("span");
       scoreboardToggle.id = "scoreboardToggle";
       scoreboardToggle.textContent = "🎯";
@@ -1277,16 +1261,16 @@
       generateSeries();
       updateHeartsDisplay();
       
-      // Tastatur-Event (Space simuliert ein MIDI-Event)
       document.addEventListener("keydown", (event) => {
         if (event.code === "Space") { handleMIDIMessage(144, 60, 127); }
       });
       
-      // Scoreboard aus-/einblenden per Klick
       document.getElementById("scoreboardOverlay").addEventListener("click", toggleScoreboard);
+      
+      // Starte die unendliche Melodie
+      playInfiniteMelody();
     });
     
-    // Sicherstellen, dass beim Verlassen der Seite die Statistik gespeichert wird
     window.addEventListener("beforeunload", saveStatistics);
   </script>
 </body>
