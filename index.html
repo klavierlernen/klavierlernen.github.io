@@ -468,7 +468,12 @@
           duration: "q"
         }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
         
-        if (currentRange !== "D") {
+        // Bei D-Lage nur ♯ anzeigen, sonst wie gehabt auch ♭
+        if (currentRange === "D") {
+          if(item.note.includes("#")) {
+            note.addAccidental(0, new Vex.Flow.Accidental("#"));
+          }
+        } else {
           if(item.note.includes("#")) {
             note.addAccidental(0, new Vex.Flow.Accidental("#"));
           } else if(item.note === "bb") {
@@ -997,18 +1002,14 @@
     };
     /* Animation (Hintergrund-Kreise) */
     let circles = [];
+    // Nun ausschließlich grüne und rote Gradienten
     const gradients = {
       "green": ["rgba(0,255,0,1)", "rgba(0,255,0,0.3)", "rgba(255,255,255,0)"],
-      "blue": ["rgba(0,0,255,1)", "rgba(0,0,255,0.3)", "rgba(255,255,255,0)"],
-      "pink": ["rgba(255,105,180,1)", "rgba(255,105,180,0.3)", "rgba(255,255,255,0)"],
-      "yellow": ["rgba(255,255,0,1)", "rgba(255,255,0,0.3)", "rgba(255,255,255,0)"],
-      "red": ["rgba(255,0,0,1)", "rgba(255,0,0,0.3)", "rgba(255,255,255,0)"],
-      "violet": ["rgba(238,130,238,1)", "rgba(238,130,238,0.3)", "rgba(255,255,255,0)"],
-      "gray": ["rgba(128,128,128,1)", "rgba(128,128,128,0.3)", "rgba(255,255,255,0)"],
-      "black": ["rgba(0,0,0,1)", "rgba(0,0,0,0.3)", "rgba(255,255,255,0)"]
+      "red":   ["rgba(255,0,0,1)", "rgba(255,0,0,0.3)", "rgba(255,255,255,0)"]
     };
-    const positiveColors = ["green", "blue", "pink", "yellow"];
-    const negativeColors = ["orange", "violet", "crimson"];
+    // Positive Effekte – grün; Negative – rot
+    const positiveColors = ["green"];
+    const negativeColors = ["red"];
     function addCircle(type) {
       const canvas = document.getElementById("animationCanvas");
       if (!canvas) return;
@@ -1090,7 +1091,7 @@
       const x = Math.random() * (cw - 2 * margin) + margin;
       const y = Math.random() * (ch - 2 * margin) + margin;
       const radius = Math.random() * 1000 + 800;
-      const colors = ["green", "blue", "pink", "yellow"];
+      const colors = ["green", "red"];
       const colorName = colors[Math.floor(Math.random() * colors.length)];
       const creationTime = Date.now();
       const duration = 2000;
