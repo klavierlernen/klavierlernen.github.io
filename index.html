@@ -440,7 +440,21 @@
   <script>
     /************** Funktionen, die vor der Verwendung deklariert sein müssen **************/
     // Eigene Prompt-Funktion, die in Swift-Umgebungen den Message-Handler nutzt
-      
+      function customPrompt(message) {
+    if (typeof prompt === 'function') {
+          return prompt(message);
+    } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
+          // Sende die Nachricht an Swift; Swift muss dann eine Antwort zurückliefern,
+          // z. B. indem es window.customPromptResponse setzt.
+          window.webkit.messageHandlers.customPrompt.postMessage(message);
+          // Hier nehmen wir an, dass Swift synchron oder zeitnah eine Antwort liefert und
+          // diese in window.customPromptResponse speichert. (Alternativ muss hier asynchron vorgegangen werden.)
+          return window.customPromptResponse || "";
+        } else {
+          console.log("Kein Prompt verfügbar.");
+          return "";
+        }
+      }
       
     // Metronom-Variablen und Funktionen
       let metronomeOn =false;
@@ -1461,21 +1475,6 @@ const drawSeries = () => {
                                             
 
 // Funktion, die den Hintergrund für kurze Zeit grün färbt und danach wieder zurücksetzt
-                                            function customPrompt(message) {
-                                          if (typeof prompt === 'function') {
-                                                return prompt(message);
-                                          } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
-                                                // Sende die Nachricht an Swift; Swift muss dann eine Antwort zurückliefern,
-                                                // z. B. indem es window.customPromptResponse setzt.
-                                                window.webkit.messageHandlers.customPrompt.postMessage(message);
-                                                // Hier nehmen wir an, dass Swift synchron oder zeitnah eine Antwort liefert und
-                                                // diese in window.customPromptResponse speichert. (Alternativ muss hier asynchron vorgegangen werden.)
-                                                return window.customPromptResponse || "";
-                                              } else {
-                                                console.log("Kein Prompt verfügbar.");
-                                                return "";
-                                              }
-                                            }
   </script>
 </head>
 <body>
