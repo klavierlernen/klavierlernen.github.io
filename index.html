@@ -1,40 +1,1293 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Notentraining - Modular</title>
-    <!-- Externe Bibliotheken -->
-    <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-    <!-- Deine CSS-Regeln hier -->
-  </head>
-  <body>
-    <!-- Deine HTML-Struktur (Canvas, Overlays, etc.) -->
-    <div id="notation"></div>
-    <canvas id="animationCanvas"></canvas>
-    <!-- usw. -->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Notentraining - Anpassung</title>
+  <!-- VexFlow laden -->
+  <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+  <!-- canvas-confetti laden -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+  <style>
+    /* Grundlayout */
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: #ffffff;
+      font-family: sans-serif;
+      text-align: center;
+      transition: background-color 0.3s, color 0.3s;
+      overflow: hidden;
+    }
+    body.dark-mode {
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+    /* Vollbild-Canvas für Animation (Hintergrund) */
+    #animationCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      filter: blur(20px);
+      opacity: 0.2;
+    }
+    /* Einhand-Notation (normaler Modus) */
+    #notation {
+      display: none;
+      position: fixed;
+      left: 50%;
+      top: 75%;
+      transform: translate(-50%, -50%);
+      max-width: 800px;
+      padding: 10px;
+      box-sizing: border-box;
+      z-index: 1;
+    }
+    #notation svg {
+      width: 100%;
+      height: auto;
+      shape-rendering: crispEdges;
+    }
+    #notation svg * {
+      vector-effect: non-scaling-stroke;
+    }
+    body.dark-mode #notation svg * {
+      stroke: #fff;
+      fill: #fff;
+    }
+    /* Motivationsfenster */
+    #motivationOverlay {
+      position: fixed;
+      top: 20%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 15;
+      pointer-events: none;
+      opacity: 0;
+      font-size: 2em;
+      color: #000;
+      text-shadow: none;
+    }
+    @keyframes floatFade {
+      0% { transform: translate(-50%, -50%) translateY(20px); opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translate(-50%, -50%) translateY(-20px); opacity: 0; }
+    }
+    .animate-motivation {
+      animation: floatFade 2.5s ease-out forwards;
+    }
+    /* Pause-Overlay */
+    #pauseOverlay {
+      position: fixed;
+      top: 15px;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #fff;
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+    }
+    /* Obere Info-Leiste im Pausenmodus */
+    #pauseInfo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #pauseHeader {
+      font-size: 2em;
+      font-weight: bold;
+      color: #000;
+      white-space: nowrap;
+    }
+    /* Fortschrittsbalken */
+    #pauseProgressContainer {
+      flex-grow: 1;
+      height: 20px;
+      border: 3px solid #000;
+      border-radius: 20px;
+      position: relative;
+      background: #fff;
+    }
+    #pauseProgress {
+      height: 100%;
+      width: 0%;
+      background: red;
+      border-radius: 20px;
+      transition: width 1s linear;
+    }
+    /* Verbleibende Zeit im Format mm:ss */
+    #pauseTime {
+      font-size: 14px;
+      color: #000;
+      white-space: nowrap;
+      margin-left: 10px;
+    }
+    /* Kachelwand im Pausenmodus – Füllt den restlichen Raum wie eine Tapete */
+    #pauseTiles {
+      flex-grow: 1;
+      width: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      grid-auto-rows: 230px;
+      gap: 12px;
+      overflow-y: auto;
+    }
+    /* Variierende Kacheln (Mauerstein-Effekt) */
+    .tile:nth-child(3n) {
+      grid-row: span 2;
+    }
+    .tile:nth-child(4n) {
+      grid-column: span 2;
+    }
+    .tile {
+      background: #fff;
+      border: 3px solid #000;
+      border-radius: 20px;
+      padding: 15px;
+      font-size: 14px;
+      color: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+    .tileIcon {
+      font-size: 5em;
+      margin-bottom: 8px;
+    }
+    .tileTitle {
+      font-size: 3em;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .tileValue {
+      font-size: 2.5em;
+      font-weight: normal;
+    }
+    .barChart {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      width: 100%;
+      margin-top: 5px;
+      gap: 5px;
+    }
+    .bar {
+      width: 10%;
+      background-color: #007aff;
+      border-radius: 4px 4px 0 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      color: #fff;
+      font-size: 0.8em;
+    }
+    /* Game Over Overlay */
+    #gameOverOverlay {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      padding: 30px;
+      border-radius: 15px;
+      font-size: 2em;
+      white-space: pre-line;
+      display: none;
+    }
+    body.dark-mode #gameOverOverlay {
+      border: 3px solid #fff;
+    }
+    /* Scoreboard Overlay */
+    #scoreboardOverlay {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      padding: 30px;
+      border-radius: 15px;
+      font-size: 2em;
+      white-space: pre-line;
+      display: block;
+    }
+    .hidden {
+      display: none !important;
+    }
+    /* Timer Container */
+    #timerContainer {
+      position: fixed;
+      right: 10px;
+      bottom: 30px;
+      font-size: 1.5em;
+      z-index: 10;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Hauptinhalt */
+    #mainContent {
+      display: none;
+      position: relative;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.5s ease-in;
+      padding-bottom: 50px;
+    }
+    /* Einstellungen-Menü */
+    #settingsPanel {
+      position: fixed;
+      top: 29%;
+      right: 20px;
+      background: #fff;
+      border: 3px solid #000;
+      border-radius: 20px;
+      padding: 10px;
+      box-sizing: border-box;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      z-index: 10;
+      transition: background 0.3s, border-color 0.3s, color 0.3s;
+    }
+    body.dark-mode #settingsPanel {
+      background: #000;
+      border-color: #fff;
+    }
+    #settingsPanel span {
+      display: block;
+      cursor: pointer;
+      font-size: 1.8em;
+      margin: 8px 0;
+      padding: 2px;
+      text-align: center;
+      background: none;
+      border: none;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    #settingsPanel span:hover {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+    }
+    /* Lagewechsel-Button */
+    #clefTitle {
+      display: inline-block;
+      background: #fff;
+      border: 3px solid #000;
+      border-radius: 20px;
+      padding: 10px 20px;
+      font-size: 1.5em;
+      color: #000;
+      cursor: pointer;
+      transition: all 0.5s ease;
+    }
+    body.dark-mode #clefTitle {
+      background: #000;
+      border-color: #fff;
+      color: #fff;
+    }
+    /* Neuer Pausen-Button im Menü */
+    #pauseButton {
+      display: inline-block;
+      background: #fff;
+      border: 3px solid #000;
+      border-radius: 20px;
+      padding: 10px 20px;
+      font-size: 1.5em;
+      color: #000;
+      cursor: pointer;
+      transition: all 0.5s ease;
+      margin-top: 10px;
+    }
+    body.dark-mode #pauseButton {
+      background: #000;
+      border-color: #fff;
+      color: #fff;
+    }
+    /* Container für Button & Herzen */
+    #buttonContainer {
+      position: fixed;
+      left: 50%;
+      bottom: 30px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      z-index: 50;
+    }
+    #heartsContainer {
+      display: inline-block;
+      margin-left: 10px;
+      vertical-align: middle;
+      font-size: 1.5em;
+    }
+    /* Notenname-Anzeige (normaler Modus) */
+    #noteNameDisplay {
+      margin-top: 10px;
+      font-size: 24px;
+      color: #000;
+      text-transform: uppercase;
+    }
+    body.dark-mode #noteNameDisplay { color: #e0e0e0; }
+    /* Welcome Overlay */
+    #welcomeOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1000;
+      transition: opacity 0.5s ease-out;
+      background-color: transparent;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    #welcomeMessage {
+      font-size: 2.5em;
+      color: #000;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+    body.dark-mode #welcomeMessage { color: #e0e0e0; }
     
-    <!-- Lokaler Import von ES6-Modulen -->
-    <script type="module">
-      // Falls du lokal arbeiten möchtest, stell sicher, dass sich die JS-Dateien im gleichen Ordner befinden.
-      import { drawSeries } from '/Users/jan-philippjakob/Documents/GitHub/piano.github.io/notation.js';
-      import { animateCircles, spawnIntroBlobs, resetInactivityTimer, spawnInactivityBlob } from '/Users/jan-philippjakob/Documents/GitHub/piano.github.io/animation.js';
-      import { generateSeries, isNoteCorrect, removeFromErrorNotes, startPauseCountdown, recordScore, resetGame } from '/Users/jan-philippjakob/Documents/GitHub/piano.github.io/gameLogic.js';
-      import { updateTimer, updateHeartsDisplay, setupUIEventListeners } from '/Users/jan-philippjakob/Documents/GitHub/piano.github.io/ui.js';
-      import { saveStatistics, loadStatistics, updateStreak, saveOpenTime } from '/Users/jan-philippjakob/Documents/GitHub/piano.github.io/storage.js';
+    .bar-chart-container {
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+      width: 100%;
+      padding: 10px;
+      height: 120px;
+    }
+    .bar-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+    }
+    .bar {
+      width: 100%;
+      background: linear-gradient(to top, black, grey);
+      border-radius: 4px 4px 0 0;
+      transition: height 0.5s ease-in-out;
+    }
+    .bar-label {
+      margin-top: 4px;
+      font-size: 0.9em;
+      text-align: center;
+      color: #000;
+    }
+    .tile.span-2 {
+      grid-column: span 2;
+      grid-row: span 1 !important;
+    }
+    body.dark-mode #pauseOverlay {
+      background: #121212;
+    }
+    body.dark-mode #pauseHeader,
+    body.dark-mode #pauseTime {
+      color: white;
+    }
+    body.dark-mode #pauseProgressContainer {
+      background: black;
+      border-color: white;
+    }
+    #streakDisplay {
+      position: fixed;
+      left: 20px;
+      bottom: 30px;
+      font-size: 1.5em;
+      z-index: 50;
+    }
+  </style>
+</head>
+<body>
+  <div id="streakDisplay"></div>
+  <!-- Canvas für Animation (Hintergrund) -->
+  <canvas id="animationCanvas"></canvas>
+  <!-- Audio-Element -->
+  <audio id="backgroundSound" autoplay>
+    <source src="https://raw.githubusercontent.com/JP0024/piano.github.io/main/gong-2-232435.mp3" type="audio/mp3">
+    Dein Browser unterstützt das Audio-Element nicht.
+  </audio>
+  <!-- Pause-Overlay -->
+  <div id="pauseOverlay">
+    <div id="pauseInfo">
+      <div id="pauseHeader">SESSION PAUSIERT</div>
+      <div id="pauseProgressContainer">
+        <div id="pauseProgress"></div>
+        <div id="pauseTime" style="position:absolute; left:0; top:0; font-size:14px; color:#000; padding:0 5px;"></div>
+      </div>
+    </div>
+    <!-- Kachelwand -->
+    <div id="pauseTiles"></div>
+  </div>
+  <!-- Welcome Overlay -->
+  <div id="welcomeOverlay">
+    <div id="welcomeMessage">Schön, dass du da bist!</div>
+  </div>
+  <!-- Game Over Overlay -->
+  <div id="gameOverOverlay"></div>
+  <!-- Scoreboard Overlay -->
+  <div id="scoreboardOverlay" class="hidden"></div>
+  <!-- Motivationsfenster -->
+  <div id="motivationOverlay"></div>
+  <!-- Timer Container -->
+  <div id="timerContainer"></div>
+  <!-- Hauptinhalt -->
+  <div id="mainContent">
+    <div id="notation"></div>
+    <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase;"></div>
+    <div id="buttonContainer">
+      <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
+      <div id="heartsContainer" style="margin-left:10px;"></div>
+    </div>
+  </div>
+  <!-- Einstellungen-Menü -->
+  <div id="settingsPanel"></div>
+
+  <!-- Konsolidiertes JavaScript -->
+  <script>
+    /************ Globale Variablen & Einstellungen ************/
+    const handOptions = [
+      { mode: "left", symbol: "✋" },
+      { mode: "right", symbol: "✋", flip: true }
+    ];
+    let currentHandIndex = 0;
+    let selectedMode = handOptions[currentHandIndex].mode;
+    let randomMode = false;
+
+    const rangeArray = ["C", "D", "F", "G", "MC"];
+    let currentRangeIndex = 0;
+    let currentRange = rangeArray[currentRangeIndex];
+
+    const rangeNotes = {
+      "C": ["c", "d", "e", "f", "g"],
+      "D": ["d", "e", "f#", "g", "a"],
+      "F": ["f", "g", "a", "bb", "c"],
+      "G": ["g", "a", "b", "c", "d"],
+      "MC": ["c", "d", "e", "f", "g"]
+    };
+
+    let currentSeriesSingle = [];
+    let seriesCounter = 1000;
+    const seriesLength = 5;
+    let totalAttempts = 0;
+    let correctAnswers = 0;
+    let correctNoteCount = 0;
+    let nextMotivationThreshold = getRandomThreshold();
+    let errorNotes = [];
+    let responseTimes = [];
+    let lastNoteTimestamp = Date.now();
+    let appStartTime = Date.now();
+    let sessionCounter = 1000;
+    let sessionPaused = false;
+    let scoreRecorded = false;
+    let sessionCount = 0;
+    let unlimitedLives = true;
+    let hearts = unlimitedLives ? Infinity : 4;
+    let inactivityTimeout = null;
+    let pauseRemaining = 0;
+    let pauseDuration = 0;
+    let pauseInterval = null;
+    let confettiShown = false;
+    let gameOver = false;
+    const gradients = {
+      "green": ["rgba(0,255,0,1)", "rgba(0,255,0,0.3)", "rgba(255,255,255,0)"],
+      "blue": ["rgba(0,0,255,1)", "rgba(0,0,255,0.3)", "rgba(255,255,255,0)"],
+      "pink": ["rgba(255,105,180,1)", "rgba(255,105,180,0.3)", "rgba(255,255,255,0)"],
+      "yellow": ["rgba(255,255,0,1)", "rgba(255,255,0,0.3)", "rgba(255,255,255,0)"],
+      "red": ["rgba(255,0,0,1)", "rgba(255,0,0,0.3)", "rgba(255,255,255,0)"],
+      "violet": ["rgba(238,130,238,1)", "rgba(238,130,238,0.3)", "rgba(255,255,255,0)"],
+      "gray": ["rgba(128,128,128,1)", "rgba(128,128,128,0.3)", "rgba(255,255,255,0)"],
+      "black": ["rgba(0,0,0,1)", "rgba(0,0,0,0.3)", "rgba(255,255,255,0)"]
+    };
+    const positiveColors = ["green", "blue", "pink", "yellow"];
+    const negativeColors = ["orange", "violet", "crimson"];
+    const gongSound = new Audio("https://raw.githubusercontent.com/JP0024/piano.github.io/main/gong-2-232435.mp3");
+
+    /************ Funktionen ************/
+    function drawSeries() {
+      const notationDiv = document.getElementById("notation");
+      const baseWidth = 800;
+      const ratio = window.devicePixelRatio || 1;
+      const height = 300 * ratio;
+      notationDiv.style.display = "block";
+      notationDiv.innerHTML = "";
       
-      // Beispiel-Initialisierung:
-      document.addEventListener("DOMContentLoaded", () => {
-        saveOpenTime();
-        const currentStreak = updateStreak();
-        document.getElementById("streakDisplay").textContent = "🔥 " + currentStreak;
-        // Starte Animationen, UI-Setup etc.
-        animateCircles();
-        spawnIntroBlobs();
-        setupUIEventListeners();
-        // Weitere Initialisierung – z. B. Spielserie generieren, UI updaten, etc.
+      const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
+      renderer.resize(baseWidth * ratio, height);
+      const svg = notationDiv.querySelector("svg");
+      if (svg) {
+        svg.setAttribute("width", baseWidth);
+        svg.setAttribute("height", 300);
+      }
+      
+      const context = renderer.getContext();
+      const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
+      
+      if (currentSeriesSingle.length) {
+        stave.addClef(currentSeriesSingle[0].clef);
+      }
+      if (currentRange === "D") {
+        stave.addKeySignature("D");
+      }
+      
+      stave.setContext(context).draw();
+      
+      const staveNotes = currentSeriesSingle.map(item => {
+        const note = new Vex.Flow.StaveNote({
+          clef: item.clef,
+          keys: [item.note + "/" + item.octave],
+          duration: "q"
+        }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
+        
+        if (currentRange !== "D") {
+          if(item.note.includes("#")) {
+            note.addAccidental(0, new Vex.Flow.Accidental("#"));
+          } else if(item.note === "bb") {
+            note.addAccidental(0, new Vex.Flow.Accidental("b"));
+          }
+        }
+        
+        const stemDirection = item.octave < 4 ? 1 : -1;
+        note.setStemDirection(stemDirection);
+        
+        return note;
       });
-    </script>
-  </body>
+      
+      const voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
+      voice.setStrict(false);
+      staveNotes.forEach(note => voice.addTickable(note));
+      
+      new Vex.Flow.Formatter()
+        .joinVoices([voice])
+        .format([voice], stave.getWidth() - 20);
+      
+      voice.draw(context, stave);
+    }
+
+    function saveButtonEffect() {
+      const canvas = document.getElementById("animationCanvas");
+      if (!canvas) return;
+      const settingsPanel = document.getElementById("settingsPanel");
+      let x, y;
+      if (settingsPanel) {
+        const rect = settingsPanel.getBoundingClientRect();
+        x = rect.left + rect.width / 2;
+        y = rect.top + rect.height / 2;
+      } else {
+        x = canvas.width / 2;
+        y = canvas.height / 2;
+      }
+      const radius = Math.random() * 200 + 200;
+      const creationTime = Date.now();
+      const duration = 1500;
+      // Hier kannst du zusätzliche Logik einfügen, um den Effekt anzuzeigen
+    }
+
+    function updateStreak() {
+      let streak = Number(localStorage.getItem("streak")) || 0;
+      let lastDateStr = localStorage.getItem("lastLearnDate");
+      let today = new Date();
+      today.setHours(0,0,0,0);
+      if (lastDateStr) {
+        let lastDate = new Date(lastDateStr);
+        lastDate.setHours(0,0,0,0);
+        let diffDays = (today - lastDate) / (1000 * 60 * 60 * 24);
+        if (diffDays === 1) {
+          streak++;
+        } else if (diffDays > 1) {
+          streak = 1;
+        }
+      } else {
+        streak = 1;
+      }
+      localStorage.setItem("lastLearnDate", today.toISOString());
+      localStorage.setItem("streak", streak);
+      return streak;
+    }
+
+    function logSessionStart() {
+      const sessionTimes = JSON.parse(localStorage.getItem("sessionTimes") || "[]");
+      sessionTimes.push(new Date().toISOString());
+      localStorage.setItem("sessionTimes", JSON.stringify(sessionTimes));
+    }
+
+    function saveStatistics() {
+      const stats = {
+        totalAttempts: totalAttempts,
+        correctAnswers: correctAnswers,
+        correctNoteCount: correctNoteCount,
+        responseTimes: responseTimes,
+        sessionCount: sessionCount,
+        hearts: hearts,
+        errorNotes: errorNotes,
+        appStartTime: appStartTime
+      };
+      localStorage.setItem("appStatistics", JSON.stringify(stats));
+    }
+
+    function loadStatistics() {
+      const statsStr = localStorage.getItem("appStatistics");
+      if (statsStr) {
+        const stats = JSON.parse(statsStr);
+        totalAttempts = stats.totalAttempts || 0;
+        correctAnswers = stats.correctAnswers || 0;
+        correctNoteCount = stats.correctNoteCount || 0;
+        responseTimes = stats.responseTimes || [];
+        sessionCount = stats.sessionCount || 0;
+        hearts = stats.hearts || (unlimitedLives ? Infinity : 4);
+        errorNotes = stats.errorNotes || [];
+        appStartTime = stats.appStartTime || Date.now();
+      }
+    }
+
+    function proceedToMainScreen() {
+      const audio = document.getElementById("backgroundSound");
+      if (audio) { audio.pause(); }
+      const welcomeOverlay = document.getElementById("welcomeOverlay");
+      welcomeOverlay.style.opacity = "0";
+      setTimeout(() => {
+        welcomeOverlay.classList.add("hidden");
+        document.getElementById("mainContent").style.display = "block";
+        document.getElementById("timerContainer").style.display = "flex";
+        document.getElementById("settingsPanel").style.display = "flex";
+        setTimeout(() => { document.getElementById("mainContent").style.opacity = "1"; }, 10);
+      }, 500);
+    }
+
+    function getRandomThreshold() {
+      return Math.floor(Math.random() * 4) + 2;
+    }
+
+    function updateHeartsDisplay() {
+      const heartsElem = document.getElementById("heartsContainer");
+      heartsElem.textContent = unlimitedLives ? "∞" : "❤️".repeat(hearts);
+    }
+
+    function updateTimer() {
+      const elapsed = Math.floor((Date.now() - appStartTime) / 1000);
+      let display;
+      if (elapsed < 60) { display = elapsed + " s"; }
+      else {
+        const hours = Math.floor(elapsed / 3600);
+        const minutes = Math.floor((elapsed % 3600) / 60);
+        display = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
+      }
+      document.getElementById("timerContainer").textContent = display + " | " + sessionCounter;
+    }
+    setInterval(updateTimer, 1000);
+
+    function calculateAdaptiveBreakTime(responseTimes, hitRate) {
+      if (responseTimes.length === 0) return 5;
+      let sum = responseTimes.reduce((acc, time) => acc + time, 0);
+      let avgResponseTime = sum / responseTimes.length;
+      const baseline = 500;
+      let slowdownFactor = avgResponseTime / baseline;
+      let fatigueIndex = slowdownFactor * (1 - hitRate);
+      const basePause = 10;
+      let breakTime = basePause * fatigueIndex;
+      return Math.max(5, Math.min(breakTime, 300));
+    }
+
+    function updatePauseProgress() {
+      const progressBar = document.getElementById("pauseProgress");
+      const timeDisplay = document.getElementById("pauseTime");
+      if (progressBar && pauseDuration > 0) {
+        const percent = ((pauseDuration - pauseRemaining) / pauseDuration) * 100;
+        progressBar.style.width = percent + "%";
+        if (timeDisplay) {
+          const m = Math.floor(pauseRemaining / 60);
+          const s = pauseRemaining % 60;
+          timeDisplay.textContent = (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+        }
+      }
+    }
+
+    function updatePauseTiles() {
+      const container = document.getElementById("pauseTiles");
+      if (!container) return;
+      const totalTimeSec = Math.floor((Date.now() - appStartTime) / 1000);
+      const h = Math.floor(totalTimeSec / 3600);
+      const m = Math.floor((totalTimeSec % 3600) / 60);
+      const s = totalTimeSec % 60;
+      const appTime = (h > 0 ? (h + "h ") : "") + m + "m " + s + "s";
+      const correctPercent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
+      const avgTimeSec = responseTimes.length
+          ? (responseTimes.reduce((acc, t) => acc + t, 0) / responseTimes.length / 1000).toFixed(2)
+          : "N/A";
+      container.innerHTML = `
+          <div class="tile">
+            <div class="tileIcon">⏰</div>
+            <div class="tileTitle">App‑Zeit</div>
+            <div class="tileValue">${appTime}</div>
+          </div>
+          <div class="tile">
+            <div class="tileIcon">✅</div>
+            <div class="tileTitle">Richtige Noten</div>
+            <div class="tileValue">${correctPercent}%</div>
+          </div>
+          <div class="tile">
+            <div class="tileTitle">Wann übst du am meisten?</div>
+            <div class="barChart">
+               ${generateBarChartHTML()}
+            </div>
+          </div>
+          ${ generateLearningQualityGraphTile() }
+          <div class="tile">
+            <div class="tileTitle">Session</div>
+            <div class="tileValue">${sessionCount}</div>
+          </div>
+          <div class="tile span-2">
+            <div class="tileIcon">${handOptions[currentHandIndex].symbol} Ø ${avgTimeSec} s/Note</div>
+            <div class="tileTitle">Lieblingshand</div>
+          </div>
+        `;
+    }
+
+    function getLastThreeSessions() {
+      const sessions = JSON.parse(localStorage.getItem("sessionData") || "[]");
+      return sessions.slice(-3);
+    }
+
+    function calculateQuality(session) {
+      const avgResponse = session.responseTimes.length
+          ? session.responseTimes.reduce((a, b) => a + b, 0) / session.responseTimes.length / 1000
+          : 0;
+      const errorRate = session.totalAttempts ? (session.errorCount / session.totalAttempts) : 0;
+      const learningTime = session.sessionTime || 0;
+      let quality = 100 - (avgResponse * 10) - (errorRate * 100) + (learningTime / 60);
+      return Math.max(0, Math.min(quality, 100));
+    }
+
+    function drawLearningQualityGraph(canvas, sessions) {
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
+      const qualities = sessions.map(calculateQuality);
+      ctx.beginPath();
+      for (let i = 0; i < qualities.length; i++) {
+        const x = (i / (qualities.length - 1)) * width;
+        const y = height - (qualities[i] / 100 * height);
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = "#007aff";
+        ctx.fill();
+        ctx.beginPath();
+        if(i === 0) {
+          ctx.moveTo(x,y);
+        }
+      }
+      ctx.strokeStyle = "#007aff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function generateLearningQualityGraphTile() {
+      const container = document.createElement("div");
+      container.className = "tile span-2";
+      const title = document.createElement("div");
+      title.className = "tileTitle";
+      title.textContent = "Lernqualität";
+      container.appendChild(title);
+      const canvas = document.createElement("canvas");
+      canvas.width = 280;
+      canvas.height = 100;
+      container.appendChild(canvas);
+      const sessions = getLastThreeSessions();
+      drawLearningQualityGraph(canvas, sessions);
+      let avgQuality = sessions.length ? (sessions.map(calculateQuality).reduce((a, b) => a + b, 0) / sessions.length).toFixed(2) : "N/A";
+      const qualityText = document.createElement("div");
+      qualityText.className = "tileValue";
+      qualityText.textContent = `Ø ${avgQuality} / 100`;
+      container.appendChild(qualityText);
+      return container.outerHTML;
+    }
+
+    function generateBarChartHTML() {
+      const dayCounts = { Mo: 0, Di: 0, Mi: 0, Do: 0, Fr: 0, Sa: 0, So: 0 };
+      const openTimes = JSON.parse(localStorage.getItem("openTimes") || "[]");
+      openTimes.forEach(timeStr => {
+        const d = new Date(timeStr);
+        const day = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
+        if (dayCounts.hasOwnProperty(day)) { dayCounts[day]++; }
+      });
+      const sessionTimes = JSON.parse(localStorage.getItem("sessionTimes") || "[]");
+      sessionTimes.forEach(timeStr => {
+        const d = new Date(timeStr);
+        const day = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
+        if (dayCounts.hasOwnProperty(day)) { dayCounts[day]++; }
+      });
+      const days = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+      const maxVal = Math.max(...Object.values(dayCounts), 1);
+      const container = document.createElement("div");
+      container.className = "bar-chart-container";
+      days.forEach(day => {
+        const val = dayCounts[day] || 0;
+        const barItem = document.createElement("div");
+        barItem.className = "bar-item";
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        const height = Math.round((val / maxVal) * 100);
+        bar.style.height = `${height}px`;
+        const label = document.createElement("div");
+        label.className = "bar-label";
+        label.textContent = day;
+        barItem.appendChild(bar);
+        barItem.appendChild(label);
+        container.appendChild(barItem);
+      });
+      return container.outerHTML;
+    }
+
+    function generateSeries() {
+      seriesCounter = 0;
+      correctNoteCount = 0;
+      nextMotivationThreshold = getRandomThreshold();
+      document.getElementById("noteNameDisplay").textContent = "";
+      const seriesClef = randomMode
+          ? (Math.random() < 0.5 ? "bass" : "treble")
+          : ((selectedMode === "left") ? "bass" : "treble");
+      const chooseNote = () => {
+        if (errorNotes.length > 0 && Math.random() < 0.6) {
+          const idx = errorNotes.findIndex(note => note.clef === seriesClef);
+          if (idx !== -1) { return errorNotes.splice(idx, 1)[0]; }
+        }
+        let availableNotes;
+        if (currentRange === "MC") {
+          availableNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
+        } else {
+          availableNotes = rangeNotes[currentRange];
+        }
+        const randomIndex = Math.floor(Math.random() * availableNotes.length);
+        const chosenNote = availableNotes[randomIndex];
+        let noteOctave;
+        if (currentRange === "MC") {
+          noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
+        } else {
+          noteOctave = seriesClef === "bass" ? 3 : 4;
+        }
+        return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black" };
+      };
+      currentSeriesSingle = [];
+      for (let i = 0; i < seriesLength; i++) {
+        currentSeriesSingle.push(chooseNote());
+      }
+      drawSeries();
+    }
+
+    function startPauseCountdown() {
+      logSessionStart();
+      sessionPaused = true;
+      sessionCount++;
+      const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
+      pauseRemaining = Math.floor(calculateAdaptiveBreakTime(responseTimes, hitRate) * 2 + 300);
+      pauseDuration = pauseRemaining;
+      document.getElementById("mainContent").style.display = "none";
+      document.getElementById("timerContainer").style.display = "none";
+      document.getElementById("settingsPanel").style.display = "none";
+      const pauseOverlay = document.getElementById("pauseOverlay");
+      pauseOverlay.style.display = "flex";
+      updatePauseProgress();
+      updatePauseTiles();
+      const msgInterval = setInterval(updatePauseTiles, 3000);
+      pauseInterval = setInterval(() => {
+        pauseRemaining--;
+        updatePauseProgress();
+        if (pauseRemaining <= 0) {
+          clearInterval(pauseInterval);
+          clearInterval(msgInterval);
+          endPause();
+        }
+      }, 1000);
+    }
+
+    function endPause() {
+      document.getElementById("pauseOverlay").style.display = "none";
+      document.getElementById("mainContent").style.display = "block";
+      document.getElementById("timerContainer").style.display = "flex";
+      document.getElementById("settingsPanel").style.display = "flex";
+      sessionPaused = false;
+      gongSound.currentTime = 0;
+      gongSound.play();
+      resetGame();
+    }
+
+    function endGame() {
+      gameOver = true;
+      const gameOverOverlay = document.getElementById("gameOverOverlay");
+      gameOverOverlay.textContent = "Game Over!";
+      gameOverOverlay.style.display = "block";
+      if (!scoreRecorded) recordScore();
+      setTimeout(resetGame, 5000);
+    }
+
+    function recordScore() {
+      if (totalAttempts <= 0) return;
+      const durationMs = Date.now() - appStartTime;
+      const secondsTotal = Math.floor(durationMs / 1000);
+      const minutes = Math.floor(secondsTotal / 60);
+      const seconds = secondsTotal % 60;
+      const durationStr = (minutes < 10 ? "0" + minutes : minutes) + ":" + (seconds < 10 ? "0" + seconds : seconds);
+      const accuracy = Math.round((correctAnswers / totalAttempts) * 100);
+      const now = new Date();
+      let dd = now.getDate();
+      let mm = now.getMonth() + 1;
+      dd = dd < 10 ? "0" + dd : dd;
+      mm = mm < 10 ? "0" + mm : mm;
+      const dateStr = dd + "." + mm;
+      const scoreObj = { date: dateStr, accuracy: accuracy, duration: durationStr, seconds: secondsTotal, mode: randomMode ? "random" : selectedMode };
+      let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
+      highScores.push(scoreObj);
+      highScores.sort((a, b) => (b.accuracy !== a.accuracy ? b.accuracy - a.accuracy : a.seconds - b.seconds));
+      highScores = highScores.slice(0, 5);
+      localStorage.setItem("highScores", JSON.stringify(highScores));
+      scoreRecorded = true;
+    }
+
+    function updateScoreboard() {
+      const allScores = JSON.parse(localStorage.getItem("highScores") || "[]");
+      const filtered = allScores.filter(score => score.mode === (randomMode ? "random" : selectedMode));
+      let html = "HIGHSCORES (" + (randomMode ? "random" : selectedMode) + ")\n";
+      filtered.forEach((score, index) => {
+        html += (index + 1) + ". " + score.date + " \t " + score.accuracy + "% " + score.duration + "\n";
+      });
+      document.getElementById("scoreboardOverlay").textContent = html;
+    }
+
+    function toggleScoreboard() {
+      const overlay = document.getElementById("scoreboardOverlay");
+      overlay.classList.toggle("hidden");
+      if (!overlay.classList.contains("hidden")) updateScoreboard();
+    }
+
+    function autoSelectMode() {
+      let highScores = JSON.parse(localStorage.getItem("highScores") || "[]");
+      const leftScores = highScores.filter(score => score.mode === "left");
+      const rightScores = highScores.filter(score => score.mode === "right");
+      const bestLeft = leftScores.length ? Math.max(...leftScores.map(s => s.accuracy)) : 0;
+      const bestRight = rightScores.length ? Math.max(...rightScores.map(s => s.accuracy)) : 0;
+      if (bestLeft < bestRight) {
+        selectedMode = "left";
+        currentHandIndex = 0;
+      } else {
+        selectedMode = "left";
+        currentHandIndex = 0;
+      }
+      const handToggle = document.getElementById("handToggle");
+      if (handToggle) {
+        handToggle.textContent = handOptions[currentHandIndex].symbol;
+        handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
+      }
+    }
+
+    function cycleRange() {
+      currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
+      currentRange = rangeArray[currentRangeIndex];
+      document.getElementById("clefTitle").textContent = currentRange + "-Lage";
+      generateSeries();
+      updateHeartsDisplay();
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+    }
+
+    function setupFadeOnHover(element) {
+      element.addEventListener("mouseenter", () => element.classList.remove("faded"));
+      element.addEventListener("mouseleave", () => element.classList.add("faded"));
+      element.addEventListener("touchstart", () => element.classList.remove("faded"), {passive: true});
+      element.addEventListener("touchend", () => element.classList.add("faded"), {passive: true});
+    }
+
+    let redrawQueued = false;
+    function queueRedraw() {
+      if (!redrawQueued) {
+        redrawQueued = true;
+        requestAnimationFrame(() => {
+          drawSeries();
+          redrawQueued = false;
+        });
+      }
+    }
+
+    function addCircle(type) {
+      const canvas = document.getElementById("animationCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const cw = canvas.width, ch = canvas.height;
+      const margin = 10;
+      const x = Math.random() * (cw - 2 * margin) + margin;
+      const y = Math.random() * (ch - 2 * margin) + margin;
+      const radius = Math.random() * 1000 + 800;
+      const colors = type === "positive" ? positiveColors : negativeColors;
+      const colorName = colors[Math.floor(Math.random() * colors.length)];
+      const creationTime = Date.now();
+      const duration = 2000;
+      // Hier kannst du den Kreis zur Animation hinzufügen (z. B. in ein Array pushen)
+    }
+
+    function animateCircles() {
+      const canvas = document.getElementById("animationCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      const now = Date.now();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Hier wird das Array der Kreise durchlaufen und gezeichnet
+      requestAnimationFrame(animateCircles);
+    }
+
+    function resetInactivityTimer() {
+      if (inactivityTimeout) clearTimeout(inactivityTimeout);
+      inactivityTimeout = setTimeout(spawnInactivityBlob, 180000);
+    }
+
+    function spawnInactivityBlob() {
+      const canvas = document.getElementById("animationCanvas");
+      if (!canvas) return;
+      const cw = canvas.width, ch = canvas.height;
+      const margin = 10;
+      const x = Math.random() * (cw - 2 * margin) + margin;
+      const y = Math.random() * (ch - 2 * margin) + margin;
+      const radius = Math.random() * 1000 + 800;
+      const colors = ["green", "blue", "pink", "yellow"];
+      const colorName = colors[Math.floor(Math.random() * colors.length)];
+      const creationTime = Date.now();
+      const duration = 2000;
+      // Kreis hinzufügen
+      resetInactivityTimer();
+    }
+
+    function resetGame() {
+      totalAttempts = 0;
+      correctAnswers = 0;
+      correctNoteCount = 0;
+      responseTimes = [];
+      seriesCounter = 0;
+      errorNotes = [];
+      generateSeries();
+    }
+
+    // MIDI-ähnliche Simulation (über Tastendruck Space)
+    function handleMIDIMessage(status, data1, data2) {
+      if (sessionPaused) return;
+      resetInactivityTimer();
+      if ((status & 0xf0) === 0x90 && data2 > 0) {
+        if (seriesCounter >= currentSeriesSingle.length) return;
+        let currentTime = Date.now();
+        let responseTime = currentTime - lastNoteTimestamp;
+        responseTimes.push(responseTime);
+        lastNoteTimestamp = currentTime;
+        const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+        const octave = Math.floor(data1 / 12) - 1;
+        const midiInfo = { note: noteNames[data1 % 12], octave: octave };
+        const playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note) + midiInfo.octave;
+        const noteDisplay = document.getElementById("noteNameDisplay");
+        totalAttempts++;
+        // Hier muss die Funktion isNoteCorrect definiert sein – Beispiel: Vergleich mit currentSeriesSingle[seriesCounter]
+        if (isNoteCorrect(midiInfo)) {
+          currentSeriesSingle[seriesCounter].color = "green";
+          correctAnswers++;
+          correctNoteCount++;
+          // removeFromErrorNotes muss definiert sein, um fehlerhafte Noten zu entfernen
+          removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
+          sessionCounter--;
+          addCircle("positive");
+          if (noteDisplay) {
+            noteDisplay.innerHTML = '<span style="color:green;">' + playedNoteDisplay + '</span>';
+          }
+          if (sessionCounter <= 0) {
+            sessionCounter = 0;
+            startPauseCountdown();
+            updateTimer();
+            return;
+          }
+        } else {
+          currentSeriesSingle[seriesCounter].color = "red";
+          errorNotes.push(currentSeriesSingle[seriesCounter]);
+          addCircle("negative");
+          if (noteDisplay) {
+            const correctRaw = currentSeriesSingle[seriesCounter].note;
+            const correctDisplay = (correctRaw === "b" ? "h" : correctRaw) + currentSeriesSingle[seriesCounter].octave;
+            noteDisplay.innerHTML = '<span style="color:red;">' + playedNoteDisplay + '</span> <span style="color:green;">' + correctDisplay + '</span>';
+          }
+          if (!unlimitedLives) {
+            hearts--;
+            updateHeartsDisplay();
+            if (hearts <= 0) { endGame(); return; }
+          }
+        }
+        seriesCounter++;
+        if (seriesCounter >= seriesLength) {
+          queueRedraw();
+          setTimeout(generateSeries, 300);
+        } else {
+          queueRedraw();
+        }
+        updateTimer();
+      }
+    }
+
+    // Dummy-Funktion zur Überprüfung der Note – bitte an deine Logik anpassen!
+    function isNoteCorrect(midiInfo) {
+      const currentNote = currentSeriesSingle[seriesCounter];
+      return midiInfo.note === currentNote.note && midiInfo.octave === currentNote.octave;
+    }
+    // Dummy-Funktion zum Entfernen fehlerhafter Noten
+    function removeFromErrorNotes(note) {
+      errorNotes = errorNotes.filter(n => n !== note);
+    }
+
+    /************ Event Listener & Initialisierung ************/
+    document.addEventListener("DOMContentLoaded", () => {
+      // Statistik laden und OpenTime speichern
+      loadStatistics();
+      const openTimes = JSON.parse(localStorage.getItem("openTimes") || "[]");
+      openTimes.push(new Date().toISOString());
+      localStorage.setItem("openTimes", JSON.stringify(openTimes));
+      
+      const currentStreak = updateStreak();
+      document.getElementById("streakDisplay").textContent = "🔥 " + currentStreak;
+      
+      let canvas = document.getElementById("animationCanvas");
+      if (!canvas) {
+        canvas = document.createElement("canvas");
+        canvas.id = "animationCanvas";
+        document.body.appendChild(canvas);
+      }
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+      animateCircles();
+      resetInactivityTimer();
+      
+      // Intro-Animation: Beispiel-Blobs
+      function spawnIntroBlobs() {
+        const cw = canvas.width, ch = canvas.height;
+        const positions = [
+          { x: cw - 500, y: 100 },
+          { x: cw - 30, y: ch - 30 },
+          { x: 50, y: ch / 2 }
+        ];
+        const colors = ["yellow", "pink", "blue"];
+        positions.forEach((pos, index) => {
+          // Beispiel: Kreise werden hier hinzugefügt
+        });
+      }
+      spawnIntroBlobs();
+      
+      document.getElementById("welcomeMessage").textContent = "Schön, dass du da bist!";
+      setTimeout(proceedToMainScreen, 5000);
+      
+      // Einstellungen-Menü erzeugen
+      const settingsPanel = document.getElementById("settingsPanel");
+      
+      // Pausen-Button
+      const pauseButton = document.createElement("span");
+      pauseButton.id = "pauseButton";
+      pauseButton.textContent = "💾";
+      settingsPanel.appendChild(pauseButton);
+      pauseButton.addEventListener("click", () => {
+        if (!sessionPaused) {
+          saveStatistics();
+          saveButtonEffect();
+          console.log("Statistiken gespeichert und grüner Farbtupfer ausgelöst.");
+        }
+      });
+      
+      // Handtoggle
+      const handToggle = document.createElement("span");
+      handToggle.id = "handToggle";
+      handToggle.textContent = handOptions[currentHandIndex].symbol;
+      handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
+      settingsPanel.appendChild(handToggle);
+      handToggle.addEventListener("click", () => {
+        if (!randomMode) {
+          currentHandIndex = (currentHandIndex + 1) % handOptions.length;
+          selectedMode = handOptions[currentHandIndex].mode;
+          handToggle.textContent = handOptions[currentHandIndex].symbol;
+          handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
+          generateSeries();
+        }
+      });
+      
+      // Randomtoggle
+      const randomToggle = document.createElement("span");
+      randomToggle.id = "randomToggle";
+      randomToggle.textContent = "🐇";
+      settingsPanel.appendChild(randomToggle);
+      randomToggle.addEventListener("click", () => {
+        randomMode = !randomMode;
+        randomToggle.style.opacity = randomMode ? "1" : "0.5";
+        generateSeries();
+      });
+      
+      // Life-Toggle
+      const lifeToggle = document.createElement("span");
+      lifeToggle.id = "lifeToggle";
+      lifeToggle.textContent = "∞";
+      settingsPanel.appendChild(lifeToggle);
+      lifeToggle.addEventListener("click", () => {
+        // Hier kann eine Funktion für Life-Toggle ergänzt werden
+      });
+      
+      // DarkMode-Toggle
+      const darkModeToggle = document.createElement("span");
+      darkModeToggle.id = "darkModeToggle";
+      darkModeToggle.textContent = "🌙";
+      settingsPanel.appendChild(darkModeToggle);
+      darkModeToggle.addEventListener("click", toggleDarkMode);
+      
+      // Scoreboard-Toggle
+      const scoreboardToggle = document.createElement("span");
+      scoreboardToggle.id = "scoreboardToggle";
+      scoreboardToggle.textContent = "🎯";
+      settingsPanel.appendChild(scoreboardToggle);
+      scoreboardToggle.addEventListener("click", toggleScoreboard);
+      
+      setupFadeOnHover(settingsPanel);
+      setupFadeOnHover(document.getElementById("clefTitle"));
+      autoSelectMode();
+      generateSeries();
+      updateHeartsDisplay();
+      
+      // Tastatur-Event (Space simuliert ein MIDI-Event)
+      document.addEventListener("keydown", (event) => {
+        if (event.code === "Space") { handleMIDIMessage(144, 60, 127); }
+      });
+      
+      // Scoreboard aus-/einblenden per Klick
+      document.getElementById("scoreboardOverlay").addEventListener("click", toggleScoreboard);
+    });
+    
+    // Sicherstellen, dass beim Verlassen der Seite die Statistik gespeichert wird
+    window.addEventListener("beforeunload", saveStatistics);
+  </script>
+</body>
 </html>
