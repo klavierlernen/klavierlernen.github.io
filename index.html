@@ -373,7 +373,7 @@
       gap: 4px;
       width: 100%;
       padding: 10px;
-      height: 120px; /* Gesamthöhe inkl. Label */
+      height: 120px;
     }
 
     .bar-item {
@@ -397,24 +397,22 @@
       color: #000;
     }
       
-      /* Beispiel: Klasse für eine breite, aber nur 1 Zeile hohe Kachel */
       .tile.span-2 {
         grid-column: span 2;
-        /* Falls eine andere Regel (nth-child(3n)) sie hochskalieren würde, überschreiben wir das: */
         grid-row: span 1 !important;
       }
       
       body.dark-mode #pauseOverlay {
-        background: #121212; /* dunkler Hintergrund */
+        background: #121212;
       }
 
       body.dark-mode #pauseHeader,
       body.dark-mode #pauseTime {
-        color: white; /* helle Schrift */
+        color: white;
       }
 
       body.dark-mode #pauseProgressContainer {
-        background: black; /* evtl. noch dunklerer Hintergrund für den Fortschrittsbalken */
+        background: black;
         border-color: white;
       }
       
@@ -433,79 +431,116 @@
       
   </style>
   <script>
-    /************** Funktionen, die vor der Verwendung deklariert sein müssen **************/
+    // Funktionen vor der Verwendung
+
+    function drawSeries() {
+      const notationDiv = document.getElementById("notation");
+      const baseWidth = 800;
+      const ratio = window.devicePixelRatio || 1;
+      const height = 300 * ratio;
+      notationDiv.style.display = "block";
+      notationDiv.innerHTML = "";
+      
+      const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
+      renderer.resize(baseWidth * ratio, height);
+      const svg = notationDiv.querySelector("svg");
+      if (svg) {
+        svg.setAttribute("width", baseWidth);
+        svg.setAttribute("height", 300);
+      }
+      
+      const context = renderer.getContext();
+      const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
+      
+      if (currentSeriesSingle.length) {
+        stave.addClef(currentSeriesSingle[0].clef);
+      }
+      if (currentRange === "D") {
+        stave.addKeySignature("D");
+      }
+      
+      stave.setContext(context).draw();
+      
+      const staveNotes = currentSeriesSingle.map(item => {
+        const note = new Vex.Flow.StaveNote({
+          clef: item.clef,
+          keys: [item.note + "/" + item.octave],
+          duration: "q"
+        }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
+        
+        if (currentRange !== "D") {
+          if(item.note.includes("#")) {
+            note.addAccidental(0, new Vex.Flow.Accidental("#"));
+          } else if(item.note === "bb") {
+            note.addAccidental(0, new Vex.Flow.Accidental("b"));
+          }
+        }
+        
+        const stemDirection = item.octave < 4 ? 1 : -1;
+        note.setStemDirection(stemDirection);
+        
+        return note;
+      });
+      
+      const voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
+      voice.setStrict(false);
+      staveNotes.forEach(note => voice.addTickable(note));
+      
+      new Vex.Flow.Formatter()
+        .joinVoices([voice])
+        .format([voice], stave.getWidth() - 20);
+      
+      voice.draw(context, stave);
+    }
+
     
-    // Neue Funktion, die einen grünen Farbtupfer erzeugt
+      
     function saveButtonEffect() {
       const canvas = document.getElementById("animationCanvas");
       if (!canvas) return;
-      
-      // Hole die Position des Menüs (settingsPanel)
       const settingsPanel = document.getElementById("settingsPanel");
       let x, y;
       if (settingsPanel) {
         const rect = settingsPanel.getBoundingClientRect();
-        // Tupfer soll in der Mitte des Menüs erscheinen
         x = rect.left + rect.width / 2;
         y = rect.top + rect.height / 2;
       } else {
-        // Fallback: Mitte des Canvas
         x = canvas.width / 2;
         y = canvas.height / 2;
       }
-      
-      // Definiere Parameter für den Tupfer
-      const radius = Math.random() * 200 + 200; // Größe anpassen
+      const radius = Math.random() * 200 + 200;
       const creationTime = Date.now();
-      const duration = 1500; // Dauer in Millisekunden
-      
-      // Erzeuge den Tupfer (Farbtupfer wird zur globalen circles-Array hinzugefügt)
+      const duration = 1500;
       circles.push({ x, y, radius, color: "green", creationTime, duration });
     }
       
     function updateStreak() {
-      // Hole den bisherigen Streak (falls vorhanden)
       let streak = Number(localStorage.getItem("streak")) || 0;
-      // Hole das Datum der letzten Lernsession, falls vorhanden
       let lastDateStr = localStorage.getItem("lastLearnDate");
-      // Bestimme heute (ohne Uhrzeit)
       let today = new Date();
       today.setHours(0,0,0,0);
-      
       if (lastDateStr) {
         let lastDate = new Date(lastDateStr);
         lastDate.setHours(0,0,0,0);
-        // Berechne den Unterschied in Tagen
         let diffDays = (today - lastDate) / (1000 * 60 * 60 * 24);
         if (diffDays === 1) {
-          // Konsekutiver Tag: Erhöhe den Streak
           streak++;
         } else if (diffDays > 1) {
-          // Mehr als ein Tag Pause: Streak zurücksetzen
           streak = 1;
         }
-        // Falls diffDays === 0: wir sind noch am gleichen Tag; der Streak bleibt unverändert
       } else {
         streak = 1;
       }
-      
-      // Speichere das heutige Datum und den aktuellen Streak
       localStorage.setItem("lastLearnDate", today.toISOString());
       localStorage.setItem("streak", streak);
-      
       return streak;
     }
       
-      document.addEventListener("DOMContentLoaded", () => {
-        // ... (deine bestehenden Initialisierungen)
-        
-        // Aktualisiere und zeige den Streak an:
-        const currentStreak = updateStreak();
-        const streakDisplay = document.getElementById("streakDisplay");
-        streakDisplay.textContent = "🔥 " + currentStreak;
-        
-        // Restlicher Code...
-      });
+    document.addEventListener("DOMContentLoaded", () => {
+      const currentStreak = updateStreak();
+      const streakDisplay = document.getElementById("streakDisplay");
+      streakDisplay.textContent = "🔥 " + currentStreak;
+    });
       
     function logSessionStart() {
       const sessionTimes = JSON.parse(localStorage.getItem("sessionTimes") || "[]");
@@ -513,7 +548,6 @@
       localStorage.setItem("sessionTimes", JSON.stringify(sessionTimes));
     }
       
-    // Speichert die relevanten Statistiken im localStorage
     function saveStatistics() {
       const stats = {
         totalAttempts: totalAttempts,
@@ -523,13 +557,11 @@
         sessionCount: sessionCount,
         hearts: hearts,
         errorNotes: errorNotes,
-        // Du kannst hier auch weitere Variablen eintragen, z.B. openTimes, appStartTime etc.
         appStartTime: appStartTime
       };
       localStorage.setItem("appStatistics", JSON.stringify(stats));
     }
 
-    // Lädt die Statistiken aus dem localStorage und weist sie den globalen Variablen zu
     function loadStatistics() {
       const statsStr = localStorage.getItem("appStatistics");
       if (statsStr) {
@@ -545,10 +577,7 @@
       }
     }
 
-    // Optional: Speichern der Statistiken, wenn die Seite geschlossen wird
     window.addEventListener("beforeunload", saveStatistics);
-
-    // Beim Laden der Seite die Statistiken laden
     document.addEventListener("DOMContentLoaded", loadStatistics);
     
     function proceedToMainScreen() {
@@ -569,26 +598,7 @@
       return Math.floor(Math.random() * 4) + 2;
     }
     
-    document.addEventListener("DOMContentLoaded", () => {
-      // Erstelle den Pause-Button und füge ihn dem Einstellungen-Panel hinzu
-      const settingsPanel = document.getElementById("settingsPanel");
-      const pauseButton = document.createElement("span");
-      pauseButton.id = "pauseButton";
-      pauseButton.textContent = "💾";
-      settingsPanel.appendChild(pauseButton);
-
-      // Füge den Event Listener hinzu
-      pauseButton.addEventListener("click", () => {
-        if (!sessionPaused) {
-          saveStatistics();
-          saveButtonEffect();
-          console.log("Statistiken gespeichert und grüner Farbtupfer ausgelöst.");
-        }
-      });
-    });
-      
-    /************** Globale Variablen & Konstanten **************/
-    // Handoptionen
+    /************** Globale Variablen **************/
     const handOptions = [
       { mode: "left", symbol: "✋" },
       { mode: "right", symbol: "✋", flip: true }
@@ -597,12 +607,10 @@
     let selectedMode = handOptions[currentHandIndex].mode;
     let randomMode = false;
     
-    // Verfügbare Lagen
     const rangeArray = ["C", "D", "F", "G", "MC"];
     let currentRangeIndex = 0;
     let currentRange = rangeArray[currentRangeIndex];
     
-    // Wichtig: Definition der rangeNotes – Zuordnung von Lage zu Noten
     const rangeNotes = {
       "C": ["c", "d", "e", "f", "g"],
       "D": ["d", "e", "f#", "g", "a"],
@@ -622,28 +630,26 @@
     let responseTimes = [];
     let lastNoteTimestamp = Date.now();
     let appStartTime = Date.now();
-    let sessionCounter = 1000; // 5 korrekte Noten erforderlich
+    let sessionCounter = 1000;
     let sessionPaused = false;
     let scoreRecorded = false;
     let sessionCount = 0;
     let unlimitedLives = true;
     let hearts = unlimitedLives ? Infinity : 4;
-    let inactivityTimeout = null; 
+    let inactivityTimeout = null;
     
-    // Beim Laden der Seite oder zu Beginn eines Trainings:
-    const saveOpenTime = () => {
+    function saveOpenTime() {
       const openTimes = JSON.parse(localStorage.getItem("openTimes") || "[]");
       openTimes.push(new Date().toISOString());
       localStorage.setItem("openTimes", JSON.stringify(openTimes));
-    };
-
+    }
     document.addEventListener("DOMContentLoaded", saveOpenTime);
     
-    const updateHeartsDisplay = () => {
+    function updateHeartsDisplay() {
       const heartsElem = document.getElementById("heartsContainer");
       heartsElem.textContent = unlimitedLives ? "∞" : "❤️".repeat(hearts);
-    };
-    const updateTimer = () => {
+    }
+    function updateTimer() {
       const elapsed = Math.floor((Date.now() - appStartTime) / 1000);
       let display;
       if (elapsed < 60) { display = elapsed + " s"; }
@@ -653,8 +659,9 @@
         display = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
       }
       document.getElementById("timerContainer").textContent = display + " | " + sessionCounter;
-    };
+    }
     setInterval(updateTimer, 1000);
+    
     function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       if (responseTimes.length === 0) return 5;
       let sum = responseTimes.reduce((acc, time) => acc + time, 0);
@@ -683,26 +690,19 @@
         }
       }
     }
-      function updatePauseTiles() {
-        const container = document.getElementById("pauseTiles");
-        if (!container) return;
-
-        // Berechne App‑Zeit
-        const totalTimeSec = Math.floor((Date.now() - appStartTime) / 1000);
-        const h = Math.floor(totalTimeSec / 3600);
-        const m = Math.floor((totalTimeSec % 3600) / 60);
-        const s = totalTimeSec % 60;
-        const appTime = (h > 0 ? (h + "h ") : "") + m + "m " + s + "s";
-
-        // Berechne Prozent richtiger Noten
-        const correctPercent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
-
-        // Durchschnittliche Bearbeitungszeit (in Sekunden)
-        const avgTimeSec = responseTimes.length
+    function updatePauseTiles() {
+      const container = document.getElementById("pauseTiles");
+      if (!container) return;
+      const totalTimeSec = Math.floor((Date.now() - appStartTime) / 1000);
+      const h = Math.floor(totalTimeSec / 3600);
+      const m = Math.floor((totalTimeSec % 3600) / 60);
+      const s = totalTimeSec % 60;
+      const appTime = (h > 0 ? (h + "h ") : "") + m + "m " + s + "s";
+      const correctPercent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
+      const avgTimeSec = responseTimes.length
           ? (responseTimes.reduce((acc, t) => acc + t, 0) / responseTimes.length / 1000).toFixed(2)
           : "N/A";
-
-        container.innerHTML = `
+      container.innerHTML = `
           <div class="tile">
             <div class="tileIcon">⏰</div>
             <div class="tileTitle">App‑Zeit</div>
@@ -729,150 +729,148 @@
             <div class="tileTitle">Lieblingshand</div>
           </div>
         `;
-      }
+    }
       
-      function getLastThreeSessions() {
-        // Beispiel: Session-Daten als Array von Objekten mit responseTimes (ms), errorCount, totalAttempts und sessionTime (in sec)
-        const sessions = JSON.parse(localStorage.getItem("sessionData") || "[]");
-        return sessions.slice(-3);
-      }
+    function getLastThreeSessions() {
+      const sessions = JSON.parse(localStorage.getItem("sessionData") || "[]");
+      return sessions.slice(-3);
+    }
 
-      function calculateQuality(session) {
-        // Durchschnittliche Antwortzeit in Sekunden (niedriger ist besser)
-        const avgResponse = session.responseTimes.length
+    function calculateQuality(session) {
+      const avgResponse = session.responseTimes.length
           ? session.responseTimes.reduce((a, b) => a + b, 0) / session.responseTimes.length / 1000
           : 0;
-        // Fehlerquote (niedriger ist besser)
-        const errorRate = session.totalAttempts ? (session.errorCount / session.totalAttempts) : 0;
-        // Die Session-Dauer in Sekunden – längere Sessions können auf mehr Engagement hinweisen
-        const learningTime = session.sessionTime || 0;
-        // Beispielhafte Gewichtung: Wir wollen, dass niedrigere Antwortzeiten und Fehlerquoten zu höheren Qualitätswerten führen.
-        // Hier eine einfache Rechnung, die in den meisten Fällen einen Wert zwischen 0 und 100 liefert.
-        let quality = 100 - (avgResponse * 10) - (errorRate * 100) + (learningTime / 60);
-        return Math.max(0, Math.min(quality, 100));
-      }
+      const errorRate = session.totalAttempts ? (session.errorCount / session.totalAttempts) : 0;
+      const learningTime = session.sessionTime || 0;
+      let quality = 100 - (avgResponse * 10) - (errorRate * 100) + (learningTime / 60);
+      return Math.max(0, Math.min(quality, 100));
+    }
       
-      function drawLearningQualityGraph(canvas, sessions) {
-        const ctx = canvas.getContext("2d");
-        const width = canvas.width;
-        const height = canvas.height;
-        ctx.clearRect(0, 0, width, height);
-
-        // Berechne die Qualitätswerte
-        const qualities = sessions.map(calculateQuality);
-
-        // Wir erwarten Werte zwischen 0 und 100, also skalieren wir den y-Wert entsprechend.
-        ctx.beginPath();
-        for (let i = 0; i < qualities.length; i++) {
-          const x = (i / (qualities.length - 1)) * width;
-          // Höhere Qualität => niedrigere y-Koordinate (oben ist 0)
-          const y = height - (qualities[i] / 100 * height);
-          if (i === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
-          // Optional: Zeichne einen kleinen Kreis als Punkt
-          ctx.beginPath();
-          ctx.arc(x, y, 3, 0, Math.PI * 2);
-          ctx.fillStyle = "#007aff";
-          ctx.fill();
-          ctx.beginPath(); // Beginne neuen Pfad für die Linie
-          if(i === 0) {
-            ctx.moveTo(x,y);
-          }
+    function drawLearningQualityGraph(canvas, sessions) {
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
+      const qualities = sessions.map(calculateQuality);
+      ctx.beginPath();
+      for (let i = 0; i < qualities.length; i++) {
+        const x = (i / (qualities.length - 1)) * width;
+        const y = height - (qualities[i] / 100 * height);
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
         }
-        ctx.strokeStyle = "#007aff";
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = "#007aff";
+        ctx.fill();
+        ctx.beginPath();
+        if(i === 0) {
+          ctx.moveTo(x,y);
+        }
       }
+      ctx.strokeStyle = "#007aff";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
       
-      function generateLearningQualityGraphTile() {
-        // Erstelle einen Container (div) für die Kachel – hier nutzen wir span-2, um sie breit anzuzeigen.
-        const container = document.createElement("div");
-        container.className = "tile span-2";
-        
-        const title = document.createElement("div");
-        title.className = "tileTitle";
-        title.textContent = "Lernqualität";
-        container.appendChild(title);
-        
-        // Erstelle ein Canvas für den Graphen
-        const canvas = document.createElement("canvas");
-        canvas.width = 280;  // Passe die Größe an die Kachel an
-        canvas.height = 100;
-        container.appendChild(canvas);
-        
-        // Hole die letzten drei Sessions und zeichne den Graph
-        const sessions = getLastThreeSessions();
-        drawLearningQualityGraph(canvas, sessions);
-        
-        // Berechne den durchschnittlichen Qualitätswert zur zusätzlichen Anzeige
-        let avgQuality = sessions.length ? (sessions.map(calculateQuality).reduce((a, b) => a + b, 0) / sessions.length).toFixed(2) : "N/A";
-        const qualityText = document.createElement("div");
-        qualityText.className = "tileValue";
-        qualityText.textContent = `Ø ${avgQuality} / 100`;
-        container.appendChild(qualityText);
-        
-        return container.outerHTML;
-      }
+    function generateLearningQualityGraphTile() {
+      const container = document.createElement("div");
+      container.className = "tile span-2";
+      const title = document.createElement("div");
+      title.className = "tileTitle";
+      title.textContent = "Lernqualität";
+      container.appendChild(title);
+      const canvas = document.createElement("canvas");
+      canvas.width = 280;
+      canvas.height = 100;
+      container.appendChild(canvas);
+      const sessions = getLastThreeSessions();
+      drawLearningQualityGraph(canvas, sessions);
+      let avgQuality = sessions.length ? (sessions.map(calculateQuality).reduce((a, b) => a + b, 0) / sessions.length).toFixed(2) : "N/A";
+      const qualityText = document.createElement("div");
+      qualityText.className = "tileValue";
+      qualityText.textContent = `Ø ${avgQuality} / 100`;
+      container.appendChild(qualityText);
+      return container.outerHTML;
+    }
                                             
-function generateBarChartHTML() {
-  // Standardwerte: Jeder Tag wird initial auf 0 gesetzt.
-  const dayCounts = { Mo: 0, Di: 0, Mi: 0, Do: 0, Fr: 0, Sa: 0, So: 0 };
-  
-  // Zähle Öffnungszeiten
-  const openTimes = JSON.parse(localStorage.getItem("openTimes") || "[]");
-  openTimes.forEach(timeStr => {
-    const d = new Date(timeStr);
-    const day = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
-    if (dayCounts.hasOwnProperty(day)) {
-      dayCounts[day]++;
+    function generateBarChartHTML() {
+      const dayCounts = { Mo: 0, Di: 0, Mi: 0, Do: 0, Fr: 0, Sa: 0, So: 0 };
+      const openTimes = JSON.parse(localStorage.getItem("openTimes") || "[]");
+      openTimes.forEach(timeStr => {
+        const d = new Date(timeStr);
+        const day = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
+        if (dayCounts.hasOwnProperty(day)) { dayCounts[day]++; }
+      });
+      const sessionTimes = JSON.parse(localStorage.getItem("sessionTimes") || "[]");
+      sessionTimes.forEach(timeStr => {
+        const d = new Date(timeStr);
+        const day = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
+        if (dayCounts.hasOwnProperty(day)) { dayCounts[day]++; }
+      });
+      const days = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+      const maxVal = Math.max(...Object.values(dayCounts), 1);
+      const container = document.createElement("div");
+      container.className = "bar-chart-container";
+      days.forEach(day => {
+        const val = dayCounts[day] || 0;
+        const barItem = document.createElement("div");
+        barItem.className = "bar-item";
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        const height = Math.round((val / maxVal) * 100);
+        bar.style.height = `${height}px`;
+        const label = document.createElement("div");
+        label.className = "bar-label";
+        label.textContent = day;
+        barItem.appendChild(bar);
+        barItem.appendChild(label);
+        container.appendChild(barItem);
+      });
+      return container.outerHTML;
     }
-  });
-  
-  // Zähle Session-Zeitpunkte
-  const sessionTimes = JSON.parse(localStorage.getItem("sessionTimes") || "[]");
-  sessionTimes.forEach(timeStr => {
-    const d = new Date(timeStr);
-    const day = d.toLocaleDateString('de-DE', { weekday: 'short' }).replace('.', '');
-    if (dayCounts.hasOwnProperty(day)) {
-      dayCounts[day]++;
-    }
-  });
-  
-  const days = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-  const maxVal = Math.max(...Object.values(dayCounts), 1);
-  
-  // Erstelle Container als Flex-Layout für das Balkendiagramm
-  const container = document.createElement("div");
-  container.className = "bar-chart-container";
-  
-  days.forEach(day => {
-    const val = dayCounts[day] || 0;
-    const barItem = document.createElement("div");
-    barItem.className = "bar-item";
-    
-    const bar = document.createElement("div");
-    bar.className = "bar";
-    const height = Math.round((val / maxVal) * 100);
-    bar.style.height = `${height}px`;
-    
-    const label = document.createElement("div");
-    label.className = "bar-label";
-    label.textContent = day;
-    
-    barItem.appendChild(bar);
-    barItem.appendChild(label);
-    container.appendChild(barItem);
-  });
-  
-  return container.outerHTML;
-}
       
-      
+    /********** Funktion: generateSeries **********/
+    const generateSeries = () => {
+      seriesCounter = 0;
+      correctNoteCount = 0;
+      nextMotivationThreshold = getRandomThreshold();
+      document.getElementById("noteNameDisplay").textContent = "";
+      const seriesClef = randomMode
+          ? (Math.random() < 0.5 ? "bass" : "treble")
+          : ((selectedMode === "left") ? "bass" : "treble");
+      const chooseNote = () => {
+        if (errorNotes.length > 0 && Math.random() < 0.6) {
+          const idx = errorNotes.findIndex(note => note.clef === seriesClef);
+          if (idx !== -1) { return errorNotes.splice(idx, 1)[0]; }
+        }
+        let availableNotes;
+        if (currentRange === "MC") {
+          availableNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
+        } else {
+          availableNotes = rangeNotes[currentRange];
+        }
+        const randomIndex = Math.floor(Math.random() * availableNotes.length);
+        const chosenNote = availableNotes[randomIndex];
+        let noteOctave;
+        if (currentRange === "MC") {
+          noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
+        } else {
+          noteOctave = seriesClef === "bass" ? 3 : 4;
+        }
+        return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black" };
+      };
+      currentSeriesSingle = [];
+      for (let i = 0; i < seriesLength; i++) {
+        currentSeriesSingle.push(chooseNote());
+      }
+      drawSeries();
+    };
+                                            
     const startPauseCountdown = () => {
-            logSessionStart(); // Neuen Session-Zeitstempel speichern
+      logSessionStart();
       sessionPaused = true;
       sessionCount++;
       const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
@@ -897,21 +895,18 @@ function generateBarChartHTML() {
       }, 1000);
     };
       
-      // Erstelle ein Audio-Objekt für den Gong
-      const gongSound = new Audio("https://raw.githubusercontent.com/JP0024/piano.github.io/main/gong-2-232435.mp3");
+    const gongSound = new Audio("https://raw.githubusercontent.com/JP0024/piano.github.io/main/gong-2-232435.mp3");
       
-      // In deiner Funktion, die das Pausenfenster beendet, rufe den Sound ab:
-      const endPause = () => {
-        document.getElementById("pauseOverlay").style.display = "none";
-        document.getElementById("mainContent").style.display = "block";
-        document.getElementById("timerContainer").style.display = "flex";
-        document.getElementById("settingsPanel").style.display = "flex";
-        sessionPaused = false;
-        // Setze den Sound zurück und spiele ihn ab
-        gongSound.currentTime = 0;
-        gongSound.play();
-        resetGame();
-      };
+    const endPause = () => {
+      document.getElementById("pauseOverlay").style.display = "none";
+      document.getElementById("mainContent").style.display = "block";
+      document.getElementById("timerContainer").style.display = "flex";
+      document.getElementById("settingsPanel").style.display = "flex";
+      sessionPaused = false;
+      gongSound.currentTime = 0;
+      gongSound.play();
+      resetGame();
+    };
     let gameOver = false;
     const endGame = () => {
       gameOver = true;
@@ -986,7 +981,6 @@ function generateBarChartHTML() {
     const toggleDarkMode = () => {
       document.body.classList.toggle("dark-mode");
     };
-    // Passive Listener für Touch-Events in setupFadeOnHover
     const setupFadeOnHover = (element) => {
       element.addEventListener("mouseenter", () => element.classList.remove("faded"));
       element.addEventListener("mouseleave", () => element.classList.add("faded"));
@@ -1125,6 +1119,20 @@ function generateBarChartHTML() {
       setTimeout(proceedToMainScreen, 5000);
       
       const settingsPanel = document.getElementById("settingsPanel");
+      
+      // PAUSEN-BUTTON ERZEUGEN
+      const pauseButton = document.createElement("span");
+      pauseButton.id = "pauseButton";
+      pauseButton.textContent = "💾";
+      settingsPanel.appendChild(pauseButton);
+      pauseButton.addEventListener("click", () => {
+        if (!sessionPaused) {
+          saveStatistics();
+          saveButtonEffect();
+          console.log("Statistiken gespeichert und grüner Farbtupfer ausgelöst.");
+        }
+      });
+      
       // Handtoggle
       const handToggle = document.createElement("span");
       handToggle.id = "handToggle";
@@ -1150,29 +1158,6 @@ function generateBarChartHTML() {
         randomToggle.style.opacity = randomMode ? "1" : "0.5";
         generateSeries();
       });
-      
-      
-      // Pausen-Button
-      function blinkGreenBackground() {
-        // Ursprüngliche Hintergrundfarbe speichern (falls gesetzt, sonst Standardwert)
-        const originalBg = document.body.style.backgroundColor || "";
-        // Setze den Hintergrund auf den bekannten Grünton
-        document.body.style.backgroundColor = "LightBlue"; // hier den gewünschten Grünton anpassen
-        // Nach 300 Millisekunden wieder zurücksetzen
-        setTimeout(function() {
-          document.body.style.backgroundColor = originalBg;
-        }, 300);
-      }
-      
-      pauseButton.addEventListener("click", () => {
-        if (!sessionPaused) {
-          saveStatistics();
-          saveButtonEffect();
-          console.log("Statistiken gespeichert und grüner Farbtupfer ausgelöst.");
-        }
-      });
-      
-      
       
       // Life-Toggle
       const lifeToggle = document.createElement("span");
@@ -1202,157 +1187,10 @@ function generateBarChartHTML() {
       });
       document.getElementById("scoreboardOverlay").addEventListener("click", toggleScoreboard);
     });
-                                            
-                            
-    const generateSeries = () => {
-      seriesCounter = 0;
-      correctNoteCount = 0;
-      nextMotivationThreshold = getRandomThreshold();
-      document.getElementById("noteNameDisplay").textContent = "";
-      
-      const seriesClef = randomMode ? (Math.random() < 0.5 ? "bass" : "treble")
-          : ((selectedMode === "left") ? "bass" : "treble");
-      const chooseNote = () => {
-        if (errorNotes.length > 0 && Math.random() < 0.6) {
-          const idx = errorNotes.findIndex(note => note.clef === seriesClef);
-          if (idx !== -1) { return errorNotes.splice(idx, 1)[0]; }
-        }
-        let availableNotes;
-        if (currentRange === "MC") {
-          availableNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
-        } else {
-          availableNotes = rangeNotes[currentRange];
-        }
-        const randomIndex = Math.floor(Math.random() * availableNotes.length);
-        const chosenNote = availableNotes[randomIndex];
-        let noteOctave;
-        if (currentRange === "MC") {
-          noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
-        } else {
-          noteOctave = seriesClef === "bass" ? 3 : 4;
-        }
-        return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black" };
-      };
-      currentSeriesSingle = [];
-      for (let i = 0; i < seriesLength; i++) {
-        currentSeriesSingle.push(chooseNote());
-      }
-      drawSeries();
-    };
-    const drawSeries = () => {
-      const notationDiv = document.getElementById("notation");
-      const baseWidth = 800;
-      const ratio = window.devicePixelRatio || 1;
-      const height = 300 * ratio;
-      notationDiv.style.display = "block";
-      notationDiv.innerHTML = "";
-      const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
-      renderer.resize(baseWidth * ratio, height);
-      const svg = notationDiv.querySelector("svg");
-      if (svg) { svg.setAttribute("width", baseWidth); svg.setAttribute("height", 300); }
-      const context = renderer.getContext();
-      const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
-      if (currentSeriesSingle.length) { stave.addClef(currentSeriesSingle[0].clef); }
-      stave.setContext(context).draw();
-      const staveNotes = currentSeriesSingle.map(item =>
-        new Vex.Flow.StaveNote({ clef: item.clef, keys: [item.note + "/" + item.octave], duration: "q" })
-          .setStyle({ fillStyle: item.color, strokeStyle: item.color })
-      );
-      const voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
-      staveNotes.forEach(note => voice.addTickable(note));
-      new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
-      voice.draw(context, stave);
-    };
-    const isNoteCorrect = (midiInfo) => {
-      const expected = currentSeriesSingle[seriesCounter];
-      if (!expected) return false;
-      const playedNote = midiInfo.note.toLowerCase();
-      const expectedNote = expected.note.toLowerCase();
-      return playedNote === expectedNote && midiInfo.octave === expected.octave;
-    };
-    const removeFromErrorNotes = (noteObj) => {
-      errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
-    };
-    const handleMIDIMessage = (status, data1, data2) => {
-      if (sessionPaused) return;
-      resetInactivityTimer();
-      if ((status & 0xf0) === 0x90 && data2 > 0) {
-        if (seriesCounter >= currentSeriesSingle.length) return;
-        let currentTime = Date.now();
-        let responseTime = currentTime - lastNoteTimestamp;
-        responseTimes.push(responseTime);
-        lastNoteTimestamp = currentTime;
-        const midiInfo = (() => {
-          const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
-          const octave = Math.floor(data1 / 12) - 1;
-          return { note: noteNames[data1 % 12], octave: octave };
-        })();
-        const playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note) + midiInfo.octave;
-        const noteDisplay = document.getElementById("noteNameDisplay");
-        totalAttempts++;
-        if (isNoteCorrect(midiInfo)) {
-          currentSeriesSingle[seriesCounter].color = "green";
-          correctAnswers++;
-          correctNoteCount++;
-          removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
-          sessionCounter--;
-          addCircle("positive");
-          if (noteDisplay) {
-            noteDisplay.innerHTML = '<span style="color:green;">' + playedNoteDisplay + '</span>';
-          }
-          if (sessionCounter <= 0) {
-            sessionCounter = 0;
-            startPauseCountdown();
-            updateTimer();
-            return;
-          }
-        } else {
-          currentSeriesSingle[seriesCounter].color = "red";
-          errorNotes.push(currentSeriesSingle[seriesCounter]);
-          addCircle("negative");
-          if (noteDisplay) {
-            const correctRaw = currentSeriesSingle[seriesCounter].note;
-            const correctDisplay = (correctRaw === "b" ? "h" : correctRaw) + currentSeriesSingle[seriesCounter].octave;
-            noteDisplay.innerHTML = '<span style="color:red;">' + playedNoteDisplay + '</span> <span style="color:green;">' + correctDisplay + '</span>';
-          }
-          if (!unlimitedLives) {
-            hearts--;
-            updateHeartsDisplay();
-            if (hearts <= 0) { endGame(); return; }
-          }
-        }
-        seriesCounter++;
-        if (seriesCounter >= seriesLength) {
-          queueRedraw();
-          setTimeout(generateSeries, 300);
-        } else { queueRedraw(); }
-        updateTimer();
-      }
-    };
-    const resetGame = () => {
-      sessionCounter = 1000;
-      hearts = unlimitedLives ? Infinity : 4;
-      gameOver = false;
-      seriesCounter = 0;
-      totalAttempts = 0;
-      correctAnswers = 0;
-      correctNoteCount = 0;
-      nextMotivationThreshold = getRandomThreshold();
-      sessionPaused = false;
-      confettiShown = false;
-      errorNotes = [];
-      document.getElementById("pauseOverlay").style.display = "none";
-      scoreRecorded = false;
-      generateSeries();
-      updateHeartsDisplay();
-    };
-                                            
-
-// Funktion, die den Hintergrund für kurze Zeit grün färbt und danach wieder zurücksetzt
   </script>
 </head>
 <body>
-    <div id="streakDisplay"></div>
+  <div id="streakDisplay"></div>
   <!-- Canvas für Animation (Hintergrund) -->
   <canvas id="animationCanvas"></canvas>
   <!-- Audio-Element -->
