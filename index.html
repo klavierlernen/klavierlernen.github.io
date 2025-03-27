@@ -231,16 +231,21 @@
       display: none !important;
     }
     /* Timer Container */
-    #timerContainer {
-      position: fixed;
-      right: 10px;
-      bottom: 30px;
-      font-size: 1.5em;
-      z-index: 10;
-      display: none;
-      align-items: center;
-      justify-content: center;
-    }
+    /* Timer Container */
+        #timerContainer {
+          position: fixed;
+          right: 10px;
+          bottom: 30px;
+          font-size: 1.5em;
+          z-index: 100; /* Erhöhter z-index, damit er oben liegt */
+          display: flex; /* Sicherstellen, dass er sichtbar ist */
+          align-items: center;
+          justify-content: center;
+          cursor: pointer; /* Zeigt, dass er anklickbar ist */
+          background: rgba(255, 255, 255, 0.8); /* Leicht transparenter Hintergrund */
+          padding: 5px 10px;
+          border-radius: 5px;
+        }
     /* Hauptinhalt */
     #mainContent {
       display: none;
@@ -434,6 +439,8 @@
   </style>
   <script>
     /************** Funktionen, die vor der Verwendung deklariert sein müssen **************/
+    
+      
     // Metronom-Variablen und Funktionen
       let metronomeOn = false;
       let metronomeBPM = 0;
@@ -664,20 +671,12 @@
     
     const updateHeartsDisplay = () => {
       const heartsElem = document.getElementById("heartsContainer");
-      heartsElem.textContent = unlimitedLives ? "∞" : "❤️".repeat(hearts);
+      heartsElem.textContent = unlimitedLives ? "" : "❤️".repeat(hearts);
     };
-    const updateTimer = () => {
-      const elapsed = Math.floor((Date.now() - appStartTime) / 1000);
-      let display;
-      if (elapsed < 60) { display = elapsed + " s"; }
-      else {
-        const hours = Math.floor(elapsed / 3600);
-        const minutes = Math.floor((elapsed % 3600) / 60);
-        display = (hours < 10 ? "0" + hours : hours) + ":" + (minutes < 10 ? "0" + minutes : minutes);
-      }
-      document.getElementById("timerContainer").textContent = display + " | " + sessionCounter;
-    };
-    setInterval(updateTimer, 1000);
+      const updateTimer = () => {
+        document.getElementById("timerContainer").textContent = sessionCounter;
+      };
+      setInterval(updateTimer, 1000);
     function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       if (responseTimes.length === 0) return 5;
       let sum = responseTimes.reduce((acc, time) => acc + time, 0);
@@ -1221,6 +1220,15 @@ function generateBarChartHTML() {
               }
             });
       
+      document.getElementById("timerContainer").addEventListener("click", () => {
+        const input = prompt("Bitte gib die Anzahl der zu lernenden Noten ein:");
+        const num = parseInt(input, 10);
+        if (!isNaN(num) && num > 0) {
+          sessionCounter = num;
+          updateTimer();
+        }
+      });
+      
       // DarkMode-Toggle
       const darkModeToggle = document.createElement("span");
       darkModeToggle.id = "darkModeToggle";
@@ -1228,13 +1236,7 @@ function generateBarChartHTML() {
       settingsPanel.appendChild(darkModeToggle);
       darkModeToggle.addEventListener("click", toggleDarkMode);
       // Scoreboard-Toggle
-      const scoreboardToggle = document.createElement("span");
-      scoreboardToggle.id = "scoreboardToggle";
-      scoreboardToggle.textContent = "🎯";
-      settingsPanel.appendChild(scoreboardToggle);
-      scoreboardToggle.addEventListener("click", toggleScoreboard);
-      setupFadeOnHover(settingsPanel);
-      setupFadeOnHover(document.getElementById("clefTitle"));
+      
       autoSelectMode();
       generateSeries();
       updateHeartsDisplay();
@@ -1402,7 +1404,7 @@ const drawSeries = () => {
                   }
                   correctAnswers++;
                   correctNoteCount++;
-                  removeFromErrorNotes(currentSeriesSingl[seriesCounter]);
+                  removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
                   sessionCounter--;
                   addCircle("positive");
                   if (noteDisplay) {
