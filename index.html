@@ -287,7 +287,7 @@
       box-sizing: border-box;
 
       /* Animation/Übergänge beim Drücken */
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: transform 0.2s, box-shadow 0.2s, opacity 0.5s ease;
     }
     #settingsPanel:active {
       transform: translateY(6px);
@@ -339,6 +339,12 @@
       background: rgba(0, 0, 0, 0.1);
       border-radius: 10px;
     }
+    @keyframes float {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+      100% { transform: translateY(0); }
+    }
+    
     /* Lagewechsel-Button */
     #clefTitle {
       display: inline-block;
@@ -350,6 +356,7 @@
       color: #000;
       cursor: pointer;
       transition: all 0.5s ease;
+      animation: float 3s ease-in-out infinite;
     }
     body.dark-mode #clefTitle {
       background: #000;
@@ -1798,5 +1805,26 @@ const drawSeries = () => {
     });
   </script>
   
-</body>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const settingsPanel = document.getElementById("settingsPanel");
+      if (!settingsPanel) return;
+      let fadeTimeout;
+      const resetFadeTimer = () => {
+        clearTimeout(fadeTimeout);
+        // Setze sofort auf volle Opacity
+        settingsPanel.style.opacity = "1";
+        // Starte Timer: nach 10 Sekunden wird die Opacity auf 0.5 reduziert
+        fadeTimeout = setTimeout(() => {
+          settingsPanel.style.opacity = "0.5";
+        }, 10000);
+      };
+      // Initialer Timer-Start
+      resetFadeTimer();
+      // Bei Maus- oder Touch-Interaktion den Timer zurücksetzen
+      settingsPanel.addEventListener("mouseenter", resetFadeTimer);
+      settingsPanel.addEventListener("touchstart", resetFadeTimer);
+    });
+  </script>
+  </body>
 </html>
