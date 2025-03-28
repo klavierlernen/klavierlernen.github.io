@@ -20,6 +20,7 @@
       transition: background-color 0.3s, color 0.3s;
       overflow: hidden;
     }
+
     body.dark-mode {
       background-color: #121212;
       color: #e0e0e0;
@@ -39,10 +40,11 @@
     #notation {
       display: none;
       position: fixed;
-      left: 50%;
-      top: 75%;
+      top: 70%;
+      left: 70%;
       transform: translate(-50%, -50%);
-      max-width: 800px;
+      width: 100%;
+      max-width: calc(100% - 10px);
       padding: 10px;
       box-sizing: border-box;
       z-index: 1;
@@ -51,6 +53,8 @@
       width: 100%;
       height: auto;
       shape-rendering: crispEdges;
+      display: block;
+      margin: 0 auto;
     }
     #notation svg * {
       vector-effect: non-scaling-stroke;
@@ -237,12 +241,12 @@
           right: 10px;
           bottom: 30px;
           font-size: 1.5em;
-          z-index: 100; /* Erhöhter z-index, damit er oben liegt */
-          display: flex; /* Sicherstellen, dass er sichtbar ist */
+          z-index: 100;
+          display: none; /* Versteckt, bis der Intro-Modus beendet ist */
           align-items: center;
           justify-content: center;
-          cursor: pointer; /* Zeigt, dass er anklickbar ist */
-          background: rgba(255, 255, 255, 0.8); /* Leicht transparenter Hintergrund */
+          cursor: pointer;
+          background: rgba(255, 255, 255, 0.8);
           padding: 5px 10px;
           border-radius: 5px;
         }
@@ -257,19 +261,62 @@
     }
     /* Einstellungen-Menü */
     #settingsPanel {
+      /* Behalte deine Positionierung bei */
       position: fixed;
-      top: 29%;
+      top: 23%;
       right: 20px;
-      background: #fff;
-      border: 3px solid #000;
-      border-radius: 20px;
-      padding: 10px;
-      box-sizing: border-box;
-      display: none;
+      display: none; /* wird später per JS auf 'flex' gesetzt */
       flex-direction: column;
       align-items: center;
       z-index: 10;
-      transition: background 0.3s, border-color 0.3s, color 0.3s;
+
+      /* 3D-Optik */
+      background: #d0e8d0;               /* Heller Pastellton */
+      border: 2px solid #b7d3b7;         /* Passender Randton */
+      border-radius: 8px;
+      box-shadow:
+        0 6px 0 #abc9ab,                 /* „fester“ Schatten für die 3D-Kante */
+        0 6px 6px rgba(0, 0, 0, 0.2);    /* Weicher Schlagschatten */
+      padding: 16px 24px;                /* Innenabstand */
+      margin: 8px;                       /* Außenabstand */
+      font-size: 1.2em;                  /* Schriftgröße */
+      text-align: center;
+      color: #333;
+      box-sizing: border-box;
+
+      /* Animation/Übergänge beim Drücken */
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    #settingsPanel:active {
+      transform: translateY(6px);
+      box-shadow:
+        0 0 0 #abc9ab,
+        0 6px 6px rgba(0,0,0,0.2);
+    }
+
+    /* ================================= */
+    /* 3D-Stil für das Lagen-Rechteck    */
+    /* ================================= */
+    #clefTitle {
+      background: #d0e8d0;
+      border: 2px solid #b7d3b7;
+      border-radius: 8px;
+      box-shadow:
+        0 6px 0 #abc9ab,
+        0 6px 6px rgba(0, 0, 0, 0.2);
+      padding: 16px 24px;
+      margin: 8px;
+      font-size: 1.2em;
+      text-align: center;
+      color: #333;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    #clefTitle:active {
+      transform: translateY(6px);
+      box-shadow:
+        0 0 0 #abc9ab,
+        0 6px 6px rgba(0, 0, 0, 0.2);
     }
     body.dark-mode #settingsPanel {
       background: #000;
@@ -436,8 +483,47 @@
         z-index: 50;
       }
       
+@media screen and (max-width: 600px) {
+  
+  /* Notensystem kürzen: Notation-Container anpassen */
+  #notation {
+    top: 60%;
+    max-width: 90%;
+    padding: 5px;
+  }
+  
+  /* Passe die Notenanzeige an (falls nötig) */
+  #noteNameDisplay {
+    font-size: 3em;
+    bottom: 80px; /* leicht nach oben verschieben, wenn nötig */
+  }
+  
+  /* Optional: Passe den Button-Container an, falls er zu groß ist */
+  #buttonContainer {
+    flex-direction: column;
+    bottom: 20px;
+  }
+}
+      
   </style>
   <script>
+      
+      function showMotivation(message) {
+          const overlay = document.getElementById("motivationOverlay");
+          overlay.textContent = message;
+          overlay.style.opacity = "1";
+          overlay.classList.add("animate-motivation");
+          setTimeout(() => {
+               overlay.style.opacity = "0";
+               overlay.classList.remove("animate-motivation");
+          }, 2000);
+      }
+
+      function clearMotivation() {
+          const overlay = document.getElementById("motivationOverlay");
+          overlay.textContent = "";
+      }
+      
     /************** Funktionen, die vor der Verwendung deklariert sein müssen **************/
     // Eigene Prompt-Funktion, die in Swift-Umgebungen den Message-Handler nutzt
       function customPrompt(message) {
@@ -478,6 +564,14 @@
     
       function stopMetronome() {
         clearInterval(metronomeTimer);
+      }
+
+      function showPauseScreen() {
+        sessionPaused = true;
+        document.getElementById("mainContent").style.display = "none";
+        document.getElementById("timerContainer").style.display = "none";
+        document.getElementById("settingsPanel").style.display = "none";
+        document.getElementById("pauseOverlay").style.display = "flex";
       }
       
     // Neue Funktion, die einen grünen Farbtupfer erzeugt
@@ -542,14 +636,16 @@
     }
       
       document.addEventListener("DOMContentLoaded", () => {
-        // ... (deine bestehenden Initialisierungen)
-        
         // Aktualisiere und zeige den Streak an:
         const currentStreak = updateStreak();
         const streakDisplay = document.getElementById("streakDisplay");
         streakDisplay.textContent = "🔥 " + currentStreak;
-        
-        // Restlicher Code...
+        streakDisplay.style.cursor = "pointer";
+        streakDisplay.addEventListener("click", () => {
+          showPauseScreen();
+        });
+
+        // ... restlicher Initialisierungscode
       });
       
     function logSessionStart() {
@@ -644,6 +740,7 @@
     
     // Verfügbare Lagen
     const rangeArray = ["C", "D", "F", "G", "MC"];
+    const alternatingRanges = ["C", "D", "MC"]; // Vordefinierte Lagen, die im Hasenmodus alternieren sollen
     let currentRangeIndex = 0;
     let currentRange = rangeArray[currentRangeIndex];
     
@@ -1268,8 +1365,33 @@ function generateBarChartHTML() {
   nextMotivationThreshold = getRandomThreshold();
   document.getElementById("noteNameDisplay").textContent = "";
   
-  const seriesClef = randomMode ? (Math.random() < 0.5 ? "bass" : "treble")
-      : ((selectedMode === "left") ? "bass" : "treble");
+  let seriesClef;
+  if (randomMode) {
+      seriesClef = Math.random() < 0.5 ? "bass" : "treble";
+      let oldRange = currentRange;
+      if (typeof alternatingRanges !== 'undefined' && alternatingRanges.length > 0) {
+          currentRange = alternatingRanges[Math.floor(Math.random() * alternatingRanges.length)];
+      }
+      if (oldRange !== currentRange) {
+          // Kurzer Dong, wenn die Lage wechselt
+          gongSound.currentTime = 0;
+          gongSound.play();
+          var clefTitle = document.getElementById("clefTitle");
+          clefTitle.textContent = currentRange + "-Lage";
+          // Rahmen des Lagenbuttons kurz rot aufblinken lassen
+          clefTitle.style.border = "3px solid red";
+          setTimeout(() => {
+              // Originalfarbe abhängig vom Dark-Mode
+              if (document.body.classList.contains("dark-mode")) {
+                  clefTitle.style.border = "3px solid #fff";
+              } else {
+                  clefTitle.style.border = "3px solid #000";
+              }
+          }, 300);
+      }
+  } else {
+      seriesClef = (selectedMode === "left") ? "bass" : "treble";
+  }
       
   const chooseNote = () => {
     if (errorNotes.length > 0 && Math.random() < 0.6) {
@@ -1325,16 +1447,16 @@ const drawSeries = () => {
   const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
   renderer.resize(baseWidth * ratio, height);
   const svg = notationDiv.querySelector("svg");
-  if (svg) { 
-    svg.setAttribute("width", baseWidth); 
-    svg.setAttribute("height", 300); 
+  if (svg) {
+    svg.setAttribute("width", baseWidth);
+    svg.setAttribute("height", 300);
   }
   const context = renderer.getContext();
   
   // Erzeuge den Stave
   const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
-  if (currentSeriesSingle.length) { 
-    stave.addClef(currentSeriesSingle[0].clef); 
+  if (currentSeriesSingle.length) {
+    stave.addClef(currentSeriesSingle[0].clef);
   }
   
   // Füge Key Signature (Vorzeichen) hinzu, je nach aktueller Lage
@@ -1406,16 +1528,17 @@ const drawSeries = () => {
                   // Falls das Metronom an ist, überprüfe das Timing
                   if (metronomeOn) {
                     const currentTime = Date.now();
-                    const diff = Math.abs(currentTime - lastTickTime);
-                    const tolerance = metronomeInterval * 0.3; // 30% Toleranz
-                if (diff > tolerance) {
-                      // Zu langsam oder zu schnell: markiere orange
-                      currentSeriesSingle[seriesCounter].color = "orange";
+                    const actualInterval = currentTime - lastTickTime;
+                    const tolerance = metronomeInterval * 0.3;
+                    if (actualInterval < metronomeInterval - tolerance) {
+                         showMotivation("Zu schnell! Langsamer spielen.");
+                    } else if (actualInterval > metronomeInterval + tolerance) {
+                         showMotivation("Zu langsam! Schneller spielen.");
                     } else {
-                      currentSeriesSingle[seriesCounter].color = "green";
+                         clearMotivation();
                     }
                   } else {
-                    currentSeriesSingle[seriesCounter].color = "green";
+                    showMotivation("Super! Weiter so!");
                   }
                   correctAnswers++;
                   correctNoteCount++;
@@ -1474,7 +1597,30 @@ const drawSeries = () => {
     };
                                             
 
-// Funktion, die den Hintergrund für kurze Zeit grün färbt und danach wieder zurücksetzt
+  // Funktion, die den Hintergrund für kurze Zeit grün färbt und danach wieder zurücksetzt
+  
+  function checkOrientation() {
+    const settingsPanel = document.getElementById("settingsPanel");
+    if (!settingsPanel) return; // Falls das Element nicht existiert, beende die Funktion
+    if (window.innerWidth > window.innerHeight) {
+         // Querformat (Landscape): Menü rechts, horizontal ausgerichtet
+         settingsPanel.style.top = "29%";
+         settingsPanel.style.right = "20px";
+         settingsPanel.style.left = "";
+         settingsPanel.style.transform = "";
+         settingsPanel.style.flexDirection = "row";
+    } else {
+         // Hochformat (Portrait): Menü oben mittig, vertikal ausgerichtet
+         settingsPanel.style.top = "10px";
+         settingsPanel.style.left = "50%";
+         settingsPanel.style.right = "";
+         settingsPanel.style.transform = "translateX(-50%)";
+         settingsPanel.style.flexDirection = "column";
+    }
+}
+  window.addEventListener("resize", checkOrientation);
+  checkOrientation();
+  
   </script>
 </head>
 <body>
