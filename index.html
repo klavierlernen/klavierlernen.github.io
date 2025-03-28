@@ -1323,32 +1323,67 @@ function generateBarChartHTML() {
       metronomeToggle.textContent = "⏲️";
       metronomeToggle.style.opacity = "0.5"; // an/off Anzeige: 0.5 = aus, 1 = an
       settingsPanel.appendChild(metronomeToggle);
-      metronomeToggle.addEventListener("click", () => {
-              if (!metronomeOn) {
-                const bpmInput = customPrompt("Bitte gib die BPM-Zahl für das Metronom ein:");
-               const bpm = Number(bpmInput);
-                if (bpm > 0) {
-                  metronomeOn = true;
-                  metronomeBPM = bpm;
-                  metronomeInterval = 60000 / bpm;
-                  startMetronome();
-                  metronomeToggle.style.opacity = "1";
-                }
-              } else {
-                metronomeOn = false;
-                stopMetronome();
-                metronomeToggle.style.opacity = "0.5";
-              }
-            });
+metronomeToggle.addEventListener("click", () => {
+  let existingInput = document.getElementById("bpmInput");
+  if (!existingInput) {
+    let input = document.createElement("input");
+    input.id = "bpmInput";
+    input.type = "text";
+    input.placeholder = metronomeBPM > 0 ? metronomeBPM : "";
+    input.style.backgroundColor = "white";
+    input.style.border = "none";
+    input.style.width = "50px";
+    input.style.fontSize = "1em";
+    input.style.marginLeft = "5px";
+    // Füge das Input-Feld direkt neben dem Metronom-Symbol hinzu
+    metronomeToggle.parentElement.appendChild(input);
+    input.focus();
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const bpm = Number(input.value);
+        if (bpm > 0) {
+          metronomeBPM = bpm;
+          metronomeInterval = 60000 / bpm;
+          startMetronome();
+          metronomeToggle.style.opacity = "1";
+          metronomeOn = true;
+        }
+        input.remove();
+      }
+    });
+  }
+});
       
-      document.getElementById("timerContainer").addEventListener("click", () => {
-              const input = customPrompt("Bitte gib die Anzahl der zu lernenden Noten ein:");
-              const num = parseInt(input, 10);
-              if (!isNaN(num) && num > 0) {
-                sessionCounter = num;
-                updateTimer();
-              }
-            });
+document.getElementById("timerContainer").addEventListener("click", () => {
+  let existingInput = document.getElementById("counterInput");
+  if (!existingInput) {
+    let timerContainer = document.getElementById("timerContainer");
+    let input = document.createElement("input");
+    input.id = "counterInput";
+    input.type = "text";
+    input.placeholder = sessionCounter;
+    input.style.backgroundColor = "white";
+    input.style.border = "none";
+    input.style.width = "50px";
+    input.style.fontSize = "1.5em";
+    input.style.textAlign = "center";
+    // Leere den Container und füge das Input-Feld hinzu
+    timerContainer.innerHTML = "";
+    timerContainer.appendChild(input);
+    input.focus();
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const num = parseInt(input.value, 10);
+        if (!isNaN(num) && num > 0) {
+          sessionCounter = num;
+          updateTimer();
+        }
+        // Ersetze das Input-Feld durch den neuen Counter-Wert
+        timerContainer.textContent = sessionCounter;
+      }
+    });
+  }
+});
       
       // DarkMode-Toggle
       const darkModeToggle = document.createElement("span");
