@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>iOS App Sideloading Installer</title>
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="https://raw.githubusercontent.com/JP0024/piano.github.io/refs/heads/main/manifest.json">
   <meta name="theme-color" content="#007bff">
   <style>
     body {
@@ -28,12 +28,14 @@
       text-align: center;
       margin: 20px 0;
     }
-    .button a {
+    .button button {
       background: #007bff;
       color: #fff;
       padding: 10px 20px;
       text-decoration: none;
       border-radius: 4px;
+      border: none;
+      cursor: pointer;
     }
     .instructions {
       margin-top: 20px;
@@ -45,9 +47,8 @@
     <h1>iOS App Sideloading Installer</h1>
     <p>Um die App auf deinem iOS-Gerät zu installieren, klicke bitte auf den folgenden Button, um die .ipa-Datei herunterzuladen und folge anschließend den Anweisungen.</p>
     
-    <!-- Stelle sicher, dass der href-Pfad auf deine .ipa-Datei verweist -->
     <div class="button">
-      <a href="pfad_zur_app.ipa" download>App installieren</a>
+      <button id="installButton">App installieren</button>
     </div>
     
     <div class="instructions">
@@ -72,6 +73,32 @@
         });
       });
     }
+
+    let deferredPrompt;
+    // Abfangen des beforeinstallprompt-Events
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      // Optional: Du kannst hier den Button sichtbar machen, falls er standardmäßig versteckt war.
+      document.getElementById('installButton').style.display = 'inline-block';
+    });
+
+    // Bei Klick auf den Button wird die Installation ausgelöst
+    document.getElementById('installButton').addEventListener('click', () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the PWA install prompt');
+          } else {
+            console.log('User dismissed the PWA install prompt');
+          }
+          deferredPrompt = null;
+        });
+      } else {
+        console.log('PWA Installations-Prompt nicht verfügbar');
+      }
+    });
   </script>
 </body>
 </html>
