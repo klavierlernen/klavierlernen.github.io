@@ -9,12 +9,12 @@
     {
       "src": "https://jp0024.github.io/piano.github.io/icon.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "1024x1024"
     },
     {
       "src": "https://jp0024.github.io/piano.github.io/icon.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "1024x1024"
     }
   ]
 }
