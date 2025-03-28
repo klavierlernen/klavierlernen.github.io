@@ -516,6 +516,7 @@
       
   </style>
   <script>
+      let elapsedTimer = 0;
       
       function showMotivation(message) {
           const overlay = document.getElementById("motivationOverlay");
@@ -931,31 +932,21 @@
       }
       
       function generateLearningQualityGraphTile() {
-        // Erstelle einen Container (div) für die Kachel – hier nutzen wir span-2, um sie breit anzuzeigen.
+        // Erzeuge einen Container für die Kachel
         const container = document.createElement("div");
         container.className = "tile span-2";
         
+        // Titel der Kachel
         const title = document.createElement("div");
         title.className = "tileTitle";
-        title.textContent = "Lernqualität";
+        title.textContent = "Gespielte Noten";
         container.appendChild(title);
         
-        // Erstelle ein Canvas für den Graphen
-        const canvas = document.createElement("canvas");
-        canvas.width = 280;  // Passe die Größe an die Kachel an
-        canvas.height = 100;
-        container.appendChild(canvas);
-        
-        // Hole die letzten drei Sessions und zeichne den Graph
-        const sessions = getLastThreeSessions();
-        drawLearningQualityGraph(canvas, sessions);
-        
-        // Berechne den durchschnittlichen Qualitätswert zur zusätzlichen Anzeige
-        let avgQuality = sessions.length ? (sessions.map(calculateQuality).reduce((a, b) => a + b, 0) / sessions.length).toFixed(2) : "N/A";
-        const qualityText = document.createElement("div");
-        qualityText.className = "tileValue";
-        qualityText.textContent = `Ø ${avgQuality} / 100`;
-        container.appendChild(qualityText);
+        // Wert: Anzahl der gespielten Noten (totalAttempts)
+        const value = document.createElement("div");
+        value.className = "tileValue";
+        value.textContent = totalAttempts;
+        container.appendChild(value);
         
         return container.outerHTML;
       }
@@ -1675,23 +1666,25 @@ const drawSeries = () => {
         updateTimer();
       }
     };
-    const resetGame = () => {
-      sessionCounter = 1000;
-      hearts = unlimitedLives ? Infinity : 4;
-      gameOver = false;
-      seriesCounter = 0;
-      totalAttempts = 0;
-      correctAnswers = 0;
-      correctNoteCount = 0;
-      nextMotivationThreshold = getRandomThreshold();
-      sessionPaused = false;
-      confettiShown = false;
-      errorNotes = [];
-      document.getElementById("pauseOverlay").style.display = "none";
-      scoreRecorded = false;
-      generateSeries();
-      updateHeartsDisplay();
-    };
+      const resetGame = () => {
+        sessionCounter = 1000;      // Counter auf 1000
+        totalAttempts = 0;          // Zähler für gespielte Noten auf 0
+        elapsedTimer = 0;           // Timer auf 0
+        gameOver = false;
+        seriesCounter = 0;
+        correctAnswers = 0;
+        correctNoteCount = 0;
+        nextMotivationThreshold = getRandomThreshold();
+        sessionPaused = false;
+        confettiShown = false;
+        errorNotes = [];
+        document.getElementById("pauseOverlay").style.display = "none";
+        scoreRecorded = false;
+        // Setze den Timer-Container (falls genutzt) auf 0
+        document.getElementById("timerContainer").textContent = "0";
+        generateSeries();
+        updateHeartsDisplay();
+      };
                                             
 
   // Funktion, die den Hintergrund für kurze Zeit grün färbt und danach wieder zurücksetzt
