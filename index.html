@@ -269,11 +269,12 @@
       flex-direction: column;
       align-items: center;
       z-index: 10;
+      border-radius: 10px;
 
       /* 3D-Optik */
       background: white;               /* Heller Pastellton */
       border: 2px solid black;         /* Passender Randton */
-      border-radius: 8px;
+      border-radius: 10px;
       box-shadow:
         0 6px 0 black,                 /* „fester“ Schatten für die 3D-Kante */
         0 6px 6px rgba(0, 0, 0, 0.2);    /* Weicher Schlagschatten */
@@ -1525,50 +1526,56 @@ const drawSeries = () => {
         totalAttempts++;
         
         if (isNoteCorrect(midiInfo)) {
-                  // Falls das Metronom an ist, überprüfe das Timing
-                  if (metronomeOn) {
-                    const currentTime = Date.now();
-                    const actualInterval = currentTime - lastTickTime;
-                    const tolerance = metronomeInterval * 0.3;
-                    if (actualInterval < metronomeInterval - tolerance) {
-                         showMotivation("Zu schnell! Langsamer spielen.");
-                    } else if (actualInterval > metronomeInterval + tolerance) {
-                         showMotivation("Zu langsam! Schneller spielen.");
-                    } else {
-                         clearMotivation();
-                    }
-                  } else {
-                    showMotivation("Super! Weiter so!");
-                  }
-                  correctAnswers++;
-                  correctNoteCount++;
-                  removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
-                  sessionCounter--;
-                  addCircle("positive");
-                  if (noteDisplay) {
-                    noteDisplay.innerHTML = '<span style="color:' + currentSeriesSingle[seriesCounter].color + ';">' + playedNoteDisplay + '</span>';
-              }
-                  if (sessionCounter <= 0) {
-                    sessionCounter = 0;
-                    startPauseCountdown();
-                    updateTimer();
-                    return;
-                  }
-                } else {
-                  currentSeriesSingle[seriesCounter].color = "red";
-                  errorNotes.push(currentSeriesSingle[seriesCounter]);
-                  addCircle("negative");
-                  if (noteDisplay) {
-                    const correctRaw = currentSeriesSingle[seriesCounter].note;
-                    const correctDisplay = (correctRaw === "b" ? "h" : correctRaw) + currentSeriesSingle[seriesCounter].octave;
-                    noteDisplay.innerHTML = '<span style="color:red;">' + playedNoteDisplay + '</span> <span style="color:green;">' + correctDisplay + '</span>';
-                  }
-                  if (!unlimitedLives) {
-                    hearts--;
-                    updateHeartsDisplay();
-                    if (hearts <= 0) { endGame(); return; }
-                  }
-                }
+          // Standardfarbe für korrekte Noten: grün
+          let displayColor = "green";
+          if (metronomeOn) {
+            const currentTime = Date.now();
+            const actualInterval = currentTime - lastTickTime;
+            const tolerance = metronomeInterval * 0.3;
+            // Wenn zu schnell oder zu langsam gespielt wird, setze die Farbe auf gelb und zeige eine entsprechende Motivation an
+            if (actualInterval < metronomeInterval - tolerance) {
+              displayColor = "yellow";
+              showMotivation("Zu schnell! Langsamer spielen.");
+            } else if (actualInterval > metronomeInterval + tolerance) {
+              displayColor = "yellow";
+              showMotivation("Zu langsam! Schneller spielen.");
+            } else {
+              clearMotivation();
+              showMotivation("Super! Weiter so!");
+            }
+          } else {
+            showMotivation("Super! Weiter so!");
+          }
+          correctAnswers++;
+          correctNoteCount++;
+          removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
+          sessionCounter--;
+          addCircle("positive");
+          if (noteDisplay) {
+            noteDisplay.innerHTML = '<span style="color:' + displayColor + ';">' + playedNoteDisplay + '</span>';
+          }
+          if (sessionCounter <= 0) {
+            sessionCounter = 0;
+            startPauseCountdown();
+            updateTimer();
+            return;
+          }
+        } else {
+          // Falsche Note: rot markieren
+          currentSeriesSingle[seriesCounter].color = "red";
+          errorNotes.push(currentSeriesSingle[seriesCounter]);
+          addCircle("negative");
+          if (noteDisplay) {
+            const correctRaw = currentSeriesSingle[seriesCounter].note;
+            const correctDisplay = (correctRaw === "b" ? "h" : correctRaw) + currentSeriesSingle[seriesCounter].octave;
+            noteDisplay.innerHTML = '<span style="color:red;">' + playedNoteDisplay + '</span> <span style="color:green;">' + correctDisplay + '</span>';
+          }
+          if (!unlimitedLives) {
+            hearts--;
+            updateHeartsDisplay();
+            if (hearts <= 0) { endGame(); return; }
+          }
+        }
         
         seriesCounter++;
         if (seriesCounter >= seriesLength) {
