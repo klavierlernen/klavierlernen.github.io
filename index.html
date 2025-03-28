@@ -1450,32 +1450,40 @@ const generateSeries = () => {
       const idx = errorNotes.findIndex(note => note.clef === seriesClef);
       if (idx !== -1) { return errorNotes.splice(idx, 1)[0]; }
     }
-    let availableNotes;
-    if (currentRange === "MC") {
-      availableNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
-    } else {
-      availableNotes = rangeNotes[currentRange];
+const chooseNote = () => {
+  if (errorNotes.length > 0 && Math.random() < 0.6) {
+    const idx = errorNotes.findIndex(note => note.clef === seriesClef);
+    if (idx !== -1) { return errorNotes.splice(idx, 1)[0]; }
+  }
+  let availableNotes;
+  if (currentRange === "MC") {
+    availableNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
+  } else if (currentRange === "D") {
+    // In der D-Lage nur Finger-Noten
+    availableNotes = ["d", "e", "f#", "g", "a"];
+  } else {
+    availableNotes = rangeNotes[currentRange];
+  }
+  const randomIndex = Math.floor(Math.random() * availableNotes.length);
+  const chosenNote = availableNotes[randomIndex];
+  let noteOctave;
+  if (currentRange === "MC") {
+    noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
+  } else {
+    noteOctave = seriesClef === "bass" ? 3 : 4;
+  }
+  // Verarbeite accidentals nur in F- und G-Lage
+  let accidental = undefined;
+  if (["F", "G"].includes(currentRange)) {
+    if (currentRange === "F" && chosenNote.includes("b") && chosenNote !== "b") {
+      accidental = chosenNote;
+    } else if (currentRange === "G" && (chosenNote.includes("#") || (chosenNote.includes("b") && chosenNote !== "b"))) {
+      accidental = chosenNote;
     }
-    const randomIndex = Math.floor(Math.random() * availableNotes.length);
-    const chosenNote = availableNotes[randomIndex];
-    let noteOctave;
-    if (currentRange === "MC") {
-      noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
-    } else {
-      noteOctave = seriesClef === "bass" ? 3 : 4;
-    }
-    let accidental = undefined;
-    if (["D", "F", "G"].includes(currentRange)) {
-      if (currentRange === "D" && chosenNote.includes("#")) {
-        accidental = "#";
-      } else if (currentRange === "F" && chosenNote.includes("b") && chosenNote !== "b") {
-        accidental = chosenNote;
-      } else if (currentRange === "G" && (chosenNote.includes("#") || (chosenNote.includes("b") && chosenNote !== "b"))) {
-        accidental = chosenNote;
-      }
-    }
-    return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
-  };
+  }
+  return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
+};
+
 
   currentSeriesSingle = [];
   for (let i = 0; i < seriesLength; i++) {
