@@ -1552,11 +1552,14 @@ const drawSeries = () => {
               showMotivation("Super! Weiter so!");
             }
           } else {
-            // Ohne Metronom: Farbe bleibt grün
+            // Ohne Metronom: explizit grün
             clearMotivation();
             showMotivation("Super! Weiter so!");
             displayColor = "green";
           }
+          // Setze die Farbe im Noten-Objekt, damit sie auch beim Zeichnen verwendet wird
+          currentSeriesSingle[seriesCounter].color = displayColor;
+          
           correctAnswers++;
           correctNoteCount++;
           removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
