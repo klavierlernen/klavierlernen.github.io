@@ -1540,7 +1540,7 @@ const drawSeries = () => {
             const currentTime = Date.now();
             const actualInterval = currentTime - lastTickTime;
             const tolerance = metronomeInterval * 0.3;
-            // Wenn zu schnell oder zu langsam gespielt wird, setze die Farbe auf gelb und zeige eine entsprechende Motivation an
+            // Wenn zu schnell oder zu langsam gespielt wird, setze die Farbe auf gelb und zeige entsprechende Motivation
             if (actualInterval < metronomeInterval - tolerance) {
               displayColor = "yellow";
               showMotivation("Zu schnell! Langsamer spielen.");
