@@ -1552,7 +1552,10 @@ const drawSeries = () => {
               showMotivation("Super! Weiter so!");
             }
           } else {
+            // Ohne Metronom: Farbe bleibt grün
+            clearMotivation();
             showMotivation("Super! Weiter so!");
+            displayColor = "green";
           }
           correctAnswers++;
           correctNoteCount++;
