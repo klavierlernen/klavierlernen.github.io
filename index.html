@@ -1771,38 +1771,44 @@ const drawSeries = () => {
       App als PWA installieren
     </button>
   </div>
+  <!-- PWA Installations-Button (immer sichtbar) -->
+  <div id="pwaInstallContainer" style="display: block; position: fixed; bottom: 20px; right: 20px; z-index: 100;">
+    <button id="pwaInstallButton" style="padding: 10px 20px; background: #007aff; color: #fff; border: none; border-radius: 4px; cursor: pointer;">
+      App als PWA installieren
+    </button>
+  </div>
   <script>
-      let deferredPrompt;
-        // Abfangen des beforeinstallprompt-Events (ohne Anzeige-Bedingung)
-        window.addEventListener('beforeinstallprompt', (e) => {
-          e.preventDefault();
-          deferredPrompt = e;
-          console.log('beforeinstallprompt Event empfangen');
-        });
-        // Wenn die App installiert wurde, verstecke den Installationsbereich
-        window.addEventListener('appinstalled', () => {
+    let deferredPrompt;
+    // Abfangen des beforeinstallprompt-Events
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      console.log('beforeinstallprompt Event empfangen');
+    });
+
+    // Wenn die App installiert wurde, verstecke den Installationsbereich
+    window.addEventListener('appinstalled', () => {
+      document.getElementById('pwaInstallContainer').style.display = 'none';
+    });
+
+    // Beim Klick auf den Button den Installations-Prompt auslösen
+    document.getElementById('pwaInstallButton').addEventListener('click', () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the PWA install prompt');
+          } else {
+            console.log('User dismissed the PWA install prompt');
+          }
+          deferredPrompt = null;
           document.getElementById('pwaInstallContainer').style.display = 'none';
         });
-        // Beim Klick auf den Button den Installations-Prompt auslösen
-        document.getElementById('pwaInstallButton').addEventListener('click', () => {
-          if (deferredPrompt) {
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-              if (choiceResult.outcome === 'accepted') {
-                console.log('User accepted the PWA install prompt');
-              } else {
-                console.log('User dismissed the PWA install prompt');
-              }
-              deferredPrompt = null;
-              document.getElementById('pwaInstallContainer').style.display = 'none';
-            });
-          } else {
-            // Fallback: Zeige Installationshinweise, da das beforeinstallprompt-Event nicht verfügbar ist
-            alert("Um die App als PWA zu installieren, benutze bitte das Browser-Menü:\n\n" +
-                  "Auf Android/Chrome: Tippe auf das Menü-Symbol und wähle 'Zum Startbildschirm hinzufügen'.\n" +
-                  "Auf iOS/Safari: Tippe auf das Teilen-Symbol und dann 'Zum Home-Bildschirm hinzufügen'.");
-          }
-        });
+      } else {
+        // Fallback: Wenn das beforeinstallprompt-Event nicht verfügbar ist
+        alert("Um die App als PWA zu installieren, öffne bitte das Chrome-Menü und wähle 'App installieren'.");
+      }
+    });
   </script>
   
 </body>
