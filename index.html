@@ -1368,7 +1368,10 @@ function generateBarChartHTML() {
     });
                                             
                             
-    const generateSeries = () => {
+    // Füge oben in deinem Script (vor generateSeries) hinzu:
+let notesInCurrentPhase = 0;
+
+const generateSeries = () => {
   seriesCounter = 0;
   correctNoteCount = 0;
   nextMotivationThreshold = getRandomThreshold();
@@ -1377,30 +1380,75 @@ function generateBarChartHTML() {
   let seriesClef;
   if (randomMode) {
       seriesClef = Math.random() < 0.5 ? "bass" : "treble";
-      let oldRange = currentRange;
-      if (typeof alternatingRanges !== 'undefined' && alternatingRanges.length > 0) {
-          currentRange = alternatingRanges[Math.floor(Math.random() * alternatingRanges.length)];
-      }
-      if (oldRange !== currentRange) {
-          // Kurzer Dong, wenn die Lage wechselt
-          gongSound.currentTime = 0;
-          gongSound.play();
-          var clefTitle = document.getElementById("clefTitle");
-          clefTitle.textContent = currentRange + "-Lage";
-          // Rahmen des Lagenbuttons kurz rot aufblinken lassen
-          clefTitle.style.border = "3px solid red";
-          setTimeout(() => {
-              // Originalfarbe abhängig vom Dark-Mode
-              if (document.body.classList.contains("dark-mode")) {
-                  clefTitle.style.border = "3px solid #fff";
-              } else {
-                  clefTitle.style.border = "3px solid #000";
-              }
-          }, 300);
+      // Erhöhe den Zähler um die Anzahl der Noten in dieser Serie
+      notesInCurrentPhase += seriesLength;
+      // Wechsel nur, wenn 20 oder mehr Noten in der aktuellen Phase gespielt wurden
+      if (notesInCurrentPhase >= 20) {
+          let oldRange = currentRange;
+          if (typeof alternatingRanges !== 'undefined' && alternatingRanges.length > 0) {
+              currentRange = alternatingRanges[Math.floor(Math.random() * alternatingRanges.length)];
+          }
+          if (oldRange !== currentRange) {
+              // Kurzer Dong, wenn die Lage wechselt
+              gongSound.currentTime = 0;
+              gongSound.play();
+              var clefTitle = document.getElementById("clefTitle");
+              clefTitle.textContent = currentRange + "-Lage";
+              // Rahmen des Lagenbuttons kurz rot aufblinken lassen
+              clefTitle.style.border = "3px solid red";
+              setTimeout(() => {
+                  if (document.body.classList.contains("dark-mode")) {
+                      clefTitle.style.border = "3px solid #fff";
+                  } else {
+                      clefTitle.style.border = "3px solid #000";
+                  }
+              }, 300);
+          }
+          // Nach dem Wechsel den Zähler zurücksetzen
+          notesInCurrentPhase = 0;
       }
   } else {
       seriesClef = (selectedMode === "left") ? "bass" : "treble";
   }
+      
+  const chooseNote = () => {
+    if (errorNotes.length > 0 && Math.random() < 0.6) {
+      const idx = errorNotes.findIndex(note => note.clef === seriesClef);
+      if (idx !== -1) { return errorNotes.splice(idx, 1)[0]; }
+    }
+    let availableNotes;
+    if (currentRange === "MC") {
+      availableNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
+    } else {
+      availableNotes = rangeNotes[currentRange];
+    }
+    const randomIndex = Math.floor(Math.random() * availableNotes.length);
+    const chosenNote = availableNotes[randomIndex];
+    let noteOctave;
+    if (currentRange === "MC") {
+      noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
+    } else {
+      noteOctave = seriesClef === "bass" ? 3 : 4;
+    }
+    let accidental = undefined;
+    if (["D", "F", "G"].includes(currentRange)) {
+      if (currentRange === "D" && chosenNote.includes("#")) {
+        accidental = "#";
+      } else if (currentRange === "F" && chosenNote.includes("b") && chosenNote !== "b") {
+        accidental = chosenNote;
+      } else if (currentRange === "G" && (chosenNote.includes("#") || (chosenNote.includes("b") && chosenNote !== "b"))) {
+        accidental = chosenNote;
+      }
+    }
+    return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
+  };
+
+  currentSeriesSingle = [];
+  for (let i = 0; i < seriesLength; i++) {
+    currentSeriesSingle.push(chooseNote());
+  }
+  drawSeries();
+};
       
   const chooseNote = () => {
     if (errorNotes.length > 0 && Math.random() < 0.6) {
@@ -1483,10 +1531,11 @@ const drawSeries = () => {
   stave.setContext(context).draw();
   
   // Erzeuge die StaveNotes für die Serie (Notennamen bleiben unverändert, da die Vorzeichen über die Key Signature definiert werden)
+  const noteOrder = ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"];
   const staveNotes = currentSeriesSingle.map(item => {
     let noteName = item.note.toLowerCase();
     // Falls wir nicht in den speziellen Lagen arbeiten, ersetze Unicode-Vorzeichen durch ASCII
-    if (!(["D", "F", "G"].includes(currentRange))) {
+    if (!("D,F,G".includes(currentRange))) {
       noteName = noteName.replace(/♯/g, "#").replace(/♭/g, "b");
     }
     const key = noteName + "/" + item.octave;
@@ -1495,7 +1544,33 @@ const drawSeries = () => {
       keys: [key],
       duration: "q"
     });
+    // Setze die Farbe für Noten (z. B. grün, gelb oder rot)
     staveNote.setStyle({ fillStyle: item.color, strokeStyle: item.color });
+
+    // Bestimme den MIDI-Wert der Note
+    const noteIndex = noteOrder.indexOf(noteName);
+    const midiNumber = (item.octave + 1) * 12 + noteIndex;
+
+    // Definiere den Schwellenwert (Mittellinie) je nach Clef
+    let threshold;
+    if (item.clef === "treble") {
+      // Für Treble-Clef: Mittellinie bei B4 (MIDI 71)
+      threshold = 71;
+    } else if (item.clef === "bass") {
+      // Für Bass-Clef: Mittellinie bei D3 (MIDI 50)
+      threshold = 50;
+    } else {
+      // Standardwert, falls keine Clef definiert ist
+      threshold = 71;
+    }
+
+    // Wenn die Note über der Mittellinie liegt, setze den Notenhals nach unten (StemDirection -1), sonst (unter der Mittellinie) nach oben (1)
+    if (midiNumber >= threshold) {
+      staveNote.setStemDirection(-1);
+    } else {
+      staveNote.setStemDirection(1);
+    }
+
     return staveNote;
   });
   
