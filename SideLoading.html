@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>iOS App Sideloading Installer</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#007bff">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+    }
+    .button {
+      display: block;
+      width: 100%;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .button a {
+      background: #007bff;
+      color: #fff;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 4px;
+    }
+    .instructions {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>iOS App Sideloading Installer</h1>
+    <p>Um die App auf deinem iOS-Gerät zu installieren, klicke bitte auf den folgenden Button, um die .ipa-Datei herunterzuladen und folge anschließend den Anweisungen.</p>
+    
+    <!-- Stelle sicher, dass der href-Pfad auf deine .ipa-Datei verweist -->
+    <div class="button">
+      <a href="pfad_zur_app.ipa" download>App installieren</a>
+    </div>
+    
+    <div class="instructions">
+      <h2>Anleitung:</h2>
+      <ol>
+        <li>Klicke auf "App installieren" und lade die .ipa-Datei herunter.</li>
+        <li>Öffne die heruntergeladene Datei in Safari auf deinem iOS-Gerät.</li>
+        <li>Falls ein Installationsprofil benötigt wird, folge den Anweisungen, um es zu installieren.</li>
+        <li>Öffne anschließend <strong>Einstellungen &gt; Allgemein &gt; Profile & Gerätemanagement</strong> und vertraue dem entsprechenden Zertifikat.</li>
+        <li>Starte die App und folge den weiteren Anweisungen auf dem Bildschirm.</li>
+      </ol>
+      <p><strong>Wichtig:</strong> Diese Methode kann je nach iOS-Version und Sicherheitseinstellungen variieren. Stelle sicher, dass du der Quelle der App vertraust, bevor du fortfährst.</p>
+    </div>
+  </div>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js').then(function(registration) {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }, function(err) {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
