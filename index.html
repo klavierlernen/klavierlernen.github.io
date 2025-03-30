@@ -2346,7 +2346,7 @@ const drawSeries = () => {
     let exists = true, newID;
     while (exists) {
       newID = Math.random().toString().slice(2, 6);
-      const r = await fetch(`${SHEET_BASE}/search?user=${newID}`);
+      const r = await fetch(`${SHEET_BASE}?user=${newID}`);
       const data = await r.json();
       exists = data.length > 0;
     }
@@ -2365,7 +2365,7 @@ const drawSeries = () => {
       if (input.length === 0) return;
       
       // Überprüfe die ID mit der API, aber nur wenn sie noch nicht gespeichert ist
-      const response = await fetch(`${SHEET_BASE}/search?user=${input}`);
+      const response = await fetch(`${SHEET_BASE}?user=${input}`);
       const data = await response.json();
       if (data.length > 0) {
         userID = input;
