@@ -960,6 +960,9 @@
         tile.appendChild(title);
 
         const trophyGrid = document.createElement("div");
+        const wrapper = document.createElement("div");
+        wrapper.style.display = "flex";
+        wrapper.style.alignItems = "flex-start";
         trophyGrid.style.display = "grid";
         trophyGrid.style.gridTemplateColumns = "repeat(10, 1fr)";
         trophyGrid.style.gridGap = "5px";
@@ -972,7 +975,9 @@
     descriptionBox.style.fontSize = "1em";
     descriptionBox.style.color = "#333";
     descriptionBox.style.minHeight = "2em";
-    tile.appendChild(descriptionBox);
+    descriptionBox.style.marginLeft = "20px";
+    descriptionBox.style.textAlign = "left";
+    descriptionBox.style.maxWidth = "200px";
 
         const allTrophies = [
           "🐢","🐌","🚶‍♂️","🏃","⚡",
@@ -1014,7 +1019,9 @@
         });
 
         localStorage.setItem("unlockedTrophies", JSON.stringify(unlockedTrophies));
-        tile.appendChild(trophyGrid);
+        wrapper.appendChild(trophyGrid);
+        wrapper.appendChild(descriptionBox);
+        tile.appendChild(wrapper);
         return tile.outerHTML;
       }
 
