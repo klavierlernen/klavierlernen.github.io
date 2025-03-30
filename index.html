@@ -1863,8 +1863,28 @@ const chooseNote = () => {
 };
 
   currentSeriesSingle = [];
-  for (let i = 0; i < seriesLength; i++) {
-    currentSeriesSingle.push(chooseNote());
+  let i = 0;
+  while (i < seriesLength) {
+    if (randomMode && gameLevel === 3 && Math.random() < 0.5 && i <= seriesLength - 2) {
+      const note1 = chooseNote();
+      const note2 = chooseNote();
+      note1.forcedDuration = "8";
+      note2.forcedDuration = "8";
+      currentSeriesSingle.push(note1, note2);
+      i += 2;
+    } else {
+      const note = chooseNote();
+      if (gameLevel === 1) {
+        note.forcedDuration = "w";
+      } else if (randomMode && gameLevel >= 2) {
+        const durs = ["q", "8", "h"];
+        note.forcedDuration = durs[Math.floor(Math.random() * durs.length)];
+      } else {
+        note.forcedDuration = "q";
+      }
+      currentSeriesSingle.push(note);
+      i++;
+    }
   }
   timeSignature = "4/4";
   if (gameLevel >= 2) {
@@ -1920,8 +1940,7 @@ const drawSeries = () => {
       noteName = noteName.replace(/♯/g, "#").replace(/♭/g, "b");
     }
     const key = noteName + "/" + item.octave;
-    const durations = (gameLevel >= 2) ? ["q", "8", "h"] : ["q"];
-    const randomDuration = durations[Math.floor(Math.random() * durations.length)];
+    const randomDuration = item.forcedDuration || ((gameLevel >= 2) ? ["q", "8", "h"][Math.floor(Math.random() * 3)] : "q");
     const staveNote = new Vex.Flow.StaveNote({
       clef: item.clef,
       keys: [key],
@@ -2045,6 +2064,7 @@ const isNoteCorrect = (midiInfo) => {
           }
           // Setze die Farbe im Noten-Objekt, damit sie auch beim Zeichnen verwendet wird
           currentSeriesSingle[seriesCounter].color = displayColor;
+          queueRedraw();
           
           correctAnswers++;
           correctNoteCount++;
@@ -2080,8 +2100,6 @@ const isNoteCorrect = (midiInfo) => {
         seriesCounter++;
         if (seriesCounter >= seriesLength) {
           generateSeries();
-        } else {
-          queueRedraw();
         }
         updateTimer();
       }
