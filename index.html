@@ -964,7 +964,15 @@
         trophyGrid.style.gridTemplateColumns = "repeat(10, 1fr)";
         trophyGrid.style.gridGap = "5px";
         trophyGrid.style.fontSize = "1.5em";
-        trophyGrid.style.marginTop = "10px";
+    trophyGrid.style.marginTop = "10px";
+    
+    const descriptionBox = document.createElement("div");
+    descriptionBox.id = "trophyDescriptionBox";
+    descriptionBox.style.marginTop = "10px";
+    descriptionBox.style.fontSize = "1em";
+    descriptionBox.style.color = "#333";
+    descriptionBox.style.minHeight = "2em";
+    tile.appendChild(descriptionBox);
 
         const allTrophies = [
           "🐢","🐌","🚶‍♂️","🏃","⚡",
@@ -980,6 +988,11 @@
         allTrophies.forEach((emoji, index) => {
           const span = document.createElement("span");
           span.textContent = emoji;
+          span.title = getTrophyDescription(index);
+          span.style.cursor = "pointer";
+          span.addEventListener("click", () => {
+            descriptionBox.textContent = getTrophyDescription(index);
+          });
           if (unlockedTrophies.includes(index)) {
             span.style.opacity = "1";
           } else {
