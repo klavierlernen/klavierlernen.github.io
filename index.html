@@ -1171,6 +1171,7 @@ function generateBarChartHTML() {
       
     const startPauseCountdown = () => {
       logSessionStart(); // Neuen Session-Zeitstempel speichern
+      stopMetronome();
       sessionPaused = true;
       sessionCount++;
       const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
