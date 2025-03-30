@@ -1255,7 +1255,17 @@ function generateBarChartHTML() {
       animateCircles();
       resetInactivityTimer();
       spawnIntroBlobs();
-      document.getElementById("welcomeMessage").textContent = "Schön, dass du da bist!";
+      const now = new Date();
+      const hour = now.getHours();
+      let greeting;
+      if (hour >= 6 && hour < 12) {
+        greeting = "Guten Morgen!";
+      } else if (hour >= 12 && hour < 17) {
+        greeting = "Guten Tag!";
+      } else {
+        greeting = "Guten Abend!";
+      }
+      document.getElementById("welcomeMessage").innerHTML = greeting + "<br>Schön, dass du da bist!";
       setTimeout(proceedToMainScreen, 5000);
       
       const settingsPanel = document.getElementById("settingsPanel");
@@ -1439,14 +1449,14 @@ const generateSeries = () => {
 const chooseNote = () => {
   if (errorNotes.length > 0 && Math.random() < 0.6) {
     const idx = errorNotes.findIndex(note => note.clef === seriesClef);
-    if (idx !== -1) { 
-      return errorNotes.splice(idx, 1)[0]; 
+    if (idx !== -1) {
+      return errorNotes.splice(idx, 1)[0];
     }
   }
   
   let availableNotes;
   if (currentRange === "MC") {
-    availableNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
+    availableNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f#", "g"];
   } else if (currentRange === "D") {
     // In der D-Lage dürfen nur die Finger-Noten abgefragt werden: D, E, F♯, G, A
     availableNotes = ["d", "e", "f#", "g", "a"];
@@ -1482,7 +1492,7 @@ const chooseNote = () => {
     currentSeriesSingle.push(chooseNote());
   }
   drawSeries();
-};                               
+};
                                             
 const drawSeries = () => {
   const notationDiv = document.getElementById("notation");
