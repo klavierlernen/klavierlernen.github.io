@@ -36,6 +36,9 @@
       filter: blur(20px);
       opacity: 0.2;
     }
+    canvas#animationCanvas {
+      z-index: 9999 !important;
+    }
     /* Einhand-Notation (normaler Modus) */
     #notation {
       display: none;
@@ -974,11 +977,13 @@
         wrapper.style.flexDirection = "column";
         wrapper.style.alignItems = "flex-start";
         wrapper.style.flex = "2";
+        wrapper.style.marginLeft = "20px";
         trophyGrid.style.display = "grid";
         trophyGrid.style.gridTemplateColumns = "repeat(10, 1fr)";
         trophyGrid.style.gridGap = "5px";
         trophyGrid.style.fontSize = "2em";
     trophyGrid.style.marginTop = "10px";
+    trophyGrid.style.marginLeft = "10px";
     
     const descriptionBox = document.createElement("div");
     descriptionBox.id = "trophyDescriptionBox";
@@ -1176,6 +1181,16 @@ function generateBarChartHTML() {
       pauseRemaining = Math.floor(calculateAdaptiveBreakTime(responseTimes, hitRate) * 2 + 300);
       pauseDuration = pauseRemaining;
 
+      const unlockedTrophies = JSON.parse(localStorage.getItem("unlockedTrophies") || "[]");
+      const previousTrophies = JSON.parse(sessionStorage.getItem("previousUnlockedTrophies") || "[]");
+      
+      const justUnlocked = unlockedTrophies.filter(index => !previousTrophies.includes(index));
+      const justLost = previousTrophies.filter(index => !unlockedTrophies.includes(index));
+      
+      sessionStorage.setItem("justUnlockedTrophies", JSON.stringify(justUnlocked));
+      sessionStorage.setItem("justLostTrophies", JSON.stringify(justLost));
+      sessionStorage.setItem("previousUnlockedTrophies", JSON.stringify(unlockedTrophies));
+      
       showTrophyTransitionScreen(() => {
         document.getElementById("mainContent").style.display = "none";
         document.getElementById("timerContainer").style.display = "none";
@@ -2140,7 +2155,7 @@ const drawSeries = () => {
 
         if (newUnlocked.length > 0) {
           const gainedTitle = document.createElement("h2");
-          gainedTitle.textContent = isGerman ? "Neu freigeschaltet" : "Newly Unlocked";
+          gainedTitle.textContent = "Neu freigeschaltet";
           trophyContainer.appendChild(gainedTitle);
 
           newUnlocked.forEach(index => {
@@ -2156,7 +2171,7 @@ const drawSeries = () => {
 
         if (justLost.length > 0) {
           const lostTitle = document.createElement("h2");
-          lostTitle.textContent = isGerman ? "Verloren" : "Lost";
+          lostTitle.textContent = "Verloren";
           trophyContainer.appendChild(lostTitle);
 
           justLost.forEach(index => {
