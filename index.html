@@ -2134,9 +2134,10 @@ const drawSeries = () => {
   <div id="timerContainer"></div>
   <!-- Hauptinhalt -->
   <div id="mainContent">
-    <div id="userIDInputContainer" style="position: fixed; top: 10px; left: 50%; transform: translateX(-50%); z-index: 200; display: flex; flex-direction: column; align-items: center;">
-        <input id="userIDInput" type="text" placeholder="Lerner ID"
-          style="font-size: 5em; padding: 4px; width: 500px; height: 100px; position: fixed; top: 30%; text-align: center; border: none; background: none;">
+    <div id="userIDInputContainer" style="position: fixed; top: 1px; left: 10px; z-index: 200; display: flex; flex-direction: row; align-items: center; gap: 10px;">
+          <span id="userIDIcon" style="font-size: 1em;">🖍️</span>
+          <input id="userIDInput" type="text" placeholder="ID"
+            style="font-size: 1em; padding: 4px; width: 50px; height: 13px; text-align: center; border: none; background: none; outline: none; color: black;">
       <span id="createNewID" style="cursor:pointer; color:blue; text-decoration:underline; font-size:0.9em;">Neue ID erstellen</span>
       <div id="userIDStatus" style="margin-top:5px; font-size:0.9em; color:#000;"></div>
     </div>
@@ -2306,7 +2307,7 @@ const drawSeries = () => {
       body: JSON.stringify({ data: [{ user: newID, quote: 0, speed: 0 }] })
     });
     userID = newID;
-    document.getElementById("userIDStatus").textContent = "Neue ID erstellt: " + userID;
+    document.getElementById("createNewID").style.display = "none";
   });
   
   document.getElementById("userIDInput").addEventListener("keydown", async (e) => {
@@ -2316,9 +2317,11 @@ const drawSeries = () => {
       const data = await r.json();
       if (data.length > 0) {
         userID = input;
-        document.getElementById("userIDStatus").textContent = "Willkommen, ID: " + userID;
+        document.getElementById("userIDIcon").textContent = "✅"; // bei Erfolg
+        document.getElementById("createNewID").style.display = "none";
       } else {
         document.getElementById("userIDStatus").textContent = "ID nicht gefunden.";
+        document.getElementById("userIDIcon").textContent = "❌"; // bei Fehler
       }
     }
   });
