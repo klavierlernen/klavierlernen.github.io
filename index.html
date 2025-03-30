@@ -1684,11 +1684,33 @@ document.getElementById("timerContainer").addEventListener("click", () => {
       
       autoSelectMode();
       generateSeries();
+      const storedID = localStorage.getItem("storedUserID");
+      if (storedID) {
+        const inputElem = document.getElementById("userIDInput");
+        inputElem.value = storedID;
+        const event = new KeyboardEvent("keydown", { key: "Enter" });
+        inputElem.dispatchEvent(event);
+      }
       updateHeartsDisplay();
       document.addEventListener("keydown", (event) => {
         if (event.code === "Space") { handleMIDIMessage(144, 60, 127); }
       });
       document.getElementById("scoreboardOverlay").addEventListener("click", toggleScoreboard);
+      
+      document.getElementById("userIDIcon").addEventListener("click", () => {
+        if (document.getElementById("userIDIcon").textContent === "🔒") {
+          const newID = prompt("Neue ID eingeben:");
+          if (newID) {
+            document.getElementById("userIDInput").value = newID;
+            const event = new KeyboardEvent("keydown", { key: "Enter" });
+            document.getElementById("userIDInput").dispatchEvent(event);
+            localStorage.removeItem("storedUserID");
+            document.getElementById("userIDIcon").textContent = "🖍️";
+            document.getElementById("createNewID").style.display = "inline";
+            document.getElementById("userIDStatus").textContent = "";
+          }
+        }
+      });
     });
                                             
 // Füge am Anfang des Skripts (z. B. direkt vor der Funktion generateSeries) hinzu:
@@ -2137,7 +2159,7 @@ const drawSeries = () => {
     <div id="userIDInputContainer" style="position: fixed; top: 1px; left: 10px; z-index: 200; display: flex; flex-direction: row; align-items: center; gap: 10px;">
           <span id="userIDIcon" style="font-size: 1em;">🖍️</span>
           <input id="userIDInput" type="text" placeholder="ID"
-            style="font-size: 1em; padding: 4px; width: 50px; height: 13px; text-align: center; border: none; background: none; outline: none; color: black;">
+            style="font-size: 1em; padding: 4px; width: 50px; height: 20px; text-align: center; border: none; background: none; outline: none; color: black;">
       <span id="createNewID" style="cursor:pointer; color:blue; text-decoration:underline; font-size:0.9em;">Neue ID erstellen</span>
       <div id="userIDStatus" style="margin-top:5px; font-size:0.9em; color:#000;"></div>
     </div>
@@ -2315,14 +2337,15 @@ const drawSeries = () => {
       const input = e.target.value.trim();
       const r = await fetch(`${SHEET_BASE}/search?user=${input}`);
       const data = await r.json();
-      if (data.length > 0) {
-        userID = input;
-        document.getElementById("userIDIcon").textContent = "✅"; // bei Erfolg
-        document.getElementById("createNewID").style.display = "none";
-      } else {
-        document.getElementById("userIDStatus").textContent = "ID nicht gefunden.";
-        document.getElementById("userIDIcon").textContent = "❌"; // bei Fehler
-      }
+  if (data.length > 0) {
+    userID = input;
+    document.getElementById("userIDIcon").textContent = "🔒"; // bei Erfolg
+    document.getElementById("createNewID").style.display = "none";
+    localStorage.setItem("storedUserID", userID);
+  } else {
+    document.getElementById("userIDStatus").textContent = "ID nicht gefunden.";
+    document.getElementById("userIDIcon").textContent = "❌"; // bei Fehler
+  }
     }
   });
   </script>
