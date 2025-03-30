@@ -2024,14 +2024,21 @@ const drawSeries = () => {
   
   function onMIDISuccess(midiAccess) {
     // Alle vorhandenen MIDI-Eingänge initialisieren
-    midiAccess.inputs.forEach(function(input) {
-      input.onmidimessage = handleMIDIMessage;
+    midiAccess.inputs.forEach((input) => {
+      input.onmidimessage = (msg) => {
+        const [status, data1, data2] = msg.data;
+        handleMIDIMessage(status, data1, data2);
+      };
     });
     // Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
-    midiAccess.onstatechange = function(e) {
-      console.log("MIDI-Gerätestatus hat sich geändert:", e.port.name, e.port.state);
-      if (e.port.state === "connected" && e.port.type === "input") {
-        e.port.onmidimessage = handleMIDIMessage;
+    midiAccess.onstatechange = (event) => {
+      const port = event.port;
+      console.log("MIDI-Gerätestatus hat sich geändert:", port.name, port.state);
+      if (port.state === "connected" && port.type === "input") {
+        port.onmidimessage = (msg) => {
+          const [status, data1, data2] = msg.data;
+          handleMIDIMessage(status, data1, data2);
+        };
       }
     };
   }
