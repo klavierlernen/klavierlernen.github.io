@@ -2,6 +2,8 @@
 
 This app is an interactive training tool for learning to read sheet music quickly, supporting both treble and bass clefs. It is primarily aimed at musicians who want to improve their eye-hand coordination in music reading – especially when using a connected MIDI instrument like a digital piano or MIDI keyboard.
 
+! Currently the App is available in German only
+
 ### 🔧 Features
 
 - **MIDI Real-Time Detection:** Instant evaluation of played notes via MIDI interface.
