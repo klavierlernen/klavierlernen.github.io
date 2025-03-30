@@ -1202,7 +1202,7 @@ function generateBarChartHTML() {
       
       
 let userID = null;
-const SHEET_BASE = "https://script.google.com/macros/s/AKfycbxG50ZOgBtUEJ6rw-iDRvywt0hgkhfo3bUP91UAKEgxK8zgKvqMtUWuBWS6wSRXCjIBLw/exec";
+const SHEET_BASE = "https://script.google.com/macros/s/AKfycbyNPsdxi3P8mc54Ub8B82sEj0HvZ1H-Mqw8SCNgd82K0MOXlvgZpS6k4J6b-LYdsIpMhw/exec";
 
     const startPauseCountdown = () => {
   logSessionStart(); // Neuen Session-Zeitstempel speichern
@@ -1373,6 +1373,42 @@ const SHEET_BASE = "https://script.google.com/macros/s/AKfycbxG50ZOgBtUEJ6rw-iDR
       document.getElementById("clefTitle").textContent = currentRange + "-Lage";
       generateSeries();
       updateHeartsDisplay();
+      document.getElementById("createNewID").addEventListener("click", async () => {
+        const generateRandomID = () => Math.floor(1000 + Math.random() * 9000).toString();
+      
+        let tries = 0;
+        let newID;
+        let exists = true;
+      
+        while (tries < 10 && exists) {
+          newID = generateRandomID();
+          const res = await fetch(SHEET_BASE + "?user=" + newID);
+          const data = await res.json();
+          exists = !!data && data.user; // ist gesetzt → ID existiert
+          tries++;
+        }
+      
+        if (exists) {
+          alert("Keine freie ID gefunden. Versuche es erneut.");
+          return;
+        }
+      
+        // Neue ID speichern
+        userID = newID;
+        localStorage.setItem("storedUserID", userID);
+        document.getElementById("userIDInput").value = userID;
+        document.getElementById("userIDIcon").textContent = "🔒";
+        document.getElementById("createNewID").style.display = "none";
+      
+        // Neue Zeile per POST anlegen
+        await fetch(SHEET_BASE, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user: userID, quote: 0, speed: 0 })
+        });
+      
+        document.getElementById("userIDStatus").textContent = "✅ Neue ID " + userID + " erstellt!";
+      });
     };
     const toggleDarkMode = () => {
       document.body.classList.toggle("dark-mode");
