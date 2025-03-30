@@ -514,10 +514,26 @@
     bottom: 20px;
   }
 }
+
+      
       
   </style>
   <script>
       let elapsedTimer = 0;
+      let cachedUserRank = null;
+      
+      function updateUserPlacement(valueElem, data) {
+        const sorted = data.sort((a, b) => {
+          const qA = parseInt(a.quote || 0), qB = parseInt(b.quote || 0);
+          const sA = parseInt(a.speed || 9999), sB = parseInt(b.speed || 9999);
+          if (qB !== qA) return qB - qA;
+          return sA - sB;
+        });
+        const rank = sorted.findIndex((e) => e.user === userID) + 1;
+        const text = rank > 0 ? `Platz ${rank} von ${sorted.length}` : "Nicht gefunden";
+        cachedUserRank = text;
+        valueElem.textContent = text;
+      }
       
       function showMotivation(message) {
           const overlay = document.getElementById("motivationOverlay");
@@ -933,42 +949,35 @@
       }
       
       function generateLearningQualityGraphTile() {
-  const container = document.createElement("div");
-  container.className = "tile span-2";
- 
-  const title = document.createElement("div");
-  title.className = "tileTitle";
-  title.textContent = "🏅 Platzierung";
-  container.appendChild(title);
- 
-  const value = document.createElement("div");
-  value.className = "tileValue";
-  value.textContent = "Wird geladen...";
-  container.appendChild(value);
- 
-  // Nur abrufen, wenn ID gesetzt
-  if (userID) {
-    fetch(SHEET_BASE)
-      .then((res) => res.json())
-      .then((data) => {
-        const sorted = data.sort((a, b) => {
-          const qA = parseInt(a.quote || 0), qB = parseInt(b.quote || 0);
-          const sA = parseInt(a.speed || 9999), sB = parseInt(b.speed || 9999);
-          if (qB !== qA) return qB - qA;
-          return sA - sB;
-        });
-        const rank = sorted.findIndex((e) => e.user === userID) + 1;
-        value.textContent = rank > 0 ? `#${rank} von ${sorted.length}` : "Nicht gefunden";
-      })
-      .catch(() => {
-        value.textContent = "Fehler beim Laden";
-      });
-  } else {
-    value.textContent = "Keine ID";
-  }
- 
-  return container.outerHTML;
-}
+        const container = document.createElement("div");
+        container.className = "tile span-2";
+
+        const title = document.createElement("div");
+        title.className = "tileTitle";
+        title.textContent = "🏅 Platzierung";
+        container.appendChild(title);
+
+        const value = document.createElement("div");
+        value.className = "tileValue";
+        value.textContent = cachedUserRank || "Wird geladen...";
+        container.appendChild(value);
+
+        if (userID && !window.cachedScoreboardData) {
+          fetch(SHEET_BASE)
+            .then((res) => res.json())
+            .then((data) => {
+              window.cachedScoreboardData = data;
+              updateUserPlacement(value, data);
+            })
+            .catch(() => {
+              value.textContent = "Fehler beim Laden";
+            });
+        } else if (window.cachedScoreboardData && cachedUserRank === null) {
+          updateUserPlacement(value, window.cachedScoreboardData);
+        }
+
+        return container.outerHTML;
+      }
 
       function generateTrophyTile() {
         const tile = document.createElement("div");
@@ -1188,7 +1197,7 @@ function generateBarChartHTML() {
       
       
 let userID = null;
-const SHEET_BASE = "https://sheetdb.io/api/v1/cnrric8rh3oi2"; // <-- HIER SheetDB-Link einsetzen
+const SHEET_BASE = "https://sheetdb.io/api/v1/ivpnehyw5tm9t"; // <-- HIER SheetDB-Link einsetzen
 
     const startPauseCountdown = () => {
       logSessionStart(); // Neuen Session-Zeitstempel speichern
