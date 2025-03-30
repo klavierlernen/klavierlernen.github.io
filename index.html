@@ -1215,10 +1215,21 @@ const SHEET_BASE = "https://sheetdb.io/api/v1/797nwb2gpr9uk"; // <-- HIER SheetD
         .then(([entry]) => {
           if (entry) {
             console.log("Antwort von SheetDB:", entry);
-            return fetch(`${SHEET_BASE}/user/user=${userID}`, {
+            fetch(`${SHEET_BASE}/user/user=${userID}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ data: { quote, speed } })
+            })
+            .then(res => {
+              if (res.status === 404) {
+                console.warn("PATCH fehlgeschlagen, versuche POST...");
+                return fetch(`${SHEET_BASE}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ data: { user: userID, quote, speed } })
+                });
+              }
+              return res;
             })
             .then(() => {
               return fetch(SHEET_BASE)
