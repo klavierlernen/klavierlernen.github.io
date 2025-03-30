@@ -1462,7 +1462,7 @@ const chooseNote = () => {
   
   let availableNotes;
   if (currentRange === "MC") {
-    availableNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f#", "g"];
+    availableNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
   } else if (currentRange === "D") {
     // In der D-Lage dürfen nur die Finger-Noten abgefragt werden: D, E, F♯, G, A
     availableNotes = ["d", "e", "f#", "g", "a"];
