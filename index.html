@@ -1635,6 +1635,22 @@ metronomeToggle.addEventListener("click", () => {
     }
   }
 });
+// Bluetooth MIDI Toggle (nur wenn NICHT iOS)
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+if (!isIOS) {
+  const bluetoothToggle = document.createElement("span");
+  bluetoothToggle.id = "bluetoothToggle";
+  bluetoothToggle.textContent = "🛜";
+  bluetoothToggle.title = "Bluetooth MIDI suchen";
+  bluetoothToggle.style.opacity = "0.5";
+  bluetoothToggle.style.cursor = "pointer";
+  settingsPanel.appendChild(bluetoothToggle);
+
+  bluetoothToggle.addEventListener("click", () => {
+    bluetoothToggle.style.opacity = "1";
+    initBluetoothMIDIAccess();
+  });
+}
       
 document.getElementById("timerContainer").addEventListener("click", () => {
   let existingInput = document.getElementById("counterInput");
