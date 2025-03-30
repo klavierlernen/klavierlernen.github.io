@@ -954,19 +954,30 @@
       function generateTrophyTile() {
         const tile = document.createElement("div");
         tile.className = "tile span-2";
+        tile.style.display = "flex";
+        tile.style.flexDirection = "row";
+        tile.style.alignItems = "center";
+        tile.style.justifyContent = "space-between";
         const title = document.createElement("div");
         title.className = "tileTitle";
-        title.innerHTML = "🏆 Trophäen <span id='resetTrophiesBtn' style='cursor:pointer;' title='Reset'>🗑️</span>";
+        title.style.flex = "1";
+        title.style.display = "flex";
+        title.style.flexDirection = "column";
+        title.style.justifyContent = "center";
+        title.style.alignItems = "center";
+        title.innerHTML = "🏆 Trophäen                 <span id='resetTrophiesBtn' style='cursor:pointer;' title='Reset'>🗑️</span>";
         tile.appendChild(title);
 
         const trophyGrid = document.createElement("div");
         const wrapper = document.createElement("div");
         wrapper.style.display = "flex";
+        wrapper.style.flexDirection = "column";
         wrapper.style.alignItems = "flex-start";
+        wrapper.style.flex = "2";
         trophyGrid.style.display = "grid";
         trophyGrid.style.gridTemplateColumns = "repeat(10, 1fr)";
         trophyGrid.style.gridGap = "5px";
-        trophyGrid.style.fontSize = "1.5em";
+        trophyGrid.style.fontSize = "2em";
     trophyGrid.style.marginTop = "10px";
     
     const descriptionBox = document.createElement("div");
@@ -1026,10 +1037,8 @@
           const resetBtn = document.getElementById("resetTrophiesBtn");
           if (resetBtn) {
             resetBtn.addEventListener("click", () => {
-              if (confirm("Möchtest du wirklich alle Trophäen zurücksetzen?")) {
-                localStorage.removeItem("unlockedTrophies");
-                location.reload();
-              }
+              localStorage.removeItem("unlockedTrophies");
+              updatePauseTiles();
             });
           }
         }, 0);
