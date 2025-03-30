@@ -1517,41 +1517,47 @@ function generateBarChartHTML() {
       metronomeToggle.style.opacity = "0.5"; // an/off Anzeige: 0.5 = aus, 1 = an
       settingsPanel.appendChild(metronomeToggle);
 metronomeToggle.addEventListener("click", () => {
-  let existingInput = document.getElementById("bpmInput");
-  if (!existingInput) {
-    let input = document.createElement("input");
-    input.id = "bpmInput";
-    input.type = "number";
-    input.min = "1";
-    input.placeholder = metronomeBPM > 0 ? metronomeBPM : "";
-    input.style.backgroundColor = "white";
-    input.style.border = "1px solid #000";
-    input.style.width = "60px";
-    input.style.fontSize = "1em";
-    input.style.borderRadius = "5px";
-    input.style.outline = "none";
-    input.style.marginLeft = "5px";
+  if (metronomeOn) {
+    stopMetronome();
+    metronomeOn = false;
+    metronomeToggle.style.opacity = "0.5";
+  } else {
+    let existingInput = document.getElementById("bpmInput");
+    if (!existingInput) {
+      let input = document.createElement("input");
+      input.id = "bpmInput";
+      input.type = "number";
+      input.min = "1";
+      input.placeholder = metronomeBPM > 0 ? metronomeBPM : "";
+      input.style.backgroundColor = "white";
+      input.style.border = "1px solid #000";
+      input.style.width = "60px";
+      input.style.fontSize = "1em";
+      input.style.borderRadius = "5px";
+      input.style.outline = "none";
+      input.style.marginLeft = "5px";
 
-    metronomeToggle.parentElement.appendChild(input);
-    input.focus();
+      metronomeToggle.parentElement.appendChild(input);
+      input.focus();
 
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        const bpm = Number(input.value);
-        if (bpm > 0) {
-          metronomeBPM = bpm;
-          metronomeInterval = 60000 / bpm;
-          startMetronome();
-          metronomeToggle.style.opacity = "1";
-          metronomeOn = true;
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          const bpm = Number(input.value);
+          if (bpm > 0) {
+            metronomeBPM = bpm;
+            metronomeInterval = 60000 / bpm;
+            startMetronome();
+            metronomeToggle.style.opacity = "1";
+            metronomeOn = true;
+          }
+          input.remove();
         }
-        input.remove();
-      }
-    });
+      });
 
-    input.addEventListener("blur", () => {
-      input.remove();
-    });
+      input.addEventListener("blur", () => {
+        input.remove();
+      });
+    }
   }
 });
       
