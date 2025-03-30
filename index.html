@@ -1215,38 +1215,25 @@ const SHEET_BASE = "https://script.google.com/macros/s/AKfycbwj4EcR-dyh3SfpfiyuS
     return;
   }
   console.log("User ID für Suche:", userID);
-  fetch(`${SHEET_BASE}/search?user=${userID}`)
-        .then(res => res.json())
-        .then(([entry]) => {
-          if (entry) {
-            console.log("Antwort von SheetDB:", entry);
-            fetch(`${SHEET_BASE}/user/user=${userID}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ data: { quote, speed } })
-            })
-            .then(res => {
-              if (res.status === 404) {
-                console.warn("PATCH fehlgeschlagen, versuche POST...");
-                return fetch(`${SHEET_BASE}`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ data: { user: userID, quote, speed } })
-                });
-              }
-              return res;
-            })
-            .then(() => {
-              return fetch(SHEET_BASE)
-                .then(res => res.json())
-                .then(data => {
-                  window.cachedScoreboardData = data;
-                  cachedUserRank = null;
-                  updatePauseTiles();
-                });
-            });
-          }
-        });
+  fetch(SHEET_BASE, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user: userID, quote, speed })
+  })
+  .then(() => {
+    return fetch(SHEET_BASE + "?user=" + userID)
+      .then(res => res.json())
+      .then((entry) => {
+        console.log("Antwort von Google Script:", entry);
+        return fetch(SHEET_BASE)
+          .then(res => res.json())
+          .then(data => {
+            window.cachedScoreboardData = data;
+            cachedUserRank = null;
+            updatePauseTiles();
+          });
+      });
+  });
       stopMetronome();
       sessionPaused = true;
       sessionCount++;
