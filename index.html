@@ -705,6 +705,7 @@
     function proceedToMainScreen() {
       const audio = document.getElementById("backgroundSound");
       if (audio) { audio.pause(); }
+      appStartTime = Date.now();
       const welcomeOverlay = document.getElementById("welcomeOverlay");
       welcomeOverlay.style.opacity = "0";
       setTimeout(() => {
@@ -1017,6 +1018,11 @@ function generateBarChartHTML() {
       document.getElementById("settingsPanel").style.display = "none";
       const pauseOverlay = document.getElementById("pauseOverlay");
       pauseOverlay.style.display = "flex";
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { x: 0.5, y: 0.5 }
+      });
       updatePauseProgress();
       updatePauseTiles();
       const msgInterval = setInterval(() => { updatePauseTiles(); }, 3000);
