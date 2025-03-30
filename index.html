@@ -1699,16 +1699,12 @@ document.getElementById("timerContainer").addEventListener("click", () => {
       
       document.getElementById("userIDIcon").addEventListener("click", () => {
         if (document.getElementById("userIDIcon").textContent === "🔒") {
-          const newID = prompt("Neue ID eingeben:");
-          if (newID) {
-            document.getElementById("userIDInput").value = newID;
-            const event = new KeyboardEvent("keydown", { key: "Enter" });
-            document.getElementById("userIDInput").dispatchEvent(event);
-            localStorage.removeItem("storedUserID");
-            document.getElementById("userIDIcon").textContent = "🖍️";
-            document.getElementById("createNewID").style.display = "inline";
-            document.getElementById("userIDStatus").textContent = "";
-          }
+          localStorage.removeItem("storedUserID");
+          document.getElementById("userIDInput").value = "";
+          document.getElementById("userIDInput").focus();
+          document.getElementById("userIDIcon").textContent = "🖍️";
+          document.getElementById("createNewID").style.display = "inline";
+          document.getElementById("userIDStatus").textContent = "";
         }
       });
     });
