@@ -1221,7 +1221,10 @@ const SHEET_BASE = "https://script.google.com/macros/s/AKfycbwj4EcR-dyh3SfpfiyuS
     body: JSON.stringify({ user: userID, quote, speed })
   })
   .then(() => {
-    return fetch(SHEET_BASE + "?user=" + userID)
+  return fetch(SHEET_BASE + "?user=" + userID, {
+    method: "GET",
+    headers: { "Accept": "application/json" }
+  })
       .then(res => res.json())
       .then((entry) => {
         console.log("Antwort von Google Script:", entry);
