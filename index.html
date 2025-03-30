@@ -956,7 +956,7 @@
         tile.className = "tile span-2";
         const title = document.createElement("div");
         title.className = "tileTitle";
-        title.textContent = "🏆 Trophäen";
+        title.innerHTML = "🏆 Trophäen <span id='resetTrophiesBtn' style='cursor:pointer;' title='Reset'>🗑️</span>";
         tile.appendChild(title);
 
         const trophyGrid = document.createElement("div");
@@ -1022,6 +1022,17 @@
         wrapper.appendChild(trophyGrid);
         wrapper.appendChild(descriptionBox);
         tile.appendChild(wrapper);
+        setTimeout(() => {
+          const resetBtn = document.getElementById("resetTrophiesBtn");
+          if (resetBtn) {
+            resetBtn.addEventListener("click", () => {
+              if (confirm("Möchtest du wirklich alle Trophäen zurücksetzen?")) {
+                localStorage.removeItem("unlockedTrophies");
+                location.reload();
+              }
+            });
+          }
+        }, 0);
         return tile.outerHTML;
       }
 
