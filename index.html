@@ -801,7 +801,7 @@
       const updateTimer = () => {
         document.getElementById("timerContainer").textContent = sessionCounter;
       };
-      setInterval(updateTimer, 1000);
+      setInterval(updateTimer, 5000);
     function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       if (responseTimes.length === 0) return 5;
       let sum = responseTimes.reduce((acc, time) => acc + time, 0);
@@ -1525,7 +1525,6 @@ metronomeToggle.addEventListener("click", () => {
 });
       
 document.getElementById("timerContainer").addEventListener("click", () => {
-  // ERSETZEN durch:
   let existingInput = document.getElementById("counterInput");
   if (!existingInput) {
     let timerContainer = document.getElementById("timerContainer");
@@ -1546,8 +1545,11 @@ document.getElementById("timerContainer").addEventListener("click", () => {
     timerContainer.appendChild(input);
     input.focus();
 
+    let confirmed = false;
+
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
+        confirmed = true;
         const num = parseInt(input.value, 10);
         if (!isNaN(num) && num > 0) {
           sessionCounter = num;
@@ -1558,11 +1560,9 @@ document.getElementById("timerContainer").addEventListener("click", () => {
     });
 
     input.addEventListener("blur", () => {
-      setTimeout(() => {
-        if (document.activeElement !== input) {
-          timerContainer.innerHTML = sessionCounter;
-        }
-      }, 200);
+      if (!confirmed) {
+        input.focus(); // Bleibe im Feld, bis bestätigt
+      }
     });
   }
 });
