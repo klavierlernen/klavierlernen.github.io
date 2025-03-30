@@ -652,7 +652,9 @@
         streakDisplay.textContent = "🔥 " + currentStreak;
         streakDisplay.style.cursor = "pointer";
         streakDisplay.addEventListener("click", () => {
-          showPauseScreen();
+          sessionCounter = 0;
+          updateTimer();
+          startPauseCountdown();
         });
 
         // ... restlicher Initialisierungscode
@@ -869,10 +871,7 @@
             <div class="tileTitle">Session</div>
             <div class="tileValue">${sessionCount}</div>
           </div>
-          <div class="tile span-2">
-            <div class="tileIcon">${handOptions[currentHandIndex].symbol} Ø ${avgTimeSec} s/Note</div>
-            <div class="tileTitle">Lieblingshand</div>
-          </div>
+          ${generateTrophyTile()}
         `;
       }
       
@@ -951,6 +950,129 @@
         
         return container.outerHTML;
       }
+
+      function generateTrophyTile() {
+        const tile = document.createElement("div");
+        tile.className = "tile span-2";
+        const title = document.createElement("div");
+        title.className = "tileTitle";
+        title.textContent = "🏆 Trophäen";
+        tile.appendChild(title);
+
+        const trophyGrid = document.createElement("div");
+        trophyGrid.style.display = "grid";
+        trophyGrid.style.gridTemplateColumns = "repeat(10, 1fr)";
+        trophyGrid.style.gridGap = "5px";
+        trophyGrid.style.fontSize = "1.5em";
+        trophyGrid.style.marginTop = "10px";
+
+        const allTrophies = [
+          "🐢","🐌","🚶‍♂️","🏃","⚡",
+          "🎼","🎹","🎺","🪕","🪗",
+          "🌱","🌿","🌻","🌲","🎄","🔥","🚀","🪐","🌞","👑",
+          "🔀","🌀","🔁","⏩","⚙️",
+          "📏","📐","🧭","🎯","🏁"
+        ];
+
+        const unlockedTrophies = JSON.parse(localStorage.getItem("unlockedTrophies") || "[]");
+        const justUnlocked = [];
+
+        allTrophies.forEach((emoji, index) => {
+          const span = document.createElement("span");
+          span.textContent = emoji;
+          if (unlockedTrophies.includes(index)) {
+            span.style.opacity = "1";
+          } else {
+            const shouldUnlock = checkTrophyCondition(index);
+            if (shouldUnlock) {
+              unlockedTrophies.push(index);
+              justUnlocked.push(span);
+              span.style.opacity = "0";
+              setTimeout(() => {
+                span.style.transition = "opacity 1s";
+                span.style.opacity = "1";
+                confetti({ particleCount: 50, spread: 50, origin: { x: 0.5, y: 0.5 } });
+              }, 100);
+            } else {
+              span.style.opacity = "0.5";
+            }
+          }
+          trophyGrid.appendChild(span);
+        });
+
+        localStorage.setItem("unlockedTrophies", JSON.stringify(unlockedTrophies));
+        tile.appendChild(trophyGrid);
+        return tile.outerHTML;
+      }
+
+      function checkTrophyCondition(index) {
+        const avg = responseTimes.length ? responseTimes.reduce((a, b) => a + b) / responseTimes.length : Infinity;
+        if (index === 0) return avg < 1500;
+        if (index === 1) return avg < 1000;
+        if (index === 2) return avg < 900;
+        if (index === 3) return avg < 800;
+        if (index === 4) return avg < 400;
+
+        if (index >= 5 && index <= 9) {
+          const ranges = ["C", "D", "F", "G", "MC"];
+          const range = ranges[index - 5];
+          return rangeNotes[range].every(note => !errorNotes.some(e => e.note === note));
+        }
+
+        const streak = Number(localStorage.getItem("streak") || 0);
+        const thresholds = [2, 3, 5, 8, 13, 21, 34, 55, 89, 144];
+        if (index >= 10 && index <= 19) return streak >= thresholds[index - 10];
+
+        if (index >= 20 && index <= 24) {
+          const avgSwitch = responseTimes.length > 10 ? responseTimes.reduce((a, b) => a + b) / responseTimes.length : Infinity;
+          return avgSwitch < (1500 - (index - 20) * 200);
+        }
+
+        if (index >= 25 && index <= 29) {
+          if (!metronomeOn) return false;
+          const maxDev = Math.max(...responseTimes.map(t => Math.abs(t - metronomeInterval)));
+          const devPercent = maxDev / metronomeInterval;
+          const limits = [0.3, 0.2, 0.15, 0.1, 0.05];
+          return devPercent < limits[index - 25];
+        }
+
+        return false;
+      }
+function getTrophyDescription(index) {
+  const descriptions = [
+    "Durchschnittliche Reaktionszeit unter 1,5 Sekunden",
+    "Durchschnittliche Reaktionszeit unter 1 Sekunde",
+    "Durchschnittliche Reaktionszeit unter 0,9 Sekunden",
+    "Durchschnittliche Reaktionszeit unter 0,8 Sekunden",
+    "Durchschnittliche Reaktionszeit unter 0,4 Sekunden",
+    "Fehlerfrei in der C-Lage",
+    "Fehlerfrei in der D-Lage",
+    "Fehlerfrei in der F-Lage",
+    "Fehlerfrei in der G-Lage",
+    "Fehlerfrei in der MC-Lage",
+    "Streak von mindestens 2 Tagen",
+    "Streak von mindestens 3 Tagen",
+    "Streak von mindestens 5 Tagen",
+    "Streak von mindestens 8 Tagen",
+    "Streak von mindestens 13 Tagen",
+    "Streak von mindestens 21 Tagen",
+    "Streak von mindestens 34 Tagen",
+    "Streak von mindestens 55 Tagen",
+    "Streak von mindestens 89 Tagen",
+    "Streak von mindestens 144 Tagen",
+    "Schneller Lagenwechsel (Stufe 1)",
+    "Schneller Lagenwechsel (Stufe 2)",
+    "Schneller Lagenwechsel (Stufe 3)",
+    "Schneller Lagenwechsel (Stufe 4)",
+    "Schneller Lagenwechsel (Stufe 5)",
+    "Taktgefühl: Abweichung <30%",
+    "Taktgefühl: Abweichung <20%",
+    "Taktgefühl: Abweichung <15%",
+    "Taktgefühl: Abweichung <10%",
+    "Taktgefühl: Abweichung <5%"
+  ];
+  return descriptions[index] || "";
+}
                                             
 function generateBarChartHTML() {
   // Standardwerte: Jeder Tag wird initial auf 0 gesetzt.
