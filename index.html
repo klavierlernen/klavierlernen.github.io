@@ -807,7 +807,6 @@
     let hearts = unlimitedLives ? Infinity : 4;
     let inactivityTimeout = null;
     
-    let gameLevel = 1;
     // Beim Laden der Seite oder zu Beginn eines Trainings:
     const saveOpenTime = () => {
       const openTimes = JSON.parse(localStorage.getItem("openTimes") || "[]");
@@ -1537,19 +1536,6 @@ const SHEET_BASE = "https://sheetdb.io/api/v1/yi2z9wznv5tpc"; // <-- HIER SheetD
       setTimeout(proceedToMainScreen, 5000);
       
       const settingsPanel = document.getElementById("settingsPanel");
-      // Levelauswahl Toggle hinzufügen
-      const levelToggle = document.createElement("span");
-      levelToggle.id = "levelToggle";
-      const updateLevelDisplay = () => {
-        levelToggle.textContent = ["1️⃣", "2️⃣", "3️⃣"][gameLevel - 1];
-      };
-      levelToggle.addEventListener("click", () => {
-        gameLevel = gameLevel % 3 + 1;
-        updateLevelDisplay();
-        generateSeries();
-      });
-      updateLevelDisplay();
-      settingsPanel.appendChild(levelToggle);
       // Handtoggle
       const handToggle = document.createElement("span");
       handToggle.id = "handToggle";
@@ -1779,7 +1765,6 @@ document.getElementById("timerContainer").addEventListener("click", () => {
                                             
 // Füge am Anfang des Skripts (z. B. direkt vor der Funktion generateSeries) hinzu:
 let notesInCurrentPhase = 0;
-let timeSignature = "4/4";
                                             
 const generateSeries = () => {
   seriesCounter = 0;
@@ -1863,33 +1848,8 @@ const chooseNote = () => {
 };
 
   currentSeriesSingle = [];
-  let i = 0;
-  while (i < seriesLength) {
-    if (randomMode && gameLevel === 3 && Math.random() < 0.5 && i <= seriesLength - 2) {
-      const note1 = chooseNote();
-      const note2 = chooseNote();
-      note1.forcedDuration = "8";
-      note2.forcedDuration = "8";
-      currentSeriesSingle.push(note1, note2);
-      i += 2;
-    } else {
-      const note = chooseNote();
-      if (gameLevel === 1) {
-        note.forcedDuration = "w";
-      } else if (randomMode && gameLevel >= 2) {
-        const durs = ["q", "8", "h"];
-        note.forcedDuration = durs[Math.floor(Math.random() * durs.length)];
-      } else {
-        note.forcedDuration = "q";
-      }
-      currentSeriesSingle.push(note);
-      i++;
-    }
-  }
-  timeSignature = "4/4";
-  if (gameLevel >= 2) {
-    const options = ["4/4", "3/4", "2/4"];
-    timeSignature = options[Math.floor(Math.random() * options.length)];
+  for (let i = 0; i < seriesLength; i++) {
+    currentSeriesSingle.push(chooseNote());
   }
   drawSeries();
 };
@@ -1914,8 +1874,9 @@ const drawSeries = () => {
   
   // Erzeuge den Stave
   const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
-  stave.addClef(currentSeriesSingle[0].clef);
-  if (timeSignature) stave.addTimeSignature(timeSignature);
+  if (currentSeriesSingle.length) {
+    stave.addClef(currentSeriesSingle[0].clef);
+  }
   
   // Füge Key Signature (Vorzeichen) hinzu, je nach aktueller Lage
   if (currentRange === "D") {
@@ -1940,11 +1901,10 @@ const drawSeries = () => {
       noteName = noteName.replace(/♯/g, "#").replace(/♭/g, "b");
     }
     const key = noteName + "/" + item.octave;
-    const randomDuration = item.forcedDuration || ((gameLevel >= 2) ? ["q", "8", "h"][Math.floor(Math.random() * 3)] : "q");
     const staveNote = new Vex.Flow.StaveNote({
       clef: item.clef,
       keys: [key],
-      duration: randomDuration
+      duration: "q"
     });
     // Setze die Farbe für Noten (z. B. grün, gelb oder rot)
     staveNote.setStyle({ fillStyle: item.color, strokeStyle: item.color });
@@ -1976,47 +1936,19 @@ const drawSeries = () => {
     return staveNote;
   });
   
-  const [beats, beatValue] = timeSignature.split("/").map(Number);
-  const voice = new Vex.Flow.Voice({ num_beats: beats, beat_value: beatValue });
-  voice.setMode(Vex.Flow.Voice.Mode.SOFT);
+  const voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
   staveNotes.forEach(note => voice.addTickable(note));
   new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
   voice.draw(context, stave);
-  new Vex.Flow.StaveConnector(stave, stave)
-    .setType(Vex.Flow.StaveConnector.type.SINGLE)
-    .setContext(context)
-    .draw();
-  if (gameLevel === 3) {
-    const beams = Vex.Flow.Beam.generateBeams(staveNotes);
-    beams.forEach(beam => {
-      beam.setContext(context).draw();
-    });
-  }
 };
     
-const isNoteCorrect = (midiInfo) => {
-  const expected = currentSeriesSingle[seriesCounter];
-  if (!expected) return false;
-  const playedNote = midiInfo.note.toLowerCase();
-  const expectedNote = expected.note.toLowerCase();
-  const pitchCorrect = playedNote === expectedNote && midiInfo.octave === expected.octave;
-
-  if (!pitchCorrect) return false;
-
-  // Timing-Wertung prüfen (für Dauer)
-  const expectedDuration = expected.forcedDuration || "q";
-  const expectedMillis = {
-    "w": 4000,
-    "h": 2000,
-    "q": 1000,
-    "8": 500
-  }[expectedDuration] || 1000;
-
-  const actualMillis = Date.now() - lastNoteTimestamp;
-  const tolerance = expectedMillis * 0.4;
-
-  return Math.abs(actualMillis - expectedMillis) <= tolerance;
-};
+    const isNoteCorrect = (midiInfo) => {
+      const expected = currentSeriesSingle[seriesCounter];
+      if (!expected) return false;
+      const playedNote = midiInfo.note.toLowerCase();
+      const expectedNote = expected.note.toLowerCase();
+      return playedNote === expectedNote && midiInfo.octave === expected.octave;
+    };
     const removeFromErrorNotes = (noteObj) => {
       errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
     };
@@ -2064,7 +1996,6 @@ const isNoteCorrect = (midiInfo) => {
           }
           // Setze die Farbe im Noten-Objekt, damit sie auch beim Zeichnen verwendet wird
           currentSeriesSingle[seriesCounter].color = displayColor;
-          queueRedraw();
           
           correctAnswers++;
           correctNoteCount++;
@@ -2100,6 +2031,8 @@ const isNoteCorrect = (midiInfo) => {
         seriesCounter++;
         if (seriesCounter >= seriesLength) {
           generateSeries();
+        } else {
+          queueRedraw();
         }
         updateTimer();
       }
