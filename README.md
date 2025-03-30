@@ -1,7 +1,5 @@
 # 🎼 Notenlern-App mit MIDI-Feedback
 
-## 🇩🇪 Projektbeschreibung (Deutsch)
-
 Diese App ist ein interaktives Trainingswerkzeug zum schnellen Erlernen des Notenlesens auf dem Violinschlüssel und Bassschlüssel. Sie richtet sich vor allem an Musiker*innen, die ihre Sehen-Hand-Koordination beim Notenlesen verbessern möchten – insbesondere mit einem angeschlossenen MIDI-Instrument wie einem E-Piano oder MIDI-Keyboard.
 
 ### 🔧 Funktionen
@@ -31,8 +29,7 @@ Diese App ist ein interaktives Trainingswerkzeug zum schnellen Erlernen des Note
 Diese App wurde mit Unterstützung von **ChatGPT** (GPT-4) entwickelt und kontinuierlich durch den Entwickler angepasst, erweitert und getestet.
 
 ---
-
-## 🇬🇧 Project Description (English)
+# 🎼 Learning Music with MIDI Feedback
 
 This app is an interactive training tool for learning to read sheet music quickly, supporting both treble and bass clefs. It is primarily aimed at musicians who want to improve their eye-hand coordination in music reading – especially when using a connected MIDI instrument like a digital piano or MIDI keyboard.
 
