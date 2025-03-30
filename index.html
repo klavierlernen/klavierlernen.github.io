@@ -1149,34 +1149,47 @@ function generateBarChartHTML() {
       
       
     const startPauseCountdown = () => {
-            logSessionStart(); // Neuen Session-Zeitstempel speichern
+      logSessionStart(); // Neuen Session-Zeitstempel speichern
       sessionPaused = true;
       sessionCount++;
       const hitRate = totalAttempts > 0 ? (correctAnswers / totalAttempts) : 1;
       pauseRemaining = Math.floor(calculateAdaptiveBreakTime(responseTimes, hitRate) * 2 + 300);
       pauseDuration = pauseRemaining;
-      document.getElementById("mainContent").style.display = "none";
-      document.getElementById("timerContainer").style.display = "none";
-      document.getElementById("settingsPanel").style.display = "none";
-      const pauseOverlay = document.getElementById("pauseOverlay");
-      pauseOverlay.style.display = "flex";
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { x: 0.5, y: 0.5 }
-      });
-      updatePauseProgress();
-      updatePauseTiles();
-      const msgInterval = setInterval(() => { updatePauseTiles(); }, 3000);
-      pauseInterval = setInterval(() => {
-        pauseRemaining--;
+
+      showTrophyTransitionScreen(() => {
+        document.getElementById("mainContent").style.display = "none";
+        document.getElementById("timerContainer").style.display = "none";
+        document.getElementById("settingsPanel").style.display = "none";
+        const pauseOverlay = document.getElementById("pauseOverlay");
+        pauseOverlay.innerHTML = `
+          <div id="pauseInfo">
+            <div id="pauseHeader">SESSION PAUSIERT</div>
+            <div id="pauseProgressContainer">
+              <div id="pauseProgress"></div>
+              <div id="pauseTime" style="position:absolute; left:0; top:0; font-size:14px; color:#000; padding:0 5px;"></div>
+            </div>
+          </div>
+          <div id="pauseTiles"></div>
+        `;
+        pauseOverlay.style.display = "flex";
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { x: 0.5, y: 0.5 }
+        });
         updatePauseProgress();
-        if (pauseRemaining <= 0) {
-          clearInterval(pauseInterval);
-          clearInterval(msgInterval);
-          endPause();
-        }
-      }, 1000);
+        updatePauseTiles();
+        const msgInterval = setInterval(() => { updatePauseTiles(); }, 3000);
+        pauseInterval = setInterval(() => {
+          pauseRemaining--;
+          updatePauseProgress();
+          if (pauseRemaining <= 0) {
+            clearInterval(pauseInterval);
+            clearInterval(msgInterval);
+            endPause();
+          }
+        }, 1000);
+      });
     };
       
       // Erstelle ein Audio-Objekt für den Gong
@@ -1477,16 +1490,20 @@ metronomeToggle.addEventListener("click", () => {
   if (!existingInput) {
     let input = document.createElement("input");
     input.id = "bpmInput";
-    input.type = "text";
+    input.type = "number";
+    input.min = "1";
     input.placeholder = metronomeBPM > 0 ? metronomeBPM : "";
     input.style.backgroundColor = "white";
-    input.style.border = "none";
-    input.style.width = "50px";
+    input.style.border = "1px solid #000";
+    input.style.width = "60px";
     input.style.fontSize = "1em";
+    input.style.borderRadius = "5px";
+    input.style.outline = "none";
     input.style.marginLeft = "5px";
-    // Füge das Input-Feld direkt neben dem Metronom-Symbol hinzu
+
     metronomeToggle.parentElement.appendChild(input);
     input.focus();
+
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         const bpm = Number(input.value);
@@ -1500,26 +1517,35 @@ metronomeToggle.addEventListener("click", () => {
         input.remove();
       }
     });
+
+    input.addEventListener("blur", () => {
+      input.remove();
+    });
   }
 });
       
 document.getElementById("timerContainer").addEventListener("click", () => {
+  // ERSETZEN durch:
   let existingInput = document.getElementById("counterInput");
   if (!existingInput) {
     let timerContainer = document.getElementById("timerContainer");
     let input = document.createElement("input");
     input.id = "counterInput";
-    input.type = "text";
+    input.type = "number";
+    input.min = "1";
     input.placeholder = sessionCounter;
     input.style.backgroundColor = "white";
-    input.style.border = "none";
-    input.style.width = "50px";
+    input.style.border = "1px solid #000";
+    input.style.width = "60px";
     input.style.fontSize = "1.5em";
     input.style.textAlign = "center";
-    // Leere den Container und füge das Input-Feld hinzu
+    input.style.borderRadius = "5px";
+    input.style.outline = "none";
+
     timerContainer.innerHTML = "";
     timerContainer.appendChild(input);
     input.focus();
+
     input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
         const num = parseInt(input.value, 10);
@@ -1527,9 +1553,16 @@ document.getElementById("timerContainer").addEventListener("click", () => {
           sessionCounter = num;
           updateTimer();
         }
-        // Ersetze das Input-Feld durch den neuen Counter-Wert
-        timerContainer.textContent = sessionCounter;
+        timerContainer.innerHTML = sessionCounter;
       }
+    });
+
+    input.addEventListener("blur", () => {
+      setTimeout(() => {
+        if (document.activeElement !== input) {
+          timerContainer.innerHTML = sessionCounter;
+        }
+      }, 200);
     });
   }
 });
@@ -2058,6 +2091,84 @@ const drawSeries = () => {
       settingsPanel.addEventListener("mouseenter", resetFadeTimer);
       settingsPanel.addEventListener("touchstart", resetFadeTimer);
     });
+      
+      function getAllTrophies() {
+        return [
+          "🐢","🐌","🚶‍♂️","🏃","⚡",
+          "🎼","🎹","🎺","🪕","🪗",
+          "🌱","🌿","🌻","🌲","🎄","🔥","🚀","🪐","🌞","👑",
+          "🔀","🌀","🔁","⏩","⚙️",
+          "📏","📐","🧭","🎯","🏁"
+        ];
+      }
+      
+      function showTrophyTransitionScreen(callback) {
+        const overlay = document.getElementById("pauseOverlay");
+        overlay.innerHTML = "";
+        overlay.style.display = "flex";
+
+        const trophyContainer = document.createElement("div");
+        trophyContainer.style.display = "flex";
+        trophyContainer.style.flexDirection = "column";
+        trophyContainer.style.alignItems = "center";
+        trophyContainer.style.justifyContent = "center";
+        trophyContainer.style.opacity = "0";
+        trophyContainer.style.transition = "opacity 1s";
+
+        const newUnlocked = JSON.parse(sessionStorage.getItem("justUnlockedTrophies") || "[]");
+        const justLost = JSON.parse(sessionStorage.getItem("justLostTrophies") || "[]");
+
+        if (newUnlocked.length > 0) {
+          const gainedTitle = document.createElement("h2");
+          gainedTitle.textContent = isGerman ? "Neu freigeschaltet" : "Newly Unlocked";
+          trophyContainer.appendChild(gainedTitle);
+
+          newUnlocked.forEach(index => {
+            const emoji = getAllTrophies()[index];
+            const description = getTrophyDescription(index);
+            const block = document.createElement("div");
+            block.style.margin = "10px";
+            block.style.fontSize = "1.5em";
+            block.innerHTML = `<div>${emoji}</div><div style="font-size:0.8em">${description}</div>`;
+            trophyContainer.appendChild(block);
+          });
+        }
+
+        if (justLost.length > 0) {
+          const lostTitle = document.createElement("h2");
+          lostTitle.textContent = isGerman ? "Verloren" : "Lost";
+          trophyContainer.appendChild(lostTitle);
+
+          justLost.forEach(index => {
+            const emoji = getAllTrophies()[index];
+            const description = getTrophyDescription(index);
+            const block = document.createElement("div");
+            block.style.margin = "10px";
+            block.style.opacity = "0.5";
+            block.style.fontSize = "1.5em";
+            block.innerHTML = `<div>${emoji}</div><div style="font-size:0.8em">${description}</div>`;
+            trophyContainer.appendChild(block);
+          });
+        }
+
+        overlay.appendChild(trophyContainer);
+
+        // Fade-in
+        setTimeout(() => {
+          trophyContainer.style.opacity = "1";
+        }, 100);
+
+        // Nach 3 Sekunden weiter zur Session-Pause
+        setTimeout(() => {
+          overlay.style.opacity = "0";
+          setTimeout(() => {
+            overlay.style.display = "none";
+            overlay.style.opacity = "1";
+            callback();
+          }, 1000);
+        }, 3000);
+      }
+      
   </script>
   </body>
 </html>
