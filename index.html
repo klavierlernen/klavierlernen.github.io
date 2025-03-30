@@ -2348,15 +2348,20 @@ const drawSeries = () => {
       newID = Math.random().toString().slice(2, 6);
       const r = await fetch(`${SHEET_BASE}?user=${newID}`);
       const data = await r.json();
-      exists = data.length > 0;
+      exists = data && data.user;
     }
+ 
     await fetch(SHEET_BASE, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: [{ user: newID, quote: 0, speed: 0 }] })
+      body: JSON.stringify({ user: newID, quote: 0, speed: 0 })
     });
+ 
     userID = newID;
+    document.getElementById("userIDInput").value = newID;
+    document.getElementById("userIDIcon").textContent = "🔒";
     document.getElementById("createNewID").style.display = "none";
+    localStorage.setItem("storedUserID", userID);
   });
   
   document.getElementById("userIDInput").addEventListener("keydown", async (e) => {
@@ -2367,7 +2372,7 @@ const drawSeries = () => {
       // Überprüfe die ID mit der API, aber nur wenn sie noch nicht gespeichert ist
       const response = await fetch(`${SHEET_BASE}?user=${input}`);
       const data = await response.json();
-      if (data.length > 0) {
+      if (data && data.user) {
         userID = input;
         document.getElementById("userIDIcon").textContent = "🔒";
         document.getElementById("createNewID").style.display = "none";
