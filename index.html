@@ -1197,7 +1197,7 @@ function generateBarChartHTML() {
       
       
 let userID = null;
-const SHEET_BASE = "https://sheetdb.io/api/v1/ivpnehyw5tm9t"; // <-- HIER SheetDB-Link einsetzen
+const SHEET_BASE = "https://sheetdb.io/api/v1/797nwb2gpr9uk"; // <-- HIER SheetDB-Link einsetzen
 
     const startPauseCountdown = () => {
   logSessionStart(); // Neuen Session-Zeitstempel speichern
@@ -1205,11 +1205,17 @@ const SHEET_BASE = "https://sheetdb.io/api/v1/ivpnehyw5tm9t"; // <-- HIER SheetD
   const speed = responseTimes.length > 0
     ? Math.round(responseTimes.reduce((a, b) => a + b) / responseTimes.length)
     : 0;
+  if (!userID) {
+    console.error("Keine userID gesetzt! Abbruch.");
+    return;
+  }
+  console.log("User ID für Suche:", userID);
   fetch(`${SHEET_BASE}/search?user=${userID}`)
         .then(res => res.json())
         .then(([entry]) => {
           if (entry) {
-            return fetch(`${SHEET_BASE}/user/${entry.id}`, {
+            console.log("Antwort von SheetDB:", entry);
+            return fetch(`${SHEET_BASE}/user/user=${userID}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ data: { quote, speed } })
