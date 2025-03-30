@@ -1187,9 +1187,8 @@ function generateBarChartHTML() {
       sessionStorage.setItem("justLostTrophies", JSON.stringify(justLost));
       sessionStorage.setItem("previousUnlockedTrophies", JSON.stringify(unlockedTrophies));
       
-      showTrophyTransitionScreen(() => {
-        const pauseOverlay = document.getElementById("pauseOverlay");
-        pauseOverlay.innerHTML = `
+      const pauseOverlay = document.getElementById("pauseOverlay");
+      pauseOverlay.innerHTML = `
           <div id="pauseInfo">
             <div id="pauseHeader">SESSION PAUSIERT</div>
             <div id="pauseProgressContainer">
@@ -1199,28 +1198,27 @@ function generateBarChartHTML() {
           </div>
           <div id="pauseTiles"></div>
         `;
-        document.getElementById("mainContent").style.display = "none";
-        document.getElementById("timerContainer").style.display = "none";
-        document.getElementById("settingsPanel").style.display = "none";
-        pauseOverlay.style.display = "flex";
-        confetti({
-          particleCount: 150,
-          spread: 70,
-          origin: { x: 0.5, y: 0.5 }
-        });
-        updatePauseProgress();
-        updatePauseTiles();
-        const msgInterval = setInterval(() => { updatePauseTiles(); }, 3000);
-        pauseInterval = setInterval(() => {
-          pauseRemaining--;
-          updatePauseProgress();
-          if (pauseRemaining <= 0) {
-            clearInterval(pauseInterval);
-            clearInterval(msgInterval);
-            endPause();
-          }
-        }, 1000);
+      document.getElementById("mainContent").style.display = "none";
+      document.getElementById("timerContainer").style.display = "none";
+      document.getElementById("settingsPanel").style.display = "none";
+      pauseOverlay.style.display = "flex";
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { x: 0.5, y: 0.5 }
       });
+      updatePauseProgress();
+      updatePauseTiles();
+      const msgInterval = setInterval(() => { updatePauseTiles(); }, 3000);
+      pauseInterval = setInterval(() => {
+        pauseRemaining--;
+        updatePauseProgress();
+        if (pauseRemaining <= 0) {
+          clearInterval(pauseInterval);
+          clearInterval(msgInterval);
+          endPause();
+        }
+      }, 1000);
     };
       
       // Erstelle ein Audio-Objekt für den Gong
@@ -1837,10 +1835,10 @@ const drawSeries = () => {
             const tolerance = metronomeInterval * 0.3;
             // Wenn zu schnell oder zu langsam gespielt wird, setze die Farbe auf gelb und zeige entsprechende Motivation
             if (actualInterval < metronomeInterval - tolerance) {
-              displayColor = "yellow";
+              displayColor = "orange";
               showMotivation("Zu schnell! Langsamer spielen.");
             } else if (actualInterval > metronomeInterval + tolerance) {
-              displayColor = "yellow";
+              displayColor = "orange";
               showMotivation("Zu langsam! Schneller spielen.");
             } else {
               clearMotivation();
