@@ -1200,8 +1200,12 @@ let userID = null;
 const SHEET_BASE = "https://sheetdb.io/api/v1/ivpnehyw5tm9t"; // <-- HIER SheetDB-Link einsetzen
 
     const startPauseCountdown = () => {
-      logSessionStart(); // Neuen Session-Zeitstempel speichern
-      fetch(`${SHEET_BASE}/search?user=${userID}`)
+  logSessionStart(); // Neuen Session-Zeitstempel speichern
+  const quote = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
+  const speed = responseTimes.length > 0
+    ? Math.round(responseTimes.reduce((a, b) => a + b) / responseTimes.length)
+    : 0;
+  fetch(`${SHEET_BASE}/search?user=${userID}`)
         .then(res => res.json())
         .then(([entry]) => {
           if (entry) {
