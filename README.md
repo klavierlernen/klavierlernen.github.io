@@ -26,7 +26,7 @@ Diese App ist ein interaktives Trainingswerkzeug zum schnellen Erlernen des Note
 
 ### 🤖 Hinweis zur Entwicklung
 
-Diese App wurde mit Unterstützung von **ChatGPT** (GPT-4) entwickelt und kontinuierlich durch den Entwickler angepasst, erweitert und getestet.
+Diese App wurde mit Unterstützung von **ChatGPT** (GPT o3 mini high) entwickelt und kontinuierlich durch den Entwickler angepasst, erweitert und getestet.
 
 ---
 # 🎼 Learning Music with MIDI Feedback
@@ -57,4 +57,4 @@ This app is an interactive training tool for learning to read sheet music quickl
 
 ### 🤖 About Development
 
-This app was developed with the assistance of **ChatGPT** (GPT-4) and was iteratively expanded and customized by the developer.
+This app was developed with the assistance of **ChatGPT** (GPT o3 mini high) and was iteratively expanded and customized by the developer.
