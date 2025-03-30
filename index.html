@@ -1646,9 +1646,18 @@ if (!isIOS) {
   bluetoothToggle.style.cursor = "pointer";
   settingsPanel.appendChild(bluetoothToggle);
 
-  bluetoothToggle.addEventListener("click", () => {
+  bluetoothToggle.addEventListener("click", async () => {
     bluetoothToggle.style.opacity = "1";
-    initBluetoothMIDIAccess();
+    try {
+      // Direkt das Browser-Bluetooth-Fenster öffnen
+      const device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: ['battery_service']
+      });
+      console.log("Gerät gewählt:", device.name || device.id);
+    } catch (error) {
+      console.error("Bluetooth-Auswahl abgebrochen oder fehlgeschlagen:", error);
+    }
   });
 }
       
