@@ -535,7 +535,7 @@
           return sA - sB;
         });
         const rank = sorted.findIndex((e) => e.user === userID) + 1;
-        const text = rank > 0 ? `Platz ${rank}` : "Nicht gefunden";
+        const text = rank > 0 ? `${rank}` : "Nicht gefunden";
         cachedUserRank = text;
         valueElem.textContent = text;
       }
@@ -959,12 +959,12 @@
 
         const title = document.createElement("div");
         title.className = "tileTitle";
-        title.textContent = "🏅 Platzierung";
+        title.textContent = "🏅 Platz";
         container.appendChild(title);
 
         const value = document.createElement("div");
         value.className = "tileValue";
-        value.textContent = cachedUserRank || "Wird geladen...";
+        value.textContent = cachedUserRank || "Platz wird geladen...";
         container.appendChild(value);
 
         if (userID && !window.cachedScoreboardData) {
@@ -1202,7 +1202,7 @@ function generateBarChartHTML() {
       
       
 let userID = null;
-const SHEET_BASE = "https://sheetdb.io/api/v1/797nwb2gpr9uk"; // <-- HIER SheetDB-Link einsetzen
+const SHEET_BASE = "https://script.google.com/macros/s/AKfycbwj4EcR-dyh3SfpfiyuSUdkqMv9kof7Zd4VQrve2SFh9Phybi2SVdGU08tZnTEEWyXsLw/exec"; // <-- HIER SheetDB-Link einsetzen
 
     const startPauseCountdown = () => {
   logSessionStart(); // Neuen Session-Zeitstempel speichern
@@ -2144,6 +2144,17 @@ const drawSeries = () => {
     // Optional: Weitere Schnittstellen können hier hinzugefügt werden
     console.log("Custom Prompt (window.webkit.messageHandlers.customPrompt): " + (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt ? "verfügbar" : "nicht verfügbar"));
     console.log("---------------------------------");
+    fetch(SHEET_BASE + "?test=1")
+      .then(res => {
+        if (res.ok) {
+          console.log("✅ Verbindung zur Google Apps Script API erfolgreich.");
+        } else {
+          console.warn("⚠️ Verbindung zur Google Apps Script API fehlgeschlagen:", res.status);
+        }
+      })
+      .catch(err => {
+        console.error("❌ Fehler bei der Verbindung zur Google Apps Script API:", err);
+      });
   });
 </script>
 </head>
