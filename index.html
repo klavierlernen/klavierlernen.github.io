@@ -32,10 +32,13 @@
       left: 0;
       width: 100%;
       height: 100%;
-      z-index: 5; /* niedriger als Menüs */
+      z-index: 1001; /* niedriger als Menüs */
       filter: blur(20px);
       opacity: 0.2;
       pointer-events: none;
+    }
+    body:not(.pause-active) #animationCanvas {
+      z-index: 5;
     }
     /* Einhand-Notation (normaler Modus) */
     #notation {
@@ -1188,9 +1191,6 @@ function generateBarChartHTML() {
       sessionStorage.setItem("previousUnlockedTrophies", JSON.stringify(unlockedTrophies));
       
       showTrophyTransitionScreen(() => {
-        document.getElementById("mainContent").style.display = "none";
-        document.getElementById("timerContainer").style.display = "none";
-        document.getElementById("settingsPanel").style.display = "none";
         const pauseOverlay = document.getElementById("pauseOverlay");
         pauseOverlay.innerHTML = `
           <div id="pauseInfo">
@@ -1202,6 +1202,10 @@ function generateBarChartHTML() {
           </div>
           <div id="pauseTiles"></div>
         `;
+        document.getElementById("mainContent").style.display = "none";
+        document.getElementById("timerContainer").style.display = "none";
+        document.getElementById("settingsPanel").style.display = "none";
+        document.body.classList.add("pause-active");
         pauseOverlay.style.display = "flex";
         confetti({
           particleCount: 150,
@@ -1236,6 +1240,7 @@ function generateBarChartHTML() {
         // Setze den Sound zurück und spiele ihn ab
         gongSound.currentTime = 0;
         gongSound.play();
+        document.body.classList.remove("pause-active");
         resetGame();
       };
     let gameOver = false;
