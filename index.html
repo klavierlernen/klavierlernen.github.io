@@ -2086,13 +2086,37 @@ const drawSeries = () => {
 <script>
   // Initialisiere MIDI-Zugriff (Web MIDI API)
   function initMIDIAccess() {
-    if (navigator.requestMIDIAccess) {
-      navigator.requestMIDIAccess({ sysex: true })
-        .then(onMIDISuccess, onMIDIFailure);
-    } else {
-      console.log("Web MIDI API wird in diesem Browser nicht unterstützt.");
+    if (!navigator.requestMIDIAccess) {
+      console.warn("Web MIDI API wird nicht unterstützt.");
+      return;
     }
+
+    navigator.requestMIDIAccess({ sysex: false }).then((midiAccess) => {
+      console.log("✅ MIDI Access erfolgreich.");
+      midiAccess.inputs.forEach((input) => {
+        console.log("🎹 Eingabegerät erkannt:", input.name);
+        input.onmidimessage = ({ data }) => {
+          const [status, data1, data2] = data;
+          handleMIDIMessage(status, data1, data2);
+        };
+      });
+
+      midiAccess.onstatechange = (event) => {
+        const port = event.port;
+        if (port.type === "input" && port.state === "connected") {
+          console.log("🔌 Neues Gerät verbunden:", port.name);
+          port.onmidimessage = ({ data }) => {
+            const [status, data1, data2] = data;
+            handleMIDIMessage(status, data1, data2);
+          };
+        }
+      };
+    }).catch((err) => {
+      console.error("❌ MIDI Zugriff fehlgeschlagen:", err);
+    });
   }
+
+  document.addEventListener("DOMContentLoaded", initMIDIAccess);
   
   function onMIDISuccess(midiAccess) {
     // Alle vorhandenen MIDI-Eingänge initialisieren
@@ -2125,40 +2149,7 @@ const drawSeries = () => {
   </script>
 <script>
   // Versuche, Web Bluetooth zu initialisieren, falls verfügbar und Web MIDI nicht unterstützt wird
-  async function initBluetoothMIDIAccess() {
-    if (!navigator.bluetooth) {
-      console.log("Web Bluetooth API wird in diesem Browser nicht unterstützt.");
-      return;
-    }
-    try {
-      console.log("Suche nach Bluetooth MIDI Geräten...");
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: ['03B80E5A-EDE8-4B33-A751-6CE34EC4C700'] }]
-      });
-      const server = await device.gatt.connect();
-      const service = await server.getPrimaryService('03B80E5A-EDE8-4B33-A751-6CE34EC4C700');
-      const characteristic = await service.getCharacteristic('7772E5DB-3868-4112-A1A9-F2669D106BF3');
-      // Starte Benachrichtigungen, um eingehende MIDI-Daten zu empfangen
-      await characteristic.startNotifications();
-      characteristic.addEventListener('characteristicvaluechanged', event => {
-        let data = new Uint8Array(event.target.value.buffer);
-        console.log("Bluetooth MIDI Nachricht empfangen:", data);
-        // Hier kannst du den empfangenen MIDI-Daten verarbeiten und z.B. an handleMIDIMessage weiterleiten
-        // Ein Beispielaufruf (bitte an dein Format anpassen):
-        // handleMIDIMessage(data[0], data[1], data[2]);
-      });
-      console.log("Bluetooth MIDI Gerät verbunden.");
-    } catch (error) {
-      console.error("Fehler beim Verbinden mit Bluetooth MIDI Gerät:", error);
-    }
-  }
-
-  // Wenn die Web MIDI API nicht verfügbar ist, versuche stattdessen Bluetooth MIDI zu initialisieren
-  document.addEventListener("DOMContentLoaded", function() {
-    if (!navigator.requestMIDIAccess && navigator.bluetooth) {
-      initBluetoothMIDIAccess();
-    }
-  });
+  
 </script>
 <script>
   document.addEventListener("DOMContentLoaded", function() {
