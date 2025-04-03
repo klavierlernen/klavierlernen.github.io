@@ -1941,7 +1941,7 @@ const drawSeries = () => {
   const svg = notationDiv.querySelector("svg");
   if (svg) {
     svg.setAttribute("width", baseWidth * zoomFactor);
-    svg.setAttribute("height", 300 * zoomFactor);
+    svg.setAttribute("height", 100 * zoomFactor);
     svg.style.transform = `scale(${zoomFactor})`;
     svg.style.transformOrigin = "top left";
   }
