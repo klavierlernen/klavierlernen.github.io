@@ -1936,11 +1936,14 @@ const drawSeries = () => {
   
   // Erzeuge den Renderer und passe Größe an
   const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
-  renderer.resize(baseWidth * ratio, height);
+  const zoomFactor = 1.4; // Zoom-Faktor anpassen
+  renderer.resize(baseWidth * ratio * zoomFactor, height * zoomFactor);
   const svg = notationDiv.querySelector("svg");
   if (svg) {
-    svg.setAttribute("width", baseWidth);
-    svg.setAttribute("height", 300);
+    svg.setAttribute("width", baseWidth * zoomFactor);
+    svg.setAttribute("height", 300 * zoomFactor);
+    svg.style.transform = `scale(${zoomFactor})`;
+    svg.style.transformOrigin = "top left";
   }
   const context = renderer.getContext();
   
