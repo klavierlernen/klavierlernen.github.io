@@ -2098,10 +2098,10 @@ const drawSeries = () => {
           if (noteDisplay) {
             noteDisplay.innerHTML = '<span style="color:' + displayColor + ';">' + playedNoteDisplay + '</span>';
           }
-          if (sessionCounter <= 0) {
+          if (sessionCounter <= 0 && !sessionPaused) {
             sessionCounter = 0;
-            startPauseCountdown();
             updateTimer();
+            startPauseCountdown();
             return;
           }
         } else {
