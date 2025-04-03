@@ -1746,6 +1746,9 @@ document.getElementById("timerContainer").addEventListener("click", () => {
         if (!isNaN(num) && num > 0) {
           sessionCounter = num;
           updateTimer();
+          if (sessionCounter === 0 && !sessionPaused) {
+            startPauseCountdown();
+          }
         }
         timerContainer.innerHTML = sessionCounter;
       }
@@ -2097,6 +2100,11 @@ const drawSeries = () => {
           addCircle("positive");
           if (noteDisplay) {
             noteDisplay.innerHTML = '<span style="color:' + displayColor + ';">' + playedNoteDisplay + '</span>';
+          }
+          if (sessionCounter === 0 && !sessionPaused) {
+            updateTimer();
+            startPauseCountdown();
+            return;
           }
           if (sessionCounter <= 0 && !sessionPaused) {
             sessionCounter = 0;
