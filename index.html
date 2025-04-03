@@ -1952,17 +1952,17 @@ const drawSeries = () => {
   
   // Füge Key Signature (Vorzeichen) hinzu, je nach aktueller Lage
   if (currentRange === "D") {
-    // In D-Lage wird in der Regel ein Kreuz (F#) benötigt – "G" erzeugt eine Key Signature mit einem Kreuz.
     stave.addKeySignature("G");
   } else if (currentRange === "F") {
-    // In F-Lage wird typischerweise ein b benötigt – "F" erzeugt eine Key Signature mit einem b.
     stave.addKeySignature("F");
   } else if (currentRange === "G") {
-    // Je nach Anforderung: In G-Dur gibt es normalerweise ein Kreuz (F#).
     stave.addKeySignature("G");
   }
   
   stave.setContext(context).draw();
+  
+  // Definiere noteDuration aus den benutzerdefinierten Einstellungen (Standard: "q")
+  const noteDuration = (window.customModeSettings && window.customModeSettings.noteValue) || "q";
   
   // Erzeuge die StaveNotes für die Serie (Notennamen bleiben unverändert, da die Vorzeichen über die Key Signature definiert werden)
   const noteOrder = ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"];
@@ -1976,42 +1976,41 @@ const drawSeries = () => {
     const staveNote = new Vex.Flow.StaveNote({
       clef: item.clef,
       keys: [key],
-      duration: "q"
+      duration: noteDuration
     });
-    // Setze die Farbe für Noten (z. B. grün, gelb oder rot)
     staveNote.setStyle({ fillStyle: item.color, strokeStyle: item.color });
-
-    // Bestimme den MIDI-Wert der Note
+  
     const noteIndex = noteOrder.indexOf(noteName);
     const midiNumber = (item.octave + 1) * 12 + noteIndex;
-
-    // Definiere den Schwellenwert (Mittellinie) je nach Clef
     let threshold;
     if (item.clef === "treble") {
-      // Für Treble-Clef: Mittellinie bei B4 (MIDI 71)
       threshold = 71;
     } else if (item.clef === "bass") {
-      // Für Bass-Clef: Mittellinie bei D3 (MIDI 50)
       threshold = 50;
     } else {
-      // Standardwert, falls keine Clef definiert ist
       threshold = 71;
     }
-
-    // Wenn die Note über der Mittellinie liegt, setze den Notenhals nach unten (StemDirection -1), sonst (unter der Mittellinie) nach oben (1)
     if (midiNumber >= threshold) {
       staveNote.setStemDirection(-1);
     } else {
       staveNote.setStemDirection(1);
     }
-
+  
     return staveNote;
   });
   
+  // Erstelle den Voice und erlaube unvollständige Stimmen
   const voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
+  voice.setStrict(false);
   staveNotes.forEach(note => voice.addTickable(note));
   new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
   voice.draw(context, stave);
+  
+  // Falls Achtelnoten gewählt wurden, erzeugen wir Beams
+  if (noteDuration === "8") {
+    const beams = Vex.Flow.Beam.generateBeams(staveNotes);
+    beams.forEach(beam => beam.setContext(context).draw());
+  }
 };
     
     const isNoteCorrect = (midiInfo) => {
@@ -2590,6 +2589,10 @@ const drawSeries = () => {
             <div class="custom-mode-note-set" id="right-hand-notes">
                 <!-- Noten werden dynamisch basierend auf der gewählten Lage eingefügt -->\n    </div>
         </div>
+        <div class="custom-mode-row">
+            <label for="noteValueCheckbox" style="font-weight: bold;">Wertvariation</label>
+            <input type="checkbox" id="noteValueCheckbox" />
+          </div>
         <div class="custom-mode-save">
             <button id="custom-mode-save-button">Speichern</button>
         </div>
@@ -2677,7 +2680,7 @@ const drawSeries = () => {
                 });
             }
 
-            // Eventlistener für den Speichern-Button
+            // Eventlistener für den Speichern-Button im Custom Mode Modal
             const saveButton = document.getElementById('custom-mode-save-button');
             if (saveButton) {
                 saveButton.addEventListener('click', () => {
@@ -2685,14 +2688,17 @@ const drawSeries = () => {
                     const activeRange = document.querySelector('.custom-mode-range-option.active');
                     const activeLeftNotes = document.querySelectorAll('#left-hand-notes .custom-mode-note-option.active');
                     const activeRightNotes = document.querySelectorAll('#right-hand-notes .custom-mode-note-option.active');
-
+                    const noteValueCheckbox = document.getElementById('noteValueCheckbox');
+                    const noteValue = noteValueCheckbox.checked ? "8" : "q";  // "8" für Achtelnoten, "q" als Standard (Viertelnoten)
+                    
                     const settings = {
                         clef: activeClef ? activeClef.getAttribute('data-clef') : null,
                         range: activeRange ? activeRange.getAttribute('data-range') : null,
                         leftNotes: Array.from(activeLeftNotes).map(el => el.getAttribute('data-note')),
-                        rightNotes: Array.from(activeRightNotes).map(el => el.getAttribute('data-note'))
+                        rightNotes: Array.from(activeRightNotes).map(el => el.getAttribute('data-note')),
+                        noteValue: noteValue
                     };
-
+                    
                     console.log("Benutzerdefinierte Einstellungen:", settings);
                     window.customModeSettings = settings;
                     modal.classList.add('hidden');
