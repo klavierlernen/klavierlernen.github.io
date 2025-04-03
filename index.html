@@ -520,7 +520,57 @@
   }
 }
 
-      
+     
+     /* Custom Mode Modal Styles */
+     #customModeModal {
+         position: fixed;
+         top: 20%;
+         right: 90px; /* ca. 10px links vom Menü */
+         width: 300px;
+         background: white;
+         border: 2px solid black;
+         border-radius: 10px;
+         padding: 20px;
+         z-index: 150;
+     }
+     #customModeModal h2 {
+         margin-top: 0;
+         text-align: center;
+     }
+     .custom-mode-row {
+         display: flex;
+         justify-content: space-around;
+         margin-bottom: 15px;
+         flex-wrap: wrap;
+     }
+     .custom-mode-clef-container, .custom-mode-range-container, .custom-mode-note-set {
+         display: flex;
+         gap: 5px;
+     }
+.custom-mode-clef-option, .custom-mode-range-option, .custom-mode-note-option {
+    padding: 5px 10px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.3s;
+    font-weight: bold;
+}
+     .custom-mode-clef-option.active, .custom-mode-range-option.active, .custom-mode-note-option.active {
+         opacity: 1;
+     }
+     .custom-mode-hand-label {
+         align-self: center;
+         margin-right: 10px;
+         font-weight: bold;
+     }
+     .custom-mode-save {
+         text-align: center;
+         margin-top: 20px;
+     }
+     .hidden {
+         display: none !important;
+     }
       
   </style>
   <script>
@@ -1635,31 +1685,17 @@ metronomeToggle.addEventListener("click", () => {
     }
   }
 });
-// Bluetooth MIDI Toggle (nur wenn NICHT iOS)
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-if (!isIOS) {
-  const bluetoothToggle = document.createElement("span");
-  bluetoothToggle.id = "bluetoothToggle";
-  bluetoothToggle.textContent = "🛜";
-  bluetoothToggle.title = "Bluetooth MIDI suchen";
-  bluetoothToggle.style.opacity = "0.5";
-  bluetoothToggle.style.cursor = "pointer";
-  settingsPanel.appendChild(bluetoothToggle);
 
-  bluetoothToggle.addEventListener("click", async () => {
-    bluetoothToggle.style.opacity = "1";
-    try {
-      // Direkt das Browser-Bluetooth-Fenster öffnen
-      const device = await navigator.bluetooth.requestDevice({
-        acceptAllDevices: true,
-        optionalServices: ['battery_service']
+
+      const customModeToggle = document.createElement("span");
+      customModeToggle.id = "customModeToggle";
+      customModeToggle.textContent = "🖍️";
+      customModeToggle.style.cursor = "pointer";
+      customModeToggle.style.marginTop = "10px";
+      settingsPanel.appendChild(customModeToggle);
+      customModeToggle.addEventListener("click", () => {
+        document.getElementById("customModeModal").classList.remove("hidden");
       });
-      console.log("Gerät gewählt:", device.name || device.id);
-    } catch (error) {
-      console.error("Bluetooth-Auswahl abgebrochen oder fehlgeschlagen:", error);
-    }
-  });
-}
       
 document.getElementById("timerContainer").addEventListener("click", () => {
   let existingInput = document.getElementById("counterInput");
@@ -1771,81 +1807,117 @@ const generateSeries = () => {
   correctNoteCount = 0;
   nextMotivationThreshold = getRandomThreshold();
   document.getElementById("noteNameDisplay").textContent = "";
-  
-  let seriesClef;
-  if (randomMode) {
-      seriesClef = Math.random() < 0.5 ? "bass" : "treble";
-      // Erhöhe den Zähler um die Anzahl der Noten in dieser Serie
-      notesInCurrentPhase += seriesLength;
-      // Wechsel der Lage nur, wenn bereits 20 oder mehr Noten in der aktuellen Phase gespielt wurden
-      if (notesInCurrentPhase >= 20) {
-          let oldRange = currentRange;
-          if (typeof alternatingRanges !== 'undefined' && alternatingRanges.length > 0) {
-              currentRange = alternatingRanges[Math.floor(Math.random() * alternatingRanges.length)];
-          }
-          if (oldRange !== currentRange) {
-              // Kurzer Dong, wenn die Lage wechselt
-              gongSound.currentTime = 0;
-              gongSound.play();
-              var clefTitle = document.getElementById("clefTitle");
-              clefTitle.textContent = currentRange + "-Lage";
-              // Rahmen des Lagenbuttons kurz rot aufblinken lassen
-              clefTitle.style.border = "3px solid red";
-              setTimeout(() => {
-                  if (document.body.classList.contains("dark-mode")) {
-                      clefTitle.style.border = "3px solid #fff";
-                  } else {
-                      clefTitle.style.border = "3px solid #000";
-                  }
-              }, 300);
-          }
-          // Nach dem Wechsel den Zähler zurücksetzen
-          notesInCurrentPhase = 0;
+
+  let seriesClef, chooseNote;
+
+  // Prüfe, ob benutzerdefinierte Einstellungen aktiv sind
+  if (window.customModeSettings && window.customModeSettings.clef && window.customModeSettings.range) {
+    // Verwende die benutzerdefinierten Einstellungen
+    seriesClef = window.customModeSettings.clef; // z.B. 'treble' oder 'bass'
+    currentRange = window.customModeSettings.range; // Aktualisiere die globale Lage
+    // Wähle die Noten basierend auf der ausgewählten Hand (left/right)
+    let customNotes = (selectedMode === "left") ? window.customModeSettings.leftNotes : window.customModeSettings.rightNotes;
+    // Fallback, falls keine Noten ausgewählt wurden
+    if (!customNotes || customNotes.length === 0) {
+      if (currentRange === "MC") {
+        customNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
+      } else if (currentRange === "D") {
+        customNotes = ["d", "e", "f#", "g", "a"];
+      } else {
+        customNotes = rangeNotes[currentRange];
       }
+    }
+    
+    chooseNote = () => {
+      if (errorNotes.length > 0 && Math.random() < 0.6) {
+        const idx = errorNotes.findIndex(note => note.clef === seriesClef);
+        if (idx !== -1) {
+          return errorNotes.splice(idx, 1)[0];
+        }
+      }
+      const randomIndex = Math.floor(Math.random() * customNotes.length);
+      const chosenNote = customNotes[randomIndex];
+      let noteOctave;
+      if (currentRange === "MC") {
+        noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
+      } else {
+        noteOctave = seriesClef === "bass" ? 3 : 4;
+      }
+      let accidental = undefined;
+      if (["F", "G"].includes(currentRange)) {
+        if (currentRange === "F" && chosenNote.includes("b") && chosenNote !== "b") {
+          accidental = chosenNote;
+        } else if (currentRange === "G" && (chosenNote.includes("#") || (chosenNote.includes("b") && chosenNote !== "b"))) {
+          accidental = chosenNote;
+        }
+      }
+      return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
+    };
+
   } else {
+    // Bestehendes Verhalten, wenn kein Custom Mode aktiv ist
+    if (randomMode) {
+      seriesClef = Math.random() < 0.5 ? "bass" : "treble";
+      notesInCurrentPhase += seriesLength;
+      if (notesInCurrentPhase >= 20) {
+        let oldRange = currentRange;
+        if (typeof alternatingRanges !== 'undefined' && alternatingRanges.length > 0) {
+          currentRange = alternatingRanges[Math.floor(Math.random() * alternatingRanges.length)];
+        }
+        if (oldRange !== currentRange) {
+          gongSound.currentTime = 0;
+          gongSound.play();
+          var clefTitle = document.getElementById("clefTitle");
+          clefTitle.textContent = currentRange + "-Lage";
+          clefTitle.style.border = "3px solid red";
+          setTimeout(() => {
+            if (document.body.classList.contains("dark-mode")) {
+              clefTitle.style.border = "3px solid #fff";
+            } else {
+              clefTitle.style.border = "3px solid #000";
+            }
+          }, 300);
+        }
+        notesInCurrentPhase = 0;
+      }
+    } else {
       seriesClef = (selectedMode === "left") ? "bass" : "treble";
-  }
-      
-const chooseNote = () => {
-  if (errorNotes.length > 0 && Math.random() < 0.6) {
-    const idx = errorNotes.findIndex(note => note.clef === seriesClef);
-    if (idx !== -1) {
-      return errorNotes.splice(idx, 1)[0];
     }
+
+    chooseNote = () => {
+      if (errorNotes.length > 0 && Math.random() < 0.6) {
+        const idx = errorNotes.findIndex(note => note.clef === seriesClef);
+        if (idx !== -1) {
+          return errorNotes.splice(idx, 1)[0];
+        }
+      }
+      let defaultNotes;
+      if (currentRange === "MC") {
+        defaultNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
+      } else if (currentRange === "D") {
+        defaultNotes = ["d", "e", "f#", "g", "a"];
+      } else {
+        defaultNotes = rangeNotes[currentRange];
+      }
+      const randomIndex = Math.floor(Math.random() * defaultNotes.length);
+      const chosenNote = defaultNotes[randomIndex];
+      let noteOctave;
+      if (currentRange === "MC") {
+        noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
+      } else {
+        noteOctave = seriesClef === "bass" ? 3 : 4;
+      }
+      let accidental = undefined;
+      if (["F", "G"].includes(currentRange)) {
+        if (currentRange === "F" && chosenNote.includes("b") && chosenNote !== "b") {
+          accidental = chosenNote;
+        } else if (currentRange === "G" && (chosenNote.includes("#") || (chosenNote.includes("b") && chosenNote !== "b"))) {
+          accidental = chosenNote;
+        }
+      }
+      return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
+    };
   }
-  
-  let availableNotes;
-  if (currentRange === "MC") {
-    availableNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
-  } else if (currentRange === "D") {
-    // In der D-Lage dürfen nur die Finger-Noten abgefragt werden: D, E, F♯, G, A
-    availableNotes = ["d", "e", "f#", "g", "a"];
-  } else {
-    availableNotes = rangeNotes[currentRange];
-  }
-  
-  const randomIndex = Math.floor(Math.random() * availableNotes.length);
-  const chosenNote = availableNotes[randomIndex];
-  
-  let noteOctave;
-  if (currentRange === "MC") {
-    noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
-  } else {
-    noteOctave = seriesClef === "bass" ? 3 : 4;
-  }
-  
-  let accidental = undefined;
-  // Verarbeite accidentals nur in den Lagen F und G; in der D-Lage werden keine accidentals genutzt
-  if (["F", "G"].includes(currentRange)) {
-    if (currentRange === "F" && chosenNote.includes("b") && chosenNote !== "b") {
-      accidental = chosenNote;
-    } else if (currentRange === "G" && (chosenNote.includes("#") || (chosenNote.includes("b") && chosenNote !== "b"))) {
-      accidental = chosenNote;
-    }
-  }
-  
-  return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
-};
 
   currentSeriesSingle = [];
   for (let i = 0; i < seriesLength; i++) {
@@ -2164,233 +2236,480 @@ const drawSeries = () => {
 </head>
 <body>
     <div id="streakDisplay"></div>
-  <!-- Canvas für Animation (Hintergrund) -->
-  <canvas id="animationCanvas"></canvas>
-  <!-- Audio-Element -->
-  <audio id="backgroundSound" autoplay>
-    <source src="https://raw.githubusercontent.com/JP0024/piano.github.io/3d35e0a8d4eb3e018151018e36e225dc7a856ecd/mixkit-relaxing-harp-sweep-2628.wav" type="audio/wav">
-    Dein Browser unterstützt das Audio-Element nicht.
-  </audio>
-  <!-- Pause-Overlay -->
-  <div id="pauseOverlay">
-    <div id="pauseInfo">
-      <div id="pauseHeader">SESSION PAUSIERT</div>
-      <div id="pauseProgressContainer">
-        <div id="pauseProgress"></div>
-        <div id="pauseTime" style="position:absolute; left:0; top:0; font-size:14px; color:#000; padding:0 5px;"></div>
-      </div>
+    <!-- Canvas für Animation (Hintergrund) -->
+    <canvas id="animationCanvas"></canvas>
+    <!-- Audio-Element -->
+    <audio id="backgroundSound" autoplay>
+        <source src="https://raw.githubusercontent.com/JP0024/piano.github.io/3d35e0a8d4eb3e018151018e36e225dc7a856ecd/mixkit-relaxing-harp-sweep-2628.wav" type="audio/wav">
+            Dein Browser unterstützt das Audio-Element nicht.
+    </audio>
+    <!-- Pause-Overlay -->
+    <div id="pauseOverlay">
+        <div id="pauseInfo">
+            <div id="pauseHeader">SESSION PAUSIERT</div>
+            <div id="pauseProgressContainer">
+                <div id="pauseProgress"></div>
+                <div id="pauseTime" style="position:absolute; left:0; top:0; font-size:14px; color:#000; padding:0 5px;"></div>
+            </div>
+        </div>
+        <!-- Kachelwand -->
+        <div id="pauseTiles"></div>
     </div>
-    <!-- Kachelwand -->
-    <div id="pauseTiles"></div>
-  </div>
-  <!-- Welcome Overlay -->
-  <div id="welcomeOverlay">
-    <div id="welcomeMessage"><br>Schön, dass du da bist!<br></div>
-  </div>
-  <!-- Game Over Overlay -->
-  <div id="gameOverOverlay"></div>
-  <!-- Scoreboard Overlay -->
-  <div id="scoreboardOverlay" class="hidden"></div>
-  <!-- Motivationsfenster -->
-  <div id="motivationOverlay"></div>
-  <!-- Timer Container -->
-  <div id="timerContainer"></div>
-  <!-- Hauptinhalt -->
-  <div id="mainContent">
-    <div id="userIDInputContainer" style="position: fixed; top: 30px; left: 10px; z-index: 200; display: flex; flex-direction: row; align-items: center; gap: 10px;">
-          <span id="userIDIcon" style="font-size: 1em;">🖍️</span>
-          <input id="userIDInput" type="text" placeholder="ID"
-            style="font-size: 1em; padding: 4px; width: 50px; height: 20px; text-align: center; border: none; background: none; outline: none; color: black;">
-      <span id="createNewID" style="cursor:pointer; color:blue; text-decoration:underline; font-size:0.9em;">Neue ID erstellen</span>
-      <div id="userIDStatus" style="margin-top:5px; font-size:0.9em; color:#000;"></div>
+    <!-- Welcome Overlay -->
+    <div id="welcomeOverlay">
+        <div id="welcomeMessage"><br>Schön, dass du da bist!<br></div>
     </div>
-    <div id="notation"></div>
-    <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase;"></div>
-    <div id="buttonContainer">
-      <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
-      <div id="heartsContainer" style="margin-left:10px;"></div>
+    <!-- Game Over Overlay -->
+    <div id="gameOverOverlay"></div>
+    <!-- Scoreboard Overlay -->
+    <div id="scoreboardOverlay" class="hidden"></div>
+    <!-- Motivationsfenster -->
+    <div id="motivationOverlay"></div>
+    <!-- Timer Container -->
+    <div id="timerContainer"></div>
+    <!-- Hauptinhalt -->
+    <div id="settingsPanel" style="position: fixed; top: 10px; right: 10px; background: rgba(255,255,255,0.8); padding: 10px; border: 1px solid #000; z-index: 200;"></div>
+    <div id="mainContent">
+        <div id="userIDInputContainer" style="position: fixed; top: 30px; left: 10px; z-index: 200; display: flex; flex-direction: row; align-items: center; gap: 10px;">
+            <span id="userIDIcon" style="font-size: 1em;">🖍️</span>
+            <input id="userIDInput" type="text" placeholder="ID"
+                style="font-size: 1em; padding: 4px; width: 50px; height: 20px; text-align: center; border: none; background: none; outline: none; color: black;">
+                <span id="createNewID" style="cursor:pointer; color:blue; text-decoration:underline; font-size:0.9em;">Neue ID erstellen</span>
+                <div id="userIDStatus" style="margin-top:5px; font-size:0.9em; color:#000;"></div>
+        </div>
+        <div id="notation"></div>
+        <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase;"></div>
+        <div id="buttonContainer">
+            <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
+            <div id="heartsContainer" style="margin-left:10px;"></div>
+        </div>
     </div>
-  </div>
-  <!-- Einstellungen-Menü -->
-  <div id="settingsPanel"></div>
-  <script>
-    /* Falls im Pause-Modus: Aktualisiere Fortschrittsbalken und verbleibende Zeit (mm:ss) */
-    function updatePauseProgress() {
-      const progressBar = document.getElementById("pauseProgress");
-      const timeDisplay = document.getElementById("pauseTime");
-      if (progressBar && pauseDuration > 0) {
-        const percent = ((pauseDuration - pauseRemaining) / pauseDuration) * 100;
-        progressBar.style.width = percent + "%";
-        if (timeDisplay) {
-          const m = Math.floor(pauseRemaining / 60);
-          const s = pauseRemaining % 60;
-          timeDisplay.textContent = (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+    <!-- Einstellungen-Menü -->
+    
+    <script>
+        /* Falls im Pause-Modus: Aktualisiere Fortschrittsbalken und verbleibende Zeit (mm:ss) */
+        function updatePauseProgress() {
+            const progressBar = document.getElementById("pauseProgress");
+            const timeDisplay = document.getElementById("pauseTime");
+            if (progressBar && pauseDuration > 0) {
+                const percent = ((pauseDuration - pauseRemaining) / pauseDuration) * 100;
+                progressBar.style.width = percent + "%";
+                if (timeDisplay) {
+                    const m = Math.floor(pauseRemaining / 60);
+                    const s = pauseRemaining % 60;
+                    timeDisplay.textContent = (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+                }
+            }
         }
-      }
-    }
-   
-  </script>
-  
-  <script>
-    let deferredPrompt;
-    // Abfangen des beforeinstallprompt-Events und automatisches Auslösen des Prompts
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      console.log('beforeinstallprompt Event empfangen');
-      // Automatisch das Installations-Prompt auslösen
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('User accepted the PWA install prompt');
-        } else {
-          console.log('User dismissed the PWA install prompt');
+        
+    </script>
+    
+    <script>
+        let deferredPrompt;
+        // Abfangen des beforeinstallprompt-Events und automatisches Auslösen des Prompts
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log('beforeinstallprompt Event empfangen');
+            // Automatisch das Installations-Prompt auslösen
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the PWA install prompt');
+                } else {
+                    console.log('User dismissed the PWA install prompt');
+                }
+                deferredPrompt = null;
+            });
+        });
+        
+        // Falls die App installiert wurde, kann hier optional eine Logik implementiert werden
+        window.addEventListener('appinstalled', () => {
+            console.log('App wurde als PWA installiert');
+        });
+    </script>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const settingsPanel = document.getElementById("settingsPanel");
+            if (!settingsPanel) return;
+            let fadeTimeout;
+            const resetFadeTimer = () => {
+                clearTimeout(fadeTimeout);
+                // Setze sofort auf volle Opacity
+                settingsPanel.style.opacity = "1";
+                // Starte Timer: nach 10 Sekunden wird die Opacity auf 0.5 reduziert
+                fadeTimeout = setTimeout(() => {
+                    settingsPanel.style.opacity = "0.5";
+                }, 10000);
+            };
+            // Initialer Timer-Start
+            resetFadeTimer();
+            // Bei Maus- oder Touch-Interaktion den Timer zurücksetzen
+            settingsPanel.addEventListener("mouseenter", resetFadeTimer);
+            settingsPanel.addEventListener("touchstart", resetFadeTimer);
+        });
+        
+        function getAllTrophies() {
+            return [
+                    "🐢","🐌","🚶‍♂️","🏃","⚡",
+                    "🎼","🎹","🎺","🪕","🪗",
+                    "🌱","🌿","🌻","🌲","🎄","🔥","🚀","🪐","🌞","👑",
+                    "🔀","🌀","🔁","⏩","⚙️",
+                    "📏","📐","🧭","🎯","🏁"
+                    ];
         }
-        deferredPrompt = null;
-      });
-    });
-
-    // Falls die App installiert wurde, kann hier optional eine Logik implementiert werden
-    window.addEventListener('appinstalled', () => {
-      console.log('App wurde als PWA installiert');
-    });
-  </script>
-  
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const settingsPanel = document.getElementById("settingsPanel");
-      if (!settingsPanel) return;
-      let fadeTimeout;
-      const resetFadeTimer = () => {
-        clearTimeout(fadeTimeout);
-        // Setze sofort auf volle Opacity
-        settingsPanel.style.opacity = "1";
-        // Starte Timer: nach 10 Sekunden wird die Opacity auf 0.5 reduziert
-        fadeTimeout = setTimeout(() => {
-          settingsPanel.style.opacity = "0.5";
-        }, 10000);
-      };
-      // Initialer Timer-Start
-      resetFadeTimer();
-      // Bei Maus- oder Touch-Interaktion den Timer zurücksetzen
-      settingsPanel.addEventListener("mouseenter", resetFadeTimer);
-      settingsPanel.addEventListener("touchstart", resetFadeTimer);
-    });
-      
-      function getAllTrophies() {
-        return [
-          "🐢","🐌","🚶‍♂️","🏃","⚡",
-          "🎼","🎹","🎺","🪕","🪗",
-          "🌱","🌿","🌻","🌲","🎄","🔥","🚀","🪐","🌞","👑",
-          "🔀","🌀","🔁","⏩","⚙️",
-          "📏","📐","🧭","🎯","🏁"
-        ];
-      }
-      
-      function showTrophyTransitionScreen(callback) {
-        const overlay = document.getElementById("pauseOverlay");
-        overlay.innerHTML = "";
-        overlay.style.display = "flex";
-
-        const trophyContainer = document.createElement("div");
-        trophyContainer.style.display = "flex";
-        trophyContainer.style.flexDirection = "column";
-        trophyContainer.style.alignItems = "center";
-        trophyContainer.style.justifyContent = "center";
-        trophyContainer.style.opacity = "0";
-        trophyContainer.style.transition = "opacity 1s";
-
-        const newUnlocked = JSON.parse(sessionStorage.getItem("justUnlockedTrophies") || "[]");
-        const justLost = JSON.parse(sessionStorage.getItem("justLostTrophies") || "[]");
-
-        if (newUnlocked.length > 0) {
-          const gainedTitle = document.createElement("h2");
-          gainedTitle.textContent = isGerman ? "Neu freigeschaltet" : "Newly Unlocked";
-          trophyContainer.appendChild(gainedTitle);
-
-          newUnlocked.forEach(index => {
-            const emoji = getAllTrophies()[index];
-            const description = getTrophyDescription(index);
-            const block = document.createElement("div");
-            block.style.margin = "10px";
-            block.style.fontSize = "1.5em";
-            block.innerHTML = `<div>${emoji}</div><div style="font-size:0.8em">${description}</div>`;
-            trophyContainer.appendChild(block);
-          });
+        
+        function showTrophyTransitionScreen(callback) {
+            const overlay = document.getElementById("pauseOverlay");
+            overlay.innerHTML = "";
+            overlay.style.display = "flex";
+            
+            const trophyContainer = document.createElement("div");
+            trophyContainer.style.display = "flex";
+            trophyContainer.style.flexDirection = "column";
+            trophyContainer.style.alignItems = "center";
+            trophyContainer.style.justifyContent = "center";
+            trophyContainer.style.opacity = "0";
+            trophyContainer.style.transition = "opacity 1s";
+            
+            const newUnlocked = JSON.parse(sessionStorage.getItem("justUnlockedTrophies") || "[]");
+            const justLost = JSON.parse(sessionStorage.getItem("justLostTrophies") || "[]");
+            
+            if (newUnlocked.length > 0) {
+                const gainedTitle = document.createElement("h2");
+                gainedTitle.textContent = isGerman ? "Neu freigeschaltet" : "Newly Unlocked";
+                trophyContainer.appendChild(gainedTitle);
+                
+                newUnlocked.forEach(index => {
+                    const emoji = getAllTrophies()[index];
+                    const description = getTrophyDescription(index);
+                    const block = document.createElement("div");
+                    block.style.margin = "10px";
+                    block.style.fontSize = "1.5em";
+                    block.innerHTML = `<div>${emoji}</div><div style="font-size:0.8em">${description}</div>`;
+                    trophyContainer.appendChild(block);
+                });
+            }
+            
+            if (justLost.length > 0) {
+                const lostTitle = document.createElement("h2");
+                lostTitle.textContent = isGerman ? "Verloren" : "Lost";
+                trophyContainer.appendChild(lostTitle);
+                
+                justLost.forEach(index => {
+                    const emoji = getAllTrophies()[index];
+                    const description = getTrophyDescription(index);
+                    const block = document.createElement("div");
+                    block.style.margin = "10px";
+                    block.style.opacity = "0.5";
+                    block.style.fontSize = "1.5em";
+                    block.innerHTML = `<div>${emoji}</div><div style="font-size:0.8em">${description}</div>`;
+                    trophyContainer.appendChild(block);
+                });
+            }
+            
+            overlay.appendChild(trophyContainer);
+            
+            // Fade-in
+            setTimeout(() => {
+                trophyContainer.style.opacity = "1";
+            }, 100);
+            
+            // Nach 3 Sekunden weiter zur Session-Pause
+            setTimeout(() => {
+                overlay.style.opacity = "0";
+                setTimeout(() => {
+                    overlay.style.display = "none";
+                    overlay.style.opacity = "1";
+                    callback();
+                }, 1000);
+            }, 3000);
         }
+        
+    </script>
+    <script>
+        document.getElementById("createNewID").addEventListener("click", async () => {
+            let exists = true, newID;
+            while (exists) {
+                newID = Math.random().toString().slice(2, 6);
+                const r = await fetch(`${SHEET_BASE}/search?user=${newID}`);
+                const data = await r.json();
+                exists = data.length > 0;
+            }
+            await fetch(SHEET_BASE, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ data: [{ user: newID, quote: 0, speed: 0 }] })
+            });
+            userID = newID;
+            document.getElementById("createNewID").style.display = "none";
+        });
+        
+        document.getElementById("userIDInput").addEventListener("keydown", async (e) => {
+            if (e.key === "Enter") {
+                const input = e.target.value.trim();
+                if (input.length === 0) return;
+                
+                // Überprüfe die ID mit der API, aber nur wenn sie noch nicht gespeichert ist
+                const response = await fetch(`${SHEET_BASE}/search?user=${input}`);
+                const data = await response.json();
+                if (data.length > 0) {
+                    userID = input;
+                    document.getElementById("userIDIcon").textContent = "🔒";
+                    document.getElementById("createNewID").style.display = "none";
+                    localStorage.setItem("storedUserID", userID);
+                } else {
+                    document.getElementById("userIDIcon").textContent = "❌";
+                }
+            }
+        });
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('customModeModal');
+            if (!modal) return;
+            
+            let selectedCustomClef = null;
+            let selectedCustomRange = null;
+            
+            // Eventlistener für Schlüsselauswahl
+            document.querySelectorAll('.custom-mode-clef-option').forEach(el => {
+                el.addEventListener('click', () => {
+                    document.querySelectorAll('.custom-mode-clef-option').forEach(opt => opt.classList.remove('active'));
+                    el.classList.add('active');
+                    selectedCustomClef = el.getAttribute('data-clef');
+                    populateCustomNotes();
+                });
+            });
+            
+            // Eventlistener für Lagen-Auswahl
+            document.querySelectorAll('.custom-mode-range-option').forEach(el => {
+                el.addEventListener('click', () => {
+                    document.querySelectorAll('.custom-mode-range-option').forEach(opt => opt.classList.remove('active'));
+                    el.classList.add('active');
+                    selectedCustomRange = el.getAttribute('data-range');
+                    populateCustomNotes();
+                });
+            });
+            
+            // Definition der Notenzuordnungen für linke und rechte Hand
+            const customLeftNotesMapping = {
+                "C": ["C", "D", "E", "F", "G", "A"],
+                "D": ["D", "E", "F#", "G", "A", "B"],
+                "F": ["F", "G", "A", "Bb", "C", "D"],
+                "G": ["G", "A", "B", "C", "D", "E"],
+                "MC": ["F", "G", "A", "H", "C"]
+            };
+            const customRightNotesMapping = {
+                "C": ["C", "D", "E", "F", "G", "A"],
+                "D": ["D", "E", "F#", "G", "A", "B"],
+                "F": ["F", "G", "A", "Bb", "C", "D"],
+                "G": ["G", "A", "B", "C", "D", "E"],
+                "MC": ["F", "G", "A", "H", "C"]
+            };
+            
+            // Funktion, die basierend auf der gewählten Lage die Noten für linke und rechte Hand befüllt
+            function populateCustomNotes() {
+                if (!selectedCustomRange) return;
+                const leftContainer = document.getElementById('left-hand-notes');
+                const rightContainer = document.getElementById('right-hand-notes');
+                leftContainer.innerHTML = '';
+                rightContainer.innerHTML = '';
+                
+                customLeftNotesMapping[selectedCustomRange].forEach(note => {
+                    const noteEl = document.createElement('div');
+                    noteEl.className = 'custom-mode-note-option';
+                    noteEl.textContent = note;
+                    noteEl.setAttribute('data-note', note);
+                    noteEl.addEventListener('click', () => {
+                        noteEl.classList.toggle('active');
+                    });
+                    leftContainer.appendChild(noteEl);
+                });
+                
+                customRightNotesMapping[selectedCustomRange].forEach(note => {
+                    const noteEl = document.createElement('div');
+                    noteEl.className = 'custom-mode-note-option';
+                    noteEl.textContent = note;
+                    noteEl.setAttribute('data-note', note);
+                    noteEl.addEventListener('click', () => {
+                        noteEl.classList.toggle('active');
+                    });
+                    rightContainer.appendChild(noteEl);
+                });
+            }
+            
+            // Eventlistener für den Speichern-Button
+            const saveButton = document.querySelector('.custom-mode-save button');
+            if (saveButton) {
+                saveButton.addEventListener('click', () => {
+                    const activeClef = document.querySelector('.custom-mode-clef-option.active');
+                    const activeRange = document.querySelector('.custom-mode-range-option.active');
+                    const activeLeftNotes = document.querySelectorAll('#left-hand-notes .custom-mode-note-option.active');
+                    const activeRightNotes = document.querySelectorAll('#right-hand-notes .custom-mode-note-option.active');
+                    
+                    const settings = {
+                        clef: activeClef ? activeClef.getAttribute('data-clef') : null,
+                        range: activeRange ? activeRange.getAttribute('data-range') : null,
+                        leftNotes: Array.from(activeLeftNotes).map(el => el.getAttribute('data-note')),
+                        rightNotes: Array.from(activeRightNotes).map(el => el.getAttribute('data-note'))
+                    };
+                    
+                    console.log("Benutzerdefinierte Einstellungen:", settings);
+                    window.customModeSettings = settings;
+                    // Schließe das Modal
+                    modal.classList.add('hidden');
+                });
+            }
+        });
+    </script>
+    
+    <div id="customModeModal" class="hidden">
+        <h2>Benutzerdefiniert</h2>
+        <div class="custom-mode-row">
+            <!-- Notenschlüssel & Lagen-Auswahl -->
+            <div class="custom-mode-clef-container">
+                <div class="custom-mode-clef-option" data-clef="treble">🎼</div>
+                <div class="custom-mode-clef-option" data-clef="bass">𝄢</div>
+            </div>
+            <div class="custom-mode-range-container">
+                <div class="custom-mode-range-option" data-range="C">C</div>
+                <div class="custom-mode-range-option" data-range="D">D</div>
+                <div class="custom-mode-range-option" data-range="F">F</div>
+                <div class="custom-mode-range-option" data-range="G">G</div>
+                <div class="custom-mode-range-option" data-range="MC">MC</div>
+            </div>
+        </div>
+        <div class="custom-mode-row">
+            <div class="custom-mode-hand-label">Linke Hand</div>
+            <div class="custom-mode-note-set" id="left-hand-notes">
+                <!-- Noten werden dynamisch basierend auf der gewählten Lage eingefügt -->\n    </div>
+        </div>
+        <div class="custom-mode-row">
+            <div class="custom-mode-hand-label">Rechte Hand</div>
+            <div class="custom-mode-note-set" id="right-hand-notes">
+                <!-- Noten werden dynamisch basierend auf der gewählten Lage eingefügt -->\n    </div>
+        </div>
+        <div class="custom-mode-save">
+            <button id="custom-mode-save-button">Speichern</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('customModeModal');
+            if (!modal) {
+                console.error('Modal nicht gefunden.');
+                return;
+            }
 
-        if (justLost.length > 0) {
-          const lostTitle = document.createElement("h2");
-          lostTitle.textContent = isGerman ? "Verloren" : "Lost";
-          trophyContainer.appendChild(lostTitle);
+            let selectedCustomClef = null;
+            let selectedCustomRange = null;
 
-          justLost.forEach(index => {
-            const emoji = getAllTrophies()[index];
-            const description = getTrophyDescription(index);
-            const block = document.createElement("div");
-            block.style.margin = "10px";
-            block.style.opacity = "0.5";
-            block.style.fontSize = "1.5em";
-            block.innerHTML = `<div>${emoji}</div><div style="font-size:0.8em">${description}</div>`;
-            trophyContainer.appendChild(block);
-          });
-        }
+            // Eventlistener für Schlüsselauswahl
+            document.querySelectorAll('.custom-mode-clef-option').forEach(el => {
+                el.addEventListener('click', () => {
+                    document.querySelectorAll('.custom-mode-clef-option').forEach(opt => opt.classList.remove('active'));
+                    el.classList.add('active');
+                    selectedCustomClef = el.getAttribute('data-clef');
+                    populateCustomNotes();
+                });
+            });
 
-        overlay.appendChild(trophyContainer);
+            // Eventlistener für Lagen-Auswahl
+            document.querySelectorAll('.custom-mode-range-option').forEach(el => {
+                el.addEventListener('click', () => {
+                    document.querySelectorAll('.custom-mode-range-option').forEach(opt => opt.classList.remove('active'));
+                    el.classList.add('active');
+                    selectedCustomRange = el.getAttribute('data-range');
+                    populateCustomNotes();
+                });
+            });
 
-        // Fade-in
-        setTimeout(() => {
-          trophyContainer.style.opacity = "1";
-        }, 100);
+            // Notenzuordnungen für linke und rechte Hand
+            const customLeftNotesMapping = {
+                "C": ["C", "D", "E", "F", "G", "A"],
+                "D": ["D", "E", "F#", "G", "A", "B"],
+                "F": ["F", "G", "A", "Bb", "C", "D"],
+                "G": ["G", "A", "B", "C", "D", "E"],
+                "MC": ["F", "G", "A", "H", "C"]
+            };
+            const customRightNotesMapping = {
+                "C": ["C", "D", "E", "F", "G", "A"],
+                "D": ["D", "E", "F#", "G", "A", "B"],
+                "F": ["F", "G", "A", "Bb", "C", "D"],
+                "G": ["G", "A", "B", "C", "D", "E"],
+                "MC": ["F", "G", "A", "H", "C"]
+            };
 
-        // Nach 3 Sekunden weiter zur Session-Pause
-        setTimeout(() => {
-          overlay.style.opacity = "0";
-          setTimeout(() => {
-            overlay.style.display = "none";
-            overlay.style.opacity = "1";
-            callback();
-          }, 1000);
-        }, 3000);
-      }
-      
-</script>
-  <script>
-  document.getElementById("createNewID").addEventListener("click", async () => {
-    let exists = true, newID;
-    while (exists) {
-      newID = Math.random().toString().slice(2, 6);
-      const r = await fetch(`${SHEET_BASE}/search?user=${newID}`);
-      const data = await r.json();
-      exists = data.length > 0;
-    }
-    await fetch(SHEET_BASE, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: [{ user: newID, quote: 0, speed: 0 }] })
-    });
-    userID = newID;
-    document.getElementById("createNewID").style.display = "none";
-  });
-  
-  document.getElementById("userIDInput").addEventListener("keydown", async (e) => {
-    if (e.key === "Enter") {
-      const input = e.target.value.trim();
-      if (input.length === 0) return;
-      
-      // Überprüfe die ID mit der API, aber nur wenn sie noch nicht gespeichert ist
-      const response = await fetch(`${SHEET_BASE}/search?user=${input}`);
-      const data = await response.json();
-      if (data.length > 0) {
-        userID = input;
-        document.getElementById("userIDIcon").textContent = "🔒";
-        document.getElementById("createNewID").style.display = "none";
-        localStorage.setItem("storedUserID", userID);
-      } else {
-        document.getElementById("userIDIcon").textContent = "❌";
-      }
-    }
-  });
-  </script>
+            // Funktion, um basierend auf der ausgewählten Lage die Noten für linke und rechte Hand zu befüllen
+            function populateCustomNotes() {
+                if (!selectedCustomRange) return;
+                const leftContainer = document.getElementById('left-hand-notes');
+                const rightContainer = document.getElementById('right-hand-notes');
+                if (!leftContainer || !rightContainer) {
+                    console.error('Noten-Container nicht gefunden.');
+                    return;
+                }
+                leftContainer.innerHTML = '';
+                rightContainer.innerHTML = '';
+
+                customLeftNotesMapping[selectedCustomRange].forEach(note => {
+                    const noteEl = document.createElement('div');
+                    noteEl.className = 'custom-mode-note-option';
+                    noteEl.textContent = note;
+                    noteEl.setAttribute('data-note', note);
+                    noteEl.addEventListener('click', () => {
+                        noteEl.classList.toggle('active');
+                    });
+                    leftContainer.appendChild(noteEl);
+                });
+
+                customRightNotesMapping[selectedCustomRange].forEach(note => {
+                    const noteEl = document.createElement('div');
+                    noteEl.className = 'custom-mode-note-option';
+                    noteEl.textContent = note;
+                    noteEl.setAttribute('data-note', note);
+                    noteEl.addEventListener('click', () => {
+                        noteEl.classList.toggle('active');
+                    });
+                    rightContainer.appendChild(noteEl);
+                });
+            }
+
+            // Eventlistener für den Speichern-Button
+            const saveButton = document.getElementById('custom-mode-save-button');
+            if (saveButton) {
+                saveButton.addEventListener('click', () => {
+                    const activeClef = document.querySelector('.custom-mode-clef-option.active');
+                    const activeRange = document.querySelector('.custom-mode-range-option.active');
+                    const activeLeftNotes = document.querySelectorAll('#left-hand-notes .custom-mode-note-option.active');
+                    const activeRightNotes = document.querySelectorAll('#right-hand-notes .custom-mode-note-option.active');
+
+                    const settings = {
+                        clef: activeClef ? activeClef.getAttribute('data-clef') : null,
+                        range: activeRange ? activeRange.getAttribute('data-range') : null,
+                        leftNotes: Array.from(activeLeftNotes).map(el => el.getAttribute('data-note')),
+                        rightNotes: Array.from(activeRightNotes).map(el => el.getAttribute('data-note'))
+                    };
+
+                    console.log("Benutzerdefinierte Einstellungen:", settings);
+                    window.customModeSettings = settings;
+                    modal.classList.add('hidden');
+                    
+                    // Aktualisiere den Lagen-Button (clefTitle)
+                    const clefTitle = document.getElementById("clefTitle");
+                    if (clefTitle && settings.range) {
+                        clefTitle.textContent = settings.range + "-Lage";
+                    }
+                    
+                    generateSeries();
+                });
+            } else {
+                console.warn('Speichern-Button nicht gefunden.');
+            }
+        });
+    </script>
+    
 </body>
 </html>
