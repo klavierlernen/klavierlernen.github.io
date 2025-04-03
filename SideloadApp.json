@@ -1,18 +1,17 @@
 {
-  "name": "Piano App Quelle",
+  "name": "Piano App Source",
+  "identifier": "com.jp0024.pianosource",
   "apps": [
     {
       "name": "MIDIWrapper",
-      "bundleId": "com.jp0024.midiwrapper",
+      "bundleIdentifier": "com.jp0024.midiwrapper",
+      "subtitle": "MIDI Wrapper for iOS",
+      "developerName": "Jan-Philipp Jakob",
       "version": "1.0.0",
-      "iconUrl": "https://raw.githubusercontent.com/jp0024/piano.github.io/main/icon.png",
-      "ipaUrl": "https://raw.githubusercontent.com/jp0024/piano.github.io/main/MIDIWrapper.ipa",
-      "description": "Diese App dient als MIDI Wrapper für iOS.",
-      "author": "Jan-Philipp Jakob",
-      "screenshots": [
-        "https://raw.githubusercontent.com/jp0024/piano.github.io/main/screenshot1.png",
-        "https://raw.githubusercontent.com/jp0024/piano.github.io/main/screenshot2.png"
-      ]
+      "versionDate": "2025-04-01",
+      "downloadURL": "https://raw.githubusercontent.com/jp0024/piano.github.io/main/MIDIWrapper.ipa",
+      "localizedDescription": "Diese App dient als MIDI Wrapper für iOS.",
+      "iconURL": "https://raw.githubusercontent.com/jp0024/piano.github.io/main/icon.png"
     }
   ]
 }
