@@ -1271,6 +1271,16 @@ function generateBarChartHTML() {
 let userID = null;
 const SHEET_BASE = "https://sheetdb.io/api/v1/yi2z9wznv5tpc"; // <-- HIER SheetDB-Link einsetzen
 
+function calculateAdaptiveBreakTime(responseTimes, hitRate) {
+  // Berechne die durchschnittliche Antwortzeit in Millisekunden
+  let avgResponse = responseTimes.length > 0
+    ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+    : 1000;
+  // Verwende hitRate (Erfolgsquote), um die Pausendauer anzupassen:
+  // Eine niedrigere Erfolgsquote (mehr Fehler) führt zu längeren Pausen.
+  return avgResponse * (1 + (1 - hitRate));
+}
+      
     const startPauseCountdown = () => {
   logSessionStart(); // Neuen Session-Zeitstempel speichern
   const quote = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
