@@ -821,9 +821,12 @@
       pauseButton.textContent = "🛟";
       settingsPanel.appendChild(pauseButton);
 
-      // Beim Klick wird die GitHub-Seite in einem Tab geöffnet
       pauseButton.addEventListener("click", () => {
-        window.open("https://github.com/jp0024/piano.github.io/wiki", "_blank");
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.openLink) {
+          window.webkit.messageHandlers.openLink.postMessage("https://github.com/jp0024/piano.github.io/wiki");
+        } else {
+          window.open("https://github.com/jp0024/piano.github.io/wiki", "_blank");
+        }
       });
     });
       
