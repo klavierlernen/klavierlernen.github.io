@@ -2233,7 +2233,7 @@ const drawSeries = () => {
   // Initialisiere MIDI-Zugriff (Web MIDI API)
   function initMIDIAccess() {
     if (!navigator.requestMIDIAccess) {
-      console.warn("❌ Web MIDI API wird nicht unterstützt.");
+      console.warn("Web MIDI API wird nicht unterstützt.");
       showNoMidiScreen("Web MIDI API wird nicht unterstützt.");
       return;
     }
@@ -2241,26 +2241,33 @@ const drawSeries = () => {
     navigator.requestMIDIAccess({ sysex: false }).then((midiAccess) => {
       console.log("✅ MIDI Access erfolgreich.");
       
-      // Prüfe, ob bereits Eingabegeräte vorhanden sind
-      if (midiAccess.inputs.size > 0) {
-        hideNoMidiScreen();
-        proceedToMainScreen();
-      } else {
-        showNoMidiScreen("⚠️ Wir konnten keine stabile Verbindung zu deinem Gerät herstellen. Bitte stelle sicher, dass dein Gerät per Kabel verbunden ist. Sobald eine Verbindung besteht, aktualisiert sich diese Anzeige automatisch");
-      }
+      // Variable, um festzuhalten, ob ein Kabel verbunden ist
+      let cableConnected = false;
       
+      // Prüfe alle MIDI Eingänge: Nur wenn connection "open" ist, gilt ein Kabel als verbunden
       midiAccess.inputs.forEach((input) => {
-        console.log("🎹 Eingabegerät erkannt:", input.name);
+        if (input.connection === "open") {
+          cableConnected = true;
+        }
+        // Setze den onmidimessage-Handler
         input.onmidimessage = ({ data }) => {
           const [status, data1, data2] = data;
           handleMIDIMessage(status, data1, data2);
         };
       });
       
+      if (cableConnected) {
+        hideNoMidiScreen();
+        proceedToMainScreen();
+      } else {
+        showNoMidiScreen("⚠️ Es wurde kein Kabel angeschlossen. Bitte stelle sicher, dass dein Gerät per Kabel verbunden ist. Sobald eine Verbindung besteht, aktualisiert sich diese Anzeige automatisch.");
+      }
+      
+      // Reagiere auf Verbindungsänderungen
       midiAccess.onstatechange = (event) => {
         const port = event.port;
         if (port.type === "input") {
-          if (port.state === "connected") {
+          if (port.state === "connected" && port.connection === "open") {
             console.log("🔌 Neues Gerät verbunden:", port.name);
             hideNoMidiScreen();
             port.onmidimessage = ({ data }) => {
@@ -2270,7 +2277,7 @@ const drawSeries = () => {
             proceedToMainScreen();
           } else if (port.state === "disconnected") {
             console.log("❌ MIDI Gerät getrennt:", port.name);
-            showNoMidiScreen("Keine MIDI Verbindung erkannt");
+            showNoMidiScreen("⚠️ Es wurde kein Kabel angeschlossen. Bitte stelle sicher, dass dein Gerät per Kabel verbunden ist.");
           }
         }
       };
