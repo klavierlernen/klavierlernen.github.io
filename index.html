@@ -591,6 +591,24 @@
          display: none !important;
      }
       
+      /* Overlay für fehlende MIDI-Verbindung */
+      #noMidiOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 1s ease-in-out;
+        z-index: 2100;
+        font-size: 2em;
+        color: black;
+      }
+      
   </style>
   <script>
       let elapsedTimer = 0;
@@ -1602,7 +1620,7 @@ const SHEET_BASE = "https://sheetdb.io/api/v1/yi2z9wznv5tpc"; // <-- HIER SheetD
         greeting = "Guten Abend!";
       }
       document.getElementById("welcomeMessage").innerHTML = greeting + "<br>Schön, dass du da bist!";
-      setTimeout(proceedToMainScreen, 5000);
+      // setTimeout(proceedToMainScreen, 5000);
       
       const settingsPanel = document.getElementById("settingsPanel");
       // Handtoggle
@@ -2185,15 +2203,52 @@ const drawSeries = () => {
   
   </script>
 <script>
+    
+    function showNoMidiScreen(message) {
+      message = message || "Keine MIDI Verbindung erkannt";
+      let overlay = document.getElementById("noMidiOverlay");
+      if (!overlay) {
+        overlay = document.createElement("div");
+        overlay.id = "noMidiOverlay";
+        overlay.textContent = message;
+        document.body.appendChild(overlay);
+        // Fade-In aktivieren
+        setTimeout(() => { overlay.style.opacity = "1"; }, 0);
+      } else {
+        overlay.textContent = message;
+        overlay.style.opacity = "1";
+      }
+    }
+
+    function hideNoMidiScreen() {
+      const overlay = document.getElementById("noMidiOverlay");
+      if (overlay) {
+        overlay.style.opacity = "0";
+        setTimeout(() => {
+          if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        }, 1000);
+      }
+    }
+    
   // Initialisiere MIDI-Zugriff (Web MIDI API)
   function initMIDIAccess() {
     if (!navigator.requestMIDIAccess) {
-      console.warn("Web MIDI API wird nicht unterstützt.");
+      console.warn("❌ Web MIDI API wird nicht unterstützt.");
+      showNoMidiScreen("Web MIDI API wird nicht unterstützt.");
       return;
     }
-
+    
     navigator.requestMIDIAccess({ sysex: false }).then((midiAccess) => {
       console.log("✅ MIDI Access erfolgreich.");
+      
+      // Prüfe, ob bereits Eingabegeräte vorhanden sind
+      if (midiAccess.inputs.size > 0) {
+        hideNoMidiScreen();
+        proceedToMainScreen();
+      } else {
+        showNoMidiScreen("⚠️ Wir konnten keine stabile Verbindung zu deinem Gerät herstellen. Bitte stelle sicher, dass dein Gerät per Kabel verbunden ist. Sobald eine Verbindung besteht, aktualisiert sich diese Anzeige automatisch");
+      }
+      
       midiAccess.inputs.forEach((input) => {
         console.log("🎹 Eingabegerät erkannt:", input.name);
         input.onmidimessage = ({ data }) => {
@@ -2201,19 +2256,27 @@ const drawSeries = () => {
           handleMIDIMessage(status, data1, data2);
         };
       });
-
+      
       midiAccess.onstatechange = (event) => {
         const port = event.port;
-        if (port.type === "input" && port.state === "connected") {
-          console.log("🔌 Neues Gerät verbunden:", port.name);
-          port.onmidimessage = ({ data }) => {
-            const [status, data1, data2] = data;
-            handleMIDIMessage(status, data1, data2);
-          };
+        if (port.type === "input") {
+          if (port.state === "connected") {
+            console.log("🔌 Neues Gerät verbunden:", port.name);
+            hideNoMidiScreen();
+            port.onmidimessage = ({ data }) => {
+              const [status, data1, data2] = data;
+              handleMIDIMessage(status, data1, data2);
+            };
+            proceedToMainScreen();
+          } else if (port.state === "disconnected") {
+            console.log("❌ MIDI Gerät getrennt:", port.name);
+            showNoMidiScreen("Keine MIDI Verbindung erkannt");
+          }
         }
       };
     }).catch((err) => {
       console.error("❌ MIDI Zugriff fehlgeschlagen:", err);
+      showNoMidiScreen("MIDI Zugriff fehlgeschlagen");
     });
   }
 
