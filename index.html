@@ -248,7 +248,7 @@
           bottom: 30px;
           font-size: 1.5em;
           z-index: 100;
-          display: none; /* Versteckt, bis der Intro-Modus beendet ist */
+          display: flex; /* Versteckt, bis der Intro-Modus beendet ist */
           align-items: center;
           justify-content: center;
           cursor: pointer;
@@ -593,6 +593,14 @@
       
   </style>
   <script>
+      
+      document.addEventListener("DOMContentLoaded", () => {
+        const timerElem = document.getElementById("timerContainer");
+        // Beispiel: Direkt eine Info setzen
+        timerElem.textContent = `${sessionCounter} Noten, vsl. 00:00 min verbleibend`;
+        // Oder den Timer sofort updaten, falls du eine Funktion hast:
+        updateTimer();
+      });
       let elapsedTimer = 0;
       let cachedUserRank = null;
       
@@ -888,37 +896,29 @@
       heartsElem.textContent = unlimitedLives ? "" : "❤️".repeat(hearts);
     };
       const updateTimer = () => {
-        document.getElementById("timerContainer").textContent = sessionCounter;
+        const timerElem = document.getElementById("timerContainer");
+        
+        // Berechne den durchschnittlichen Bearbeitungszeit (in ms), Standard: 1000 ms falls noch keine Werte vorhanden
+        let avgResponse = responseTimes.length > 0
+          ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+          : 1000;
+        
+        // Berechne die Fehlerquote: Anteil der Fehlversuche
+        let errorRate = totalAttempts > 0
+          ? (totalAttempts - correctAnswers) / totalAttempts
+          : 0;
+        
+        // Voraussichtliche Zeit (in Sekunden) = Anzahl verbleibender Noten * (durchschnittliche Bearbeitungszeit in s) * (1 + Fehlerquote)
+        let predictedTimeSec = sessionCounter * (avgResponse / 1000) * (1 + errorRate);
+        
+        // Formatiere in mm:ss
+        let minutes = Math.floor(predictedTimeSec / 60);
+        let seconds = Math.floor(predictedTimeSec % 60);
+        let timeStr = (minutes < 10 ? "0" + minutes : minutes) + ":" + (seconds < 10 ? "0" + seconds : seconds);
+        
+        timerElem.textContent = `${sessionCounter} Noten, vsl. ${timeStr} min verbleibend`;
       };
-      setInterval(updateTimer, 5000);
-    function calculateAdaptiveBreakTime(responseTimes, hitRate) {
-      if (responseTimes.length === 0) return 5;
-      let sum = responseTimes.reduce((acc, time) => acc + time, 0);
-      let avgResponseTime = sum / responseTimes.length;
-      const baseline = 500;
-      let slowdownFactor = avgResponseTime / baseline;
-      let fatigueIndex = slowdownFactor * (1 - hitRate);
-      const basePause = 10;
-      let breakTime = basePause * fatigueIndex;
-      return Math.max(5, Math.min(breakTime, 300));
-    }
-    let pauseRemaining = 0;
-    let pauseInterval = null;
-    let confettiShown = false;
-    let pauseDuration = 0;
-    function updatePauseProgress() {
-      const progressBar = document.getElementById("pauseProgress");
-      const timeDisplay = document.getElementById("pauseTime");
-      if (progressBar && pauseDuration > 0) {
-        const percent = ((pauseDuration - pauseRemaining) / pauseDuration) * 100;
-        progressBar.style.width = percent + "%";
-        if (timeDisplay) {
-          const m = Math.floor(pauseRemaining / 60);
-          const s = pauseRemaining % 60;
-          timeDisplay.textContent = (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
-        }
-      }
-    }
+      
       function updatePauseTiles() {
         const container = document.getElementById("pauseTiles");
         if (!container) return;
@@ -1723,10 +1723,11 @@ document.getElementById("timerContainer").addEventListener("click", () => {
     input.type = "number";
     input.min = "1";
     input.placeholder = sessionCounter;
+    input.value = sessionCounter;
     input.style.backgroundColor = "white";
     input.style.border = "1px solid #000";
-    input.style.width = "60px";
-    input.style.fontSize = "1.5em";
+      input.style.width = "150px";
+      input.style.fontSize = "2em";
     input.style.textAlign = "center";
     input.style.borderRadius = "5px";
     input.style.outline = "none";
