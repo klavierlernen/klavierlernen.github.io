@@ -2030,6 +2030,29 @@ const drawSeries = () => {
   new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
   voice.draw(context, stave);
   
+  // Dreieck-Indikator für die aktuell abgefragte Note
+  if (seriesCounter < staveNotes.length) {
+    const activeNote = staveNotes[seriesCounter];
+    if (activeNote && typeof activeNote.getBoundingBox === 'function') {
+      const bbox = activeNote.getBoundingBox();
+      if (bbox) {
+        // Berechne die Mitte der Note
+        const noteX = bbox.getX() + bbox.getW() / 2;
+        const triangleHeight = 5;
+        // Positioniere das Dreieck oberhalb des Notensystems mit ca. 20px Abstand
+        const noteY = stave.getY() - 1 - triangleHeight;
+        const triangleWidth = 10;
+        const p1 = `${noteX - triangleWidth / 2},${noteY}`;
+        const p2 = `${noteX + triangleWidth / 2},${noteY}`;
+        const p3 = `${noteX},${noteY + triangleHeight}`;
+        const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        triangle.setAttribute('points', `${p1} ${p2} ${p3}`);
+        triangle.setAttribute('fill', 'black');
+        svg.appendChild(triangle);
+      }
+    }
+  }
+  
   // Falls Achtelnoten gewählt wurden, erzeugen wir Beams
   if (noteDuration === "8") {
     const beams = Vex.Flow.Beam.generateBeams(staveNotes);
