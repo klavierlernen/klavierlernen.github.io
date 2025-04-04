@@ -2123,11 +2123,6 @@ const drawSeries = () => {
           if (noteDisplay) {
             noteDisplay.innerHTML = '<span style="color:' + displayColor + ';">' + playedNoteDisplay + '</span>';
           }
-          if (sessionCounter === 0 && !sessionPaused) {
-            updateTimer();
-            startPauseCountdown();
-            return;
-          }
           if (sessionCounter <= 0 && !sessionPaused) {
             sessionCounter = 0;
             updateTimer();
