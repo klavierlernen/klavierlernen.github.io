@@ -1829,9 +1829,41 @@ document.getElementById("timerContainer").addEventListener("click", () => {
         }
       });
     });
-                                            
+                  
+let melodyContext = {
+  lastNote: null,
+  direction: 1, // 1 = aufwärts, -1 = abwärts
+  scale: ["c", "d", "e", "f", "g", "a", "b"], // C-Dur
+};
 // Füge am Anfang des Skripts (z. B. direkt vor der Funktion generateSeries) hinzu:
 let notesInCurrentPhase = 0;
+function generateNextMelodicNote(notesPool) {
+  const scale = melodyContext.scale;
+  const lastNote = melodyContext.lastNote;
+  const direction = melodyContext.direction;
+
+  if (!lastNote) {
+    const randIndex = Math.floor(Math.random() * notesPool.length);
+    const chosen = notesPool[randIndex];
+    melodyContext.lastNote = chosen;
+    return chosen;
+  }
+
+  const idx = scale.indexOf(lastNote);
+  let nextIdx = idx + direction;
+
+  if (nextIdx >= scale.length || nextIdx < 0) {
+    melodyContext.direction *= -1;
+    nextIdx = idx + melodyContext.direction;
+    if (nextIdx < 0 || nextIdx >= scale.length) {
+      nextIdx = idx;
+    }
+  }
+
+  const nextNote = scale[nextIdx];
+  melodyContext.lastNote = nextNote;
+  return nextNote;
+}
                                             
 const generateSeries = () => {
   seriesCounter = 0;
@@ -1930,8 +1962,7 @@ const generateSeries = () => {
       } else {
         defaultNotes = rangeNotes[currentRange];
       }
-      const randomIndex = Math.floor(Math.random() * defaultNotes.length);
-      const chosenNote = defaultNotes[randomIndex];
+      const chosenNote = generateNextMelodicNote(defaultNotes);
       let noteOctave;
       if (currentRange === "MC") {
         noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
