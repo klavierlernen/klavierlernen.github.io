@@ -1818,21 +1818,19 @@ const generateSeries = () => {
 const drawSeries = () => {
   const notationDiv = document.getElementById('notation');
   notationDiv.style.display = 'block';
-  // Positioniere den Notationsbereich zentriert auf dem Bildschirm:
+  // Positioniere den Notationsbereich zentriert horizontal, aber mit einem höheren Abstand vom oberen Bildschirmrand
   notationDiv.style.position = 'fixed';
   notationDiv.style.left = '50%';
-  notationDiv.style.top = '50%';
+  // Statt der bisherigen "50%" wird jetzt "70%" verwendet
+  notationDiv.style.top = '70%';
   notationDiv.style.transform = 'translate(-50%, -50%)';
   notationDiv.innerHTML = '';
 
-  // Definiere den symmetrischen Rand (z. B. 20px)
-  const margin = 40;
-  const availableWidth = window.innerWidth - (2 * margin);
-  // Verwende die bereits in currentSeriesSingle gespeicherten Noten
+  const margin = 90; // (Annahme: 10px Abstand zu beiden Seiten plus weitere Berechnungen, hier ggf. anpassen)
+  const availableWidth = window.innerWidth - (1 * margin);
   const noteCount = currentSeriesSingle.length;
   const notationHeight = 150;
 
-  // Erzeuge den VexFlow-Renderer und passe ihn an
   const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
   renderer.resize(availableWidth, notationHeight);
   const svg = notationDiv.querySelector('svg');
@@ -1842,7 +1840,6 @@ const drawSeries = () => {
   }
   const context = renderer.getContext();
 
-  // Erzeuge den Stave mit symmetrischen Rändern:
   const stave = new Vex.Flow.Stave(margin, 40, availableWidth - (2 * margin));
   if (currentSeriesSingle.length > 0) {
     stave.addClef(currentSeriesSingle[0].clef);
