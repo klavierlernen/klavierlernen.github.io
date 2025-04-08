@@ -2027,17 +2027,11 @@ const drawSeries = () => {
           correctAnswers++;
           correctNoteCount++;
           removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
-          sessionCounter--;
           addCircle("positive");
           if (noteDisplay) {
             noteDisplay.innerHTML = '<span style="color:' + displayColor + ';">' + playedNoteDisplay + '</span>';
           }
-          if (sessionCounter <= 0 && !sessionPaused) {
-            sessionCounter = 0;
-            updateTimer();
-            startPauseCountdown();
-            return;
-          }
+          
         } else {
           // Falsche Note: rot markieren
           currentSeriesSingle[seriesCounter].color = "red";
@@ -2055,6 +2049,11 @@ const drawSeries = () => {
           }
         }
         
+        if (sessionCounter <= 0) {
+          sessionCounter = 0;
+          updateTimer();
+          return;
+        }
         seriesCounter++;
         if (seriesCounter >= seriesLength) {
           generateSeries();
@@ -2631,7 +2630,11 @@ const drawSeries = () => {
                 console.warn('Speichern-Button nicht gefunden.');
             }
         });
+        
     </script>
     
 </body>
 </html>
+
+        
+        
