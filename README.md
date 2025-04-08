@@ -29,3 +29,8 @@ This app is an interactive training tool for learning to read sheet music quickl
 ### 🤖 About Development
 
 This app was developed with the assistance of **ChatGPT** (GPT o3 mini high) and was iteratively expanded and customized by the developer.
+
+### Icon Credit
+
+The icon used in this app was created using Recarft.ai. All copyrights and intellectual property rights for this icon remain with Recarft.ai.  
+It is used under license and does not constitute part of my own proprietary materials.
