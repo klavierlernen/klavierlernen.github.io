@@ -1801,7 +1801,7 @@ const generateSeries = () => {
   }
 
   // Berechne anhand der Bildschirmbreite, wie viele Noten Platz haben:
-  const margin = 20;
+  const margin = 40;
   const availableWidth = window.innerWidth - (2 * margin);
   const approxNoteWidth = 40; // Mindestbreite pro Note (anpassen, falls nötig)
   const noteCount = Math.max(1, Math.floor(availableWidth / approxNoteWidth));
@@ -1818,10 +1818,15 @@ const generateSeries = () => {
 const drawSeries = () => {
   const notationDiv = document.getElementById('notation');
   notationDiv.style.display = 'block';
+  // Positioniere den Notationsbereich zentriert auf dem Bildschirm:
+  notationDiv.style.position = 'fixed';
+  notationDiv.style.left = '50%';
+  notationDiv.style.top = '50%';
+  notationDiv.style.transform = 'translate(-50%, -50%)';
   notationDiv.innerHTML = '';
 
   // Definiere den symmetrischen Rand (z. B. 20px)
-  const margin = 20;
+  const margin = 40;
   const availableWidth = window.innerWidth - (2 * margin);
   // Verwende die bereits in currentSeriesSingle gespeicherten Noten
   const noteCount = currentSeriesSingle.length;
@@ -1844,7 +1849,7 @@ const drawSeries = () => {
   } else {
     stave.addClef('treble');
   }
-  // Optional: Füge Key Signature hinzu, falls relevant
+  // (Optional: Key Signature hinzufügen)
   if (currentRange === 'D') {
     stave.addKeySignature('G');
   } else if (currentRange === 'F') {
