@@ -222,21 +222,6 @@
     body.dark-mode #gameOverOverlay {
       border: 3px solid #fff;
     }
-    /* Scoreboard Overlay */
-    #scoreboardOverlay {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 20;
-      background: rgba(0,0,0,0.8);
-      color: #fff;
-      padding: 30px;
-      border-radius: 15px;
-      font-size: 2em;
-      white-space: pre-line;
-      display: block;
-    }
     .hidden {
       display: none !important;
     }
@@ -593,6 +578,7 @@
       
   </style>
   <script>
+      
       
       document.addEventListener("DOMContentLoaded", () => {
         const timerElem = document.getElementById("timerContainer");
@@ -1020,36 +1006,7 @@
         ctx.stroke();
       }
       
-      function generateLearningQualityGraphTile() {
-        const container = document.createElement("div");
-        container.className = "tile span-2";
-
-        const title = document.createElement("div");
-        title.className = "tileTitle";
-        title.textContent = "🏅 Platzierung";
-        container.appendChild(title);
-
-        const value = document.createElement("div");
-        value.className = "tileValue";
-        value.textContent = cachedUserRank || "Wird geladen...";
-        container.appendChild(value);
-
-        if (userID && !window.cachedScoreboardData) {
-          fetch(SHEET_BASE)
-            .then((res) => res.json())
-            .then((data) => {
-              window.cachedScoreboardData = data;
-              updateUserPlacement(value, data);
-            })
-            .catch(() => {
-              value.textContent = "Fehler beim Laden";
-            });
-        } else if (window.cachedScoreboardData && cachedUserRank === null) {
-          updateUserPlacement(value, window.cachedScoreboardData);
-        }
-
-        return container.outerHTML;
-      }
+      
 
       function generateTrophyTile() {
         const tile = document.createElement("div");
@@ -1268,8 +1225,7 @@ function generateBarChartHTML() {
 }
       
       
-let userID = null;
-const SHEET_BASE = "https://sheetdb.io/api/v1/yi2z9wznv5tpc"; // <-- HIER SheetDB-Link einsetzen
+
 
 function calculateAdaptiveBreakTime(responseTimes, hitRate) {
   // Berechne die durchschnittliche Antwortzeit in Millisekunden
@@ -1291,39 +1247,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
     console.error("Keine userID gesetzt! Abbruch.");
     return;
   }
-  console.log("User ID für Suche:", userID);
-  fetch(`${SHEET_BASE}/search?user=${userID}`)
-        .then(res => res.json())
-        .then(([entry]) => {
-          if (entry) {
-            console.log("Antwort von SheetDB:", entry);
-            fetch(`${SHEET_BASE}/user/user=${userID}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ data: { quote, speed } })
-            })
-            .then(res => {
-              if (res.status === 404) {
-                console.warn("PATCH fehlgeschlagen, versuche POST...");
-                return fetch(`${SHEET_BASE}`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ data: { user: userID, quote, speed } })
-                });
-              }
-              return res;
-            })
-            .then(() => {
-              return fetch(SHEET_BASE)
-                .then(res => res.json())
-                .then(data => {
-                  window.cachedScoreboardData = data;
-                  cachedUserRank = null;
-                  updatePauseTiles();
-                });
-            });
-          }
-        });
+  
       stopMetronome();
       sessionPaused = true;
       sessionCount++;
@@ -1781,42 +1705,12 @@ document.getElementById("timerContainer").addEventListener("click", () => {
       
       autoSelectMode();
       generateSeries();
-      const storedID = localStorage.getItem("storedUserID");
-      if (storedID) {
-        userID = storedID;
-        document.getElementById("userIDInput").value = userID;
-        document.getElementById("userIDIcon").textContent = "🔒";
-        document.getElementById("createNewID").style.display = "none";
-      }
-      
-      document.getElementById("createNewID").addEventListener("click", async () => {
-        let exists = true, newID;
-        while (exists) {
-          newID = Math.floor(1000 + Math.random() * 9000).toString(); // vierstellige Zufallszahl
-          const r = await fetch(`${SHEET_BASE}/search?user=${newID}`);
-          const data = await r.json();
-          exists = data.length > 0;
-        }
-
-        await fetch(SHEET_BASE, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: [{ user: newID, quote: 0, speed: 0 }] })
-        });
-
-        userID = newID;
-        localStorage.setItem("storedUserID", newID);
-        document.getElementById("userIDInput").value = newID;
-        document.getElementById("userIDIcon").textContent = "🔒";
-        document.getElementById("createNewID").style.display = "none";
-        document.getElementById("userIDStatus").textContent = "Gespeichert.";
-      });
       
       updateHeartsDisplay();
       document.addEventListener("keydown", (event) => {
         if (event.code === "Space") { handleMIDIMessage(144, 60, 127); }
       });
-      document.getElementById("scoreboardOverlay").addEventListener("click", toggleScoreboard);
+  
       
       document.getElementById("userIDIcon").addEventListener("click", () => {
         if (document.getElementById("userIDIcon").textContent === "🔒") {
@@ -2331,13 +2225,7 @@ const drawSeries = () => {
     <!-- Hauptinhalt -->
     <div id="settingsPanel" style="position: fixed; top: 20%; right: 10px; background: rgba(255,255,255,0.8); padding: 10px; border: 1px solid #000; z-index: 200;"></div>
     <div id="mainContent">
-        <div id="userIDInputContainer" style="position: fixed; top: 30px; left: 10px; z-index: 200; display: flex; flex-direction: row; align-items: center; gap: 10px;">
-            <span id="userIDIcon" style="font-size: 1em;">🖍️</span>
-            <input id="userIDInput" type="text" placeholder="ID"
-                style="font-size: 1em; padding: 4px; width: 50px; height: 20px; text-align: center; border: none; background: none; outline: none; color: black;">
-                <span id="createNewID" style="cursor:pointer; color:blue; text-decoration:underline; font-size:0.9em;">Neue ID erstellen</span>
-                <div id="userIDStatus" style="margin-top:5px; font-size:0.9em; color:#000;"></div>
-        </div>
+       
         <div id="notation"></div>
         <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase;"></div>
         <div id="buttonContainer">
@@ -2490,41 +2378,7 @@ const drawSeries = () => {
         
     </script>
     <script>
-        document.getElementById("createNewID").addEventListener("click", async () => {
-            let exists = true, newID;
-            while (exists) {
-                newID = Math.random().toString().slice(2, 6);
-                const r = await fetch(`${SHEET_BASE}/search?user=${newID}`);
-                const data = await r.json();
-                exists = data.length > 0;
-            }
-            await fetch(SHEET_BASE, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ data: [{ user: newID, quote: 0, speed: 0 }] })
-            });
-            userID = newID;
-            document.getElementById("createNewID").style.display = "none";
-        });
-        
-        document.getElementById("userIDInput").addEventListener("keydown", async (e) => {
-            if (e.key === "Enter") {
-                const input = e.target.value.trim();
-                if (input.length === 0) return;
-                
-                // Überprüfe die ID mit der API, aber nur wenn sie noch nicht gespeichert ist
-                const response = await fetch(`${SHEET_BASE}/search?user=${input}`);
-                const data = await response.json();
-                if (data.length > 0) {
-                    userID = input;
-                    document.getElementById("userIDIcon").textContent = "🔒";
-                    document.getElementById("createNewID").style.display = "none";
-                    localStorage.setItem("storedUserID", userID);
-                } else {
-                    document.getElementById("userIDIcon").textContent = "❌";
-                }
-            }
-        });
+      
         
         document.addEventListener('DOMContentLoaded', function() {
             const modal = document.getElementById('customModeModal');
