@@ -586,7 +586,7 @@
       document.addEventListener("DOMContentLoaded", () => {
         const timerElem = document.getElementById("timerContainer");
         // Beispiel: Direkt eine Info setzen
-        timerElem.textContent = `${sessionCounter} Noten, vsl. 00:00 min verbleibend`;
+        timerElem.textContent = `${sessionCounter} Noten, vsl. 00:00 min`;
         // Oder den Timer sofort updaten, falls du eine Funktion hast:
         updateTimer();
       });
@@ -2091,22 +2091,44 @@ const drawSeries = () => {
   function checkOrientation() {
     const settingsPanel = document.getElementById("settingsPanel");
     if (!settingsPanel) return; // Falls das Element nicht existiert, beende die Funktion
+
     if (window.innerWidth > window.innerHeight) {
-         // Querformat (Landscape): Menü rechts, horizontal ausgerichtet
-         settingsPanel.style.top = "29%";
-         settingsPanel.style.right = "20px";
-         settingsPanel.style.left = "";
-         settingsPanel.style.transform = "";
-         settingsPanel.style.flexDirection = "row";
+      // Querformat (Landscape): Standardpositionierung wie vorher
+      settingsPanel.style.top = "29%";
+      settingsPanel.style.right = "20px";
+      settingsPanel.style.left = "";
+      settingsPanel.style.bottom = "";
+      settingsPanel.style.transform = "";
+      settingsPanel.style.flexDirection = "row";
+      
+      // Setze das Menü-Rechteck im Querformat auf die ursprünglichen Maße
+      settingsPanel.style.width = "60px";
+      settingsPanel.style.height = "auto";
+      settingsPanel.style.justifyContent = "";
+      settingsPanel.style.alignItems = "";
+      settingsPanel.style.gap = "";
     } else {
-         // Hochformat (Portrait): Menü oben mittig, vertikal ausgerichtet
-         settingsPanel.style.top = "10px";
-         settingsPanel.style.left = "50%";
-         settingsPanel.style.right = "";
-         settingsPanel.style.transform = "translateX(-50%)";
-         settingsPanel.style.flexDirection = "column";
+      // Hochformat (Portrait): Menü am mittleren oberen Bildschirmrand, das sich nach links und rechts ausbreitet
+      settingsPanel.style.top = "10px";
+      settingsPanel.style.bottom = "";
+      settingsPanel.style.left = "50%";
+      settingsPanel.style.right = "";
+      settingsPanel.style.transform = "translateX(-50%)";
+      settingsPanel.style.flexDirection = "row";
+      
+      // Passe das Rechteck (Container) des Menüs an:
+      // - Das Menü soll nur so breit sein, wie die Buttons Platz brauchen
+      // - Eine geringere Höhe
+      // - Zentrierte Ausrichtung der Menüeinträge
+      // - Die Buttons sollen weiter auseinander liegen
+      settingsPanel.style.width = "auto";
+      settingsPanel.style.height = "50px";
+      settingsPanel.style.display = "flex";
+      settingsPanel.style.justifyContent = "center";
+      settingsPanel.style.alignItems = "center";
+      settingsPanel.style.gap = "20px";
     }
-}
+  }
   window.addEventListener("resize", checkOrientation);
   checkOrientation();
   
