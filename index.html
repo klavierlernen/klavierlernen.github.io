@@ -905,7 +905,7 @@
         let seconds = Math.floor(predictedTimeSec % 60);
         let timeStr = (minutes < 10 ? "0" + minutes : minutes) + ":" + (seconds < 10 ? "0" + seconds : seconds);
         
-        timerElem.textContent = `${sessionCounter} Noten, vsl. ${timeStr} min verbleibend`;
+        timerElem.textContent = `${sessionCounter} Noten, vsl. ${timeStr} min`;
       };
       
       function updatePauseTiles() {
@@ -1744,12 +1744,9 @@ const generateSeries = () => {
 
   // Prüfe, ob benutzerdefinierte Einstellungen aktiv sind
   if (window.customModeSettings && window.customModeSettings.clef && window.customModeSettings.range) {
-    // Verwende die benutzerdefinierten Einstellungen
-    seriesClef = window.customModeSettings.clef; // z.B. 'treble' oder 'bass'
-    currentRange = window.customModeSettings.range; // Aktualisiere die globale Lage
-    // Wähle die Noten basierend auf der ausgewählten Hand (left/right)
+    seriesClef = window.customModeSettings.clef;
+    currentRange = window.customModeSettings.range;
     let customNotes = (selectedMode === "left") ? window.customModeSettings.leftNotes : window.customModeSettings.rightNotes;
-    // Fallback, falls keine Noten ausgewählt wurden
     if (!customNotes || customNotes.length === 0) {
       if (currentRange === "MC") {
         customNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
@@ -1759,7 +1756,6 @@ const generateSeries = () => {
         customNotes = rangeNotes[currentRange];
       }
     }
-    
     chooseNote = () => {
       if (errorNotes.length > 0 && Math.random() < 0.6) {
         const idx = errorNotes.findIndex(note => note.clef === seriesClef);
@@ -1769,53 +1765,17 @@ const generateSeries = () => {
       }
       const randomIndex = Math.floor(Math.random() * customNotes.length);
       const chosenNote = customNotes[randomIndex];
-      let noteOctave;
-      if (currentRange === "MC") {
-        noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
-      } else {
-        noteOctave = seriesClef === "bass" ? 3 : 4;
-      }
-      let accidental = undefined;
-      if (["F", "G"].includes(currentRange)) {
-        if (currentRange === "F" && chosenNote.includes("b") && chosenNote !== "b") {
-          accidental = chosenNote;
-        } else if (currentRange === "G" && (chosenNote.includes("#") || (chosenNote.includes("b") && chosenNote !== "b"))) {
-          accidental = chosenNote;
-        }
-      }
-      return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
+      let noteOctave = (currentRange === "MC")
+        ? (seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4)
+        : (seriesClef === "bass" ? 3 : 4);
+      return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: undefined };
     };
-
   } else {
-    // Bestehendes Verhalten, wenn kein Custom Mode aktiv ist
     if (randomMode) {
       seriesClef = Math.random() < 0.5 ? "bass" : "treble";
-      notesInCurrentPhase += seriesLength;
-      if (notesInCurrentPhase >= 20) {
-        let oldRange = currentRange;
-        if (typeof alternatingRanges !== 'undefined' && alternatingRanges.length > 0) {
-          currentRange = alternatingRanges[Math.floor(Math.random() * alternatingRanges.length)];
-        }
-        if (oldRange !== currentRange) {
-          gongSound.currentTime = 0;
-          gongSound.play();
-          var clefTitle = document.getElementById("clefTitle");
-          clefTitle.textContent = currentRange + "-Lage";
-          clefTitle.style.border = "3px solid red";
-          setTimeout(() => {
-            if (document.body.classList.contains("dark-mode")) {
-              clefTitle.style.border = "3px solid #fff";
-            } else {
-              clefTitle.style.border = "3px solid #000";
-            }
-          }, 300);
-        }
-        notesInCurrentPhase = 0;
-      }
     } else {
       seriesClef = (selectedMode === "left") ? "bass" : "treble";
     }
-
     chooseNote = () => {
       if (errorNotes.length > 0 && Math.random() < 0.6) {
         const idx = errorNotes.findIndex(note => note.clef === seriesClef);
@@ -1833,125 +1793,111 @@ const generateSeries = () => {
       }
       const randomIndex = Math.floor(Math.random() * defaultNotes.length);
       const chosenNote = defaultNotes[randomIndex];
-      let noteOctave;
-      if (currentRange === "MC") {
-        noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
-      } else {
-        noteOctave = seriesClef === "bass" ? 3 : 4;
-      }
-      let accidental = undefined;
-      if (["F", "G"].includes(currentRange)) {
-        if (currentRange === "F" && chosenNote.includes("b") && chosenNote !== "b") {
-          accidental = chosenNote;
-        } else if (currentRange === "G" && (chosenNote.includes("#") || (chosenNote.includes("b") && chosenNote !== "b"))) {
-          accidental = chosenNote;
-        }
-      }
-      return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
+      let noteOctave = (currentRange === "MC")
+        ? (seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4)
+        : (seriesClef === "bass" ? 3 : 4);
+      return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: undefined };
     };
   }
 
+  // Berechne anhand der Bildschirmbreite, wie viele Noten Platz haben:
+  const margin = 20;
+  const availableWidth = window.innerWidth - (2 * margin);
+  const approxNoteWidth = 40; // Mindestbreite pro Note (anpassen, falls nötig)
+  const noteCount = Math.max(1, Math.floor(availableWidth / approxNoteWidth));
+
   currentSeriesSingle = [];
-  for (let i = 0; i < seriesLength; i++) {
+  for (let i = 0; i < noteCount; i++) {
     currentSeriesSingle.push(chooseNote());
   }
+  
+  // Anschließend wird das Notensystem gezeichnet
   drawSeries();
 };
                                             
 const drawSeries = () => {
-  const notationDiv = document.getElementById("notation");
-  const baseWidth = 600;
-  const ratio = window.devicePixelRatio || 1;
-  const height = 300 * ratio;
-  notationDiv.style.display = "block";
-  notationDiv.innerHTML = "";
-  
-  // Erzeuge den Renderer und passe Größe an
+  const notationDiv = document.getElementById('notation');
+  notationDiv.style.display = 'block';
+  notationDiv.innerHTML = '';
+
+  // Definiere den symmetrischen Rand (z. B. 20px)
+  const margin = 20;
+  const availableWidth = window.innerWidth - (2 * margin);
+  // Verwende die bereits in currentSeriesSingle gespeicherten Noten
+  const noteCount = currentSeriesSingle.length;
+  const notationHeight = 150;
+
+  // Erzeuge den VexFlow-Renderer und passe ihn an
   const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
-  const zoomFactor = 1.4; // Zoom-Faktor anpassen
-  renderer.resize(baseWidth * ratio * zoomFactor, height * zoomFactor);
-  const svg = notationDiv.querySelector("svg");
+  renderer.resize(availableWidth, notationHeight);
+  const svg = notationDiv.querySelector('svg');
   if (svg) {
-    svg.setAttribute("width", baseWidth * zoomFactor);
-    svg.setAttribute("height", 100 * zoomFactor);
-    svg.style.transform = `scale(${zoomFactor})`;
-    svg.style.transformOrigin = "top left";
+    svg.setAttribute('width', availableWidth);
+    svg.setAttribute('height', notationHeight);
   }
   const context = renderer.getContext();
-  
-  // Erzeuge den Stave
-  const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
-  if (currentSeriesSingle.length) {
+
+  // Erzeuge den Stave mit symmetrischen Rändern:
+  const stave = new Vex.Flow.Stave(margin, 40, availableWidth - (2 * margin));
+  if (currentSeriesSingle.length > 0) {
     stave.addClef(currentSeriesSingle[0].clef);
+  } else {
+    stave.addClef('treble');
   }
-  
-  // Füge Key Signature (Vorzeichen) hinzu, je nach aktueller Lage
-  if (currentRange === "D") {
-    stave.addKeySignature("G");
-  } else if (currentRange === "F") {
-    stave.addKeySignature("F");
-  } else if (currentRange === "G") {
-    stave.addKeySignature("G");
+  // Optional: Füge Key Signature hinzu, falls relevant
+  if (currentRange === 'D') {
+    stave.addKeySignature('G');
+  } else if (currentRange === 'F') {
+    stave.addKeySignature('F');
+  } else if (currentRange === 'G') {
+    stave.addKeySignature('G');
   }
-  
   stave.setContext(context).draw();
-  
-  // Definiere noteDuration aus den benutzerdefinierten Einstellungen (Standard: "q")
-  const noteDuration = (window.customModeSettings && window.customModeSettings.noteValue) || "q";
-  
-  // Erzeuge die StaveNotes für die Serie (Notennamen bleiben unverändert, da die Vorzeichen über die Key Signature definiert werden)
-  const noteOrder = ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"];
+
+  // Definiere die Notendauer (Standard: Viertelnote "q")
+  const noteDuration = (window.customModeSettings && window.customModeSettings.noteValue) || 'q';
+  const noteOrder = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
+
+  // Erzeuge die StaveNotes aus den bereits generierten Noten
   const staveNotes = currentSeriesSingle.map(item => {
     let noteName = item.note.toLowerCase();
-    // Falls wir nicht in den speziellen Lagen arbeiten, ersetze Unicode-Vorzeichen durch ASCII
-    if (!("D,F,G".includes(currentRange))) {
-      noteName = noteName.replace(/♯/g, "#").replace(/♭/g, "b");
+    if (!('D,F,G'.includes(currentRange))) {
+      noteName = noteName.replace(/♯/g, '#').replace(/♭/g, 'b');
     }
-    const key = noteName + "/" + item.octave;
+    const key = noteName + '/' + item.octave;
     const staveNote = new Vex.Flow.StaveNote({
       clef: item.clef,
       keys: [key],
       duration: noteDuration
     });
     staveNote.setStyle({ fillStyle: item.color, strokeStyle: item.color });
-  
     const noteIndex = noteOrder.indexOf(noteName);
     const midiNumber = (item.octave + 1) * 12 + noteIndex;
-    let threshold;
-    if (item.clef === "treble") {
-      threshold = 71;
-    } else if (item.clef === "bass") {
-      threshold = 50;
-    } else {
-      threshold = 71;
-    }
+    const threshold = item.clef === 'treble' ? 71 : 50;
     if (midiNumber >= threshold) {
       staveNote.setStemDirection(-1);
     } else {
       staveNote.setStemDirection(1);
     }
-  
     return staveNote;
   });
-  
-  // Erstelle den Voice und erlaube unvollständige Stimmen
-  const voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
+
+  // Erstelle die Voice und füge die Noten hinzu
+  const voice = new Vex.Flow.Voice({ num_beats: noteCount, beat_value: 4 });
   voice.setStrict(false);
   staveNotes.forEach(note => voice.addTickable(note));
-  new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
+  new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - margin);
   voice.draw(context, stave);
-  
-  // Dreieck-Indikator für die aktuell abgefragte Note
+
+  // Optional: Zeichne einen Indikator für die aktuell aktive Note
   if (seriesCounter < staveNotes.length) {
     const activeNote = staveNotes[seriesCounter];
     if (activeNote && typeof activeNote.getBoundingBox === 'function') {
       const bbox = activeNote.getBoundingBox();
       if (bbox) {
-        // Berechne die Mitte der Note
         const noteX = bbox.getX() + bbox.getW() / 2;
         const triangleHeight = 5;
-        // Positioniere das Dreieck oberhalb des Notensystems mit ca. 20px Abstand
-        const noteY = stave.getY() - 1 - triangleHeight;
+        const noteY = stave.getY() - 20;
         const triangleWidth = 10;
         const p1 = `${noteX - triangleWidth / 2},${noteY}`;
         const p2 = `${noteX + triangleWidth / 2},${noteY}`;
@@ -1963,9 +1909,9 @@ const drawSeries = () => {
       }
     }
   }
-  
-  // Falls Achtelnoten gewählt wurden, erzeugen wir Beams
-  if (noteDuration === "8") {
+
+  // Falls Achtelnoten genutzt werden, erzeuge zusätzlich die Beams
+  if (noteDuration === '8') {
     const beams = Vex.Flow.Beam.generateBeams(staveNotes);
     beams.forEach(beam => beam.setContext(context).draw());
   }
