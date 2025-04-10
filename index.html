@@ -11,7 +11,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <link rel="apple-touch-icon" href="icon-192.png">
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
-  
   <!-- canvas-confetti laden -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
   <style>
@@ -579,27 +578,6 @@
      .hidden {
          display: none !important;
      }
-      
-      .finger-spread-rect {
-        fill: white;
-        stroke: black;
-        stroke-width: 1;
-        rx: 4;
-        ry: 4;
-      }
-
-      .finger-spread-text {
-        fill: black;
-        font-size: 12px;
-        font-family: 'Arial', sans-serif;
-        text-anchor: middle;
-        pointer-events: none;
-      }
-
-      .finger-spread-line {
-        stroke: black;
-        stroke-width: 1;
-      }
       
   </style>
   <script>
@@ -1561,23 +1539,6 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       setTimeout(proceedToMainScreen, 5000);
       
       const settingsPanel = document.getElementById("settingsPanel");
-      
-      // Spread mode toggle
-      const spreadToggle = document.createElement("span");
-      spreadToggle.id = "spreadToggle";
-      spreadToggle.textContent = "🖖";
-      settingsPanel.appendChild(spreadToggle);
-      
-      spreadToggle.addEventListener("click", () => {
-        currentMode = currentMode === "spread" ? "normal" : "spread";
-        console.log("Finger Spreizen mode activated");
-        if (currentMode === "spread") {
-          generateFingerSpreadSeries();
-        } else {
-          generateSeries();
-        }
-      });
-      
       // Handtoggle
       const handToggle = document.createElement("span");
       handToggle.id = "handToggle";
@@ -1771,97 +1732,6 @@ let melodyContext = {
   scale: ["c", "d", "e", "f", "g", "a", "b"], // C-Dur
 };
 // Füge am Anfang des Skripts (z. B. direkt vor der Funktion generateSeries) hinzu:
-// Globale Variable für den aktuellen Modus – Standard: "normal"
-let currentMode = "normal";
-// Globale Variable für Finger-Spread-Daten
-let fingerSpreadInfo = [];
-
-// Funktion, die Finger Spread Overlays bei den StaveNotes zeichnet
-function drawFingerSpreadOverlays(staveNotes) {
-    if (!fingerSpreadInfo) return;
-    const svg = document.querySelector("#notation svg");
-    if (!svg) return;
-    
-    fingerSpreadInfo.forEach(spread => {
-        const noteIdx = spread.index;
-        if (staveNotes[noteIdx] && typeof staveNotes[noteIdx].getBoundingBox === "function") {
-            const bbox = staveNotes[noteIdx].getBoundingBox();
-            if (!bbox) return;
-            const x = bbox.getX() + bbox.getW() / 2;
-            const y = bbox.getY() - 20;
-            const spreadText = spread.text;
-            
-            const rectWidth = 40;
-            const rectHeight = 15;
-            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-            rect.setAttribute("x", x - rectWidth/2);
-            rect.setAttribute("y", y - rectHeight);
-            rect.setAttribute("width", rectWidth);
-            rect.setAttribute("height", rectHeight);
-            rect.setAttribute("fill", "rgba(0, 0, 255, 0.2)");
-            rect.setAttribute("stroke", "blue");
-            rect.setAttribute("class", "finger-spread-rect");
-            svg.appendChild(rect);
-            
-            const textElem = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            textElem.setAttribute("class", "finger-spread-text");
-            textElem.setAttribute("x", x);
-            textElem.setAttribute("y", y - 3);
-            textElem.setAttribute("fill", "blue");
-            textElem.setAttribute("font-size", "10");
-            textElem.setAttribute("text-anchor", "middle");
-            textElem.textContent = spreadText.replace("-", "→");
-            const titleElem = document.createElementNS("http://www.w3.org/2000/svg", "title");
-            const fingers = spreadText.split("→");
-            if (fingers.length === 2) {
-              const f1 = fingers[0].trim();
-              const f2 = fingers[1].trim();
-              titleElem.textContent = `Spreize F${f1} weg von F${f2}`;
-              textElem.appendChild(titleElem);
-              rect.appendChild(titleElem.cloneNode(true));
-            }
-            svg.appendChild(textElem);
-        }
-    });
-}
-
-// Funktion, die eine Finger Spread Serie generiert
-function generateFingerSpreadSeries() {
-    const possibleNotes = ["c", "d", "e", "f", "g", "a", "b"];
-    const fingerPairs = [
-      ["1", "2"],
-      ["2", "3"],
-      ["3", "4"],
-      ["4", "5"]
-    ];
- 
-    currentSeriesSingle = [];
-    fingerSpreadInfo = [];
- 
-    for (let i = 0; i < 5; i++) {
-      const note = possibleNotes[Math.floor(Math.random() * possibleNotes.length)];
-      const octave = 4;
- 
-      currentSeriesSingle.push({
-        note: note,
-        octave: octave,
-        clef: "treble",
-        color: "black",
-        fingerSpread: []
-      });
- 
-      const shouldSpread = Math.random() < 0.7;
-      if (shouldSpread) {
-        const pair = fingerPairs[Math.floor(Math.random() * fingerPairs.length)];
-        fingerSpreadInfo.push({
-          index: i,
-          text: `${pair[0]}→${pair[1]}`
-        });
-      }
-    }
- 
-    drawSeries();
-}
 let notesInCurrentPhase = 0;
                                             
 const generateSeries = () => {
@@ -2070,9 +1940,6 @@ const drawSeries = () => {
   staveNotes.forEach(note => voice.addTickable(note));
   new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
   voice.draw(context, stave);
-  if (currentMode === "spread") {
-    drawFingerSpreadOverlays(staveNotes);
-  }
   
   // Dreieck-Indikator für die aktuell abgefragte Note
   if (seriesCounter < staveNotes.length) {
@@ -2164,15 +2031,7 @@ const drawSeries = () => {
           removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
           addCircle("positive");
           if (noteDisplay) {
-          const spreadData = fingerSpreadInfo[seriesCounter];
-          let fingerLabel = "";
-          if (currentMode === "spread" && spreadData && typeof spreadData.text === "string") {
-            const parts = spreadData.text.split("→");
-            if (parts.length === 2) {
-              fingerLabel = ` (Finger ${parts[1].trim()})`;
-            }
-          }
-            noteDisplay.innerHTML = '<span style="color:' + displayColor + ';">' + playedNoteDisplay + fingerLabel + '</span>';
+            noteDisplay.innerHTML = '<span style="color:' + displayColor + ';">' + playedNoteDisplay + '</span>';
           }
           
         } else {
@@ -2183,15 +2042,7 @@ const drawSeries = () => {
           if (noteDisplay) {
             const correctRaw = currentSeriesSingle[seriesCounter].note;
             const correctDisplay = (correctRaw === "b" ? "h" : correctRaw) + currentSeriesSingle[seriesCounter].octave;
-            const spreadData = fingerSpreadInfo[seriesCounter];
-            let fingerLabel = "";
-            if (currentMode === "spread" && spreadData && typeof spreadData.text === "string") {
-              const parts = spreadData.text.split("→");
-              if (parts.length === 2) {
-                fingerLabel = ` (Finger ${parts[1].trim()})`;
-              }
-            }
-            noteDisplay.innerHTML = '<span style="color:red;">' + playedNoteDisplay + '</span> <span style="color:green;">' + correctDisplay + fingerLabel + '</span>';
+            noteDisplay.innerHTML = '<span style="color:red;">' + playedNoteDisplay + '</span> <span style="color:green;">' + correctDisplay + '</span>';
           }
           if (!unlimitedLives) {
             hearts--;
@@ -2200,7 +2051,6 @@ const drawSeries = () => {
           }
         }
         
-        sessionCounter--;
         if (sessionCounter <= 0) {
           sessionCounter = 0;
           updateTimer();
@@ -2284,22 +2134,6 @@ const drawSeries = () => {
   
   </script>
 <script>
-// Beispiel-Datenstruktur für fingerSpreadData
-const fingerSpreadData = [
-  {
-    notes: [
-      { note: "c", octave: 4 },
-      { note: "e", octave: 4 },
-      { note: "g", octave: 4 },
-      { note: "f", octave: 4 },
-      { note: "a", octave: 4 }
-    ],
-    fingerSpread: [
-      { index: 1, text: "1–3" },
-      { index: 3, text: "2–4" }
-    ]
-  }
-];
   // Initialisiere MIDI-Zugriff (Web MIDI API)
   function initMIDIAccess() {
     if (!navigator.requestMIDIAccess) {
@@ -2832,29 +2666,11 @@ const fingerSpreadData = [
                 console.warn('Speichern-Button nicht gefunden.');
             }
         });
-        function handleEasterEggMIDIMessage(status, data1, data2) {
-          if ((status & 0xf0) === 0x90 && data2 > 0) {
-            const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
-            const midiNote = noteNames[data1 % 12];
-            const octave = Math.floor(data1 / 12) - 1;
-            
-            // Vergleiche die gespielte Note (ohne Oktave) mit der Note des vordersten Staff-Objekts
-            if (window.easterEggStaffs && window.easterEggStaffs.length > 0) {
-              const activeStaff = window.easterEggStaffs[0];
-              if (midiNote.toLowerCase() === activeStaff.note.toLowerCase()) {
-                // Richtig: Entferne das aktive Notensystem und ggf. Zeige Feedback
-                window.easterEggStaffs.shift();
-              } else {
-                // Falsch: Hier könnte man zusätzliches Feedback implementieren
-              }
-            }
-          }
-        }
         
     </script>
     
-</div style="position: fixed; bottom: 20px; left: 20px; z-index: 3000;">
-    <button id="easterEggTestButton" onclick="activateEasterEggMode()">Start Easter Egg Mode</button>
-</div>
 </body>
 </html>
+
+        
+        
