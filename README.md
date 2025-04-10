@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://github.com/jp0024/piano.github.io/blob/main/icon.jpg?raw=true" alt="Icon" style="border-radius: 20px; width: 200px;" />
+</p>
+
 # 🎼 Learning Music with MIDI Feedback
 
 This app is an interactive training tool for learning to read sheet music quickly, supporting both treble and bass clefs. It is primarily aimed at musicians who want to improve their eye-hand coordination in music reading – especially when using a connected MIDI instrument like a digital piano or MIDI keyboard.
