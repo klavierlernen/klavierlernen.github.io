@@ -8,6 +8,10 @@ This app is an interactive training tool for learning to read sheet music quickl
 
 ! Currently the App is available in German only
 
+<video controls>
+  <source src="pfad/zum/video.mp4?raw=true" type="video/mp4" />
+</video>
+
 ### 🔧 Features
 
 - **MIDI Real-Time Detection:** Instant evaluation of played notes via MIDI interface.
