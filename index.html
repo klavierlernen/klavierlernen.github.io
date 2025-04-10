@@ -859,7 +859,7 @@
     let responseTimes = [];
     let lastNoteTimestamp = Date.now();
     let appStartTime = Date.now();
-    let sessionCounter = 1000; // 5 korrekte Noten erforderlich
+    let sessionCounter = 5; // 5 korrekte Noten erforderlich
     let sessionPaused = false;
     let scoreRecorded = false;
     let sessionCount = 0;
@@ -1977,6 +1977,49 @@ const drawSeries = () => {
     const removeFromErrorNotes = (noteObj) => {
       errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
     };
+      
+      const startLocalTimer = () => {
+        sessionPaused = true;
+        // Setze die Opacity des Notensystems auf 50%
+        const notationDiv = document.getElementById("notation");
+        if (notationDiv) {
+          notationDiv.style.opacity = "0.5";
+        }
+        pauseRemaining = 300; // 5 Minuten = 300 Sekunden
+        updateLocalTimer();
+        pauseInterval = setInterval(() => {
+          pauseRemaining--;
+          updateLocalTimer();
+          if (pauseRemaining <= 0) {
+            clearInterval(pauseInterval);
+            endLocalTimer();
+          }
+        }, 1000);
+      };
+
+      const updateLocalTimer = () => {
+        const timerElem = document.getElementById("timerContainer");
+        if (timerElem) {
+          const minutes = Math.floor(pauseRemaining / 60);
+          const seconds = pauseRemaining % 60;
+          timerElem.textContent = `${minutes < 10 ? "0" + minutes : minutes}:${seconds < 10 ? "0" + seconds : seconds}`;
+        }
+      };
+
+      const endLocalTimer = () => {
+        sessionPaused = false;
+        // Setze die Opacity des Notensystems wieder auf 100%
+        const notationDiv = document.getElementById("notation");
+        if (notationDiv) {
+          notationDiv.style.opacity = "1";
+        }
+        if (gongSound) {
+          gongSound.currentTime = 0;
+          gongSound.play();
+        }
+        resetGame();
+      };
+      
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
       resetInactivityTimer();
@@ -2026,9 +2069,10 @@ const drawSeries = () => {
           correctNoteCount++;
           removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
           addCircle("positive");
-          if (noteDisplay) {
-            noteDisplay.innerHTML = '<span style="color:' + displayColor + ';">' + playedNoteDisplay + '</span>';
-          }
+        if (noteDisplay) {
+          noteDisplay.innerHTML = '<span style="color:' + displayColor + ';">' + playedNoteDisplay + '</span>';
+        }
+        sessionCounter--;
           
         } else {
           // Falsche Note: rot markieren
@@ -2047,9 +2091,10 @@ const drawSeries = () => {
           }
         }
         
-        if (sessionCounter <= 0) {
+        if (sessionCounter <= 0 && !sessionPaused) {
           sessionCounter = 0;
           updateTimer();
+          startLocalTimer();
           return;
         }
         seriesCounter++;
@@ -2062,7 +2107,7 @@ const drawSeries = () => {
       }
     };
       const resetGame = () => {
-        sessionCounter = 1000;      // Counter auf 1000
+        sessionCounter = 5;      // Counter auf 1000
         totalAttempts = 0;          // Zähler für gespielte Noten auf 0
         elapsedTimer = 0;           // Timer auf 0
         gameOver = false;
@@ -2686,7 +2731,7 @@ const drawSeries = () => {
         <strong>🖍️ Benutzerdefiniert:</strong> Öffnet die Einstellungen für den Custom Mode.
       <br>
       <br>
-      <a target="_blank" href="https://github.com/jp0024/piano.github.io/wiki/4-%E2%80%90-Support">Support</a>
+      <a href="https://github.com/jp0024/piano.github.io/wiki/4-%E2%80%90-Support">Support</a>
  
       `;
     content.style.textAlign = 'left';
