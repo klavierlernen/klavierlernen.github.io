@@ -819,11 +819,7 @@
       settingsPanel.appendChild(pauseButton);
 
       pauseButton.addEventListener("click", () => {
-        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.openLink) {
-          window.webkit.messageHandlers.openLink.postMessage("https://github.com/jp0024/piano.github.io/wiki");
-        } else {
-          window.open("https://github.com/jp0024/piano.github.io/wiki", "_blank");
-        }
+        openHelpWindow();
       });
     });
       
@@ -2635,6 +2631,72 @@ const drawSeries = () => {
         
     </script>
     
+<script>
+  function openHelpWindow() {
+    // Erzeuge ein halbtransparentes Overlay
+    let helpOverlay = document.createElement('div');
+    helpOverlay.id = 'helpOverlay';
+    helpOverlay.style.position = 'fixed';
+    helpOverlay.style.top = '0';
+    helpOverlay.style.left = '0';
+    helpOverlay.style.width = '100%';
+    helpOverlay.style.height = '100%';
+    helpOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    helpOverlay.style.display = 'flex';
+    helpOverlay.style.justifyContent = 'center';
+    helpOverlay.style.alignItems = 'center';
+    helpOverlay.style.zIndex = '300';
+
+    // Erzeuge das Hilfefenster
+    let helpWindow = document.createElement('div');
+    helpWindow.id = 'helpWindow';
+    helpWindow.style.backgroundColor = '#fff';
+    helpWindow.style.borderRadius = '10px';
+    helpWindow.style.padding = '20px';
+    helpWindow.style.width = '80%';
+    helpWindow.style.maxWidth = '600px';
+    helpWindow.style.boxShadow = '0px 0px 10px rgba(0, 0, 0, 0.5)';
+    helpWindow.style.position = 'relative';
+
+    // Schließen-Button
+    let closeButton = document.createElement('span');
+    closeButton.textContent = '✖';
+    closeButton.style.position = 'absolute';
+    closeButton.style.top = '10px';
+    closeButton.style.right = '10px';
+    closeButton.style.cursor = 'pointer';
+    closeButton.style.fontSize = '1.2em';
+    helpWindow.appendChild(closeButton);
+    closeButton.addEventListener('click', () => {
+      document.body.removeChild(helpOverlay);
+    });
+
+    // Inhalt des Hilfefensters: Kurze Erklärung der Menü-Buttons (nur die Menü-Emojis)
+    let content = document.createElement('div');
+    content.innerHTML = `
+      <h2>Hilfe</h2>
+      <p>Erklärung der Menü-Funktionen:</p>
+      <ul>
+        <li><strong>🛟 Rettungsring:</strong> Öffnet dieses Hilfefenster.</li>
+        <li><strong>✋ Handwechsel:</strong> Wechselt zwischen linker und rechter Hand.</li>
+        <li><strong>🐇 Zufallsmodus:</strong> Schaltet den Zufallsmodus ein/aus.</li>
+        <li><strong>⏲️ Metronom:</strong> Aktiviert/Deaktiviert das Metronom und ermöglicht die BPM-Einstellung.</li>
+        <li><strong>🌙 Dunkelmodus:</strong> Schaltet in den Dunkelmodus um.</li>
+        <li><strong>🖍️ Benutzerdefiniert:</strong> Öffnet die Einstellungen für den Custom Mode.</li>
+      </ul>
+      <p>Klicke auf das X oder außerhalb des Fensters, um zu schließen.</p>
+    `;
+    helpWindow.appendChild(content);
+
+    helpOverlay.appendChild(helpWindow);
+    helpOverlay.addEventListener('click', (e) => {
+      if(e.target === helpOverlay) {
+        document.body.removeChild(helpOverlay);
+      }
+    });
+    document.body.appendChild(helpOverlay);
+  }
+</script>
 </body>
 </html>
 
