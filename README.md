@@ -8,9 +8,7 @@ This app is an interactive training tool for learning to read sheet music quickl
 
 ! Currently the App is available in German only
 
-<video controls>
-  <source src="https://github.com/jp0024/piano.github.io/blob/main/ScreenRecording_04-10-2025%2011-44-06_1.mp4" type="video/mp4" />
-</video>
+See how it works: https://drive.google.com/file/d/1v_aTnOTJi2T-VUTVt4Wx8_kHbTGTiQvE/view?usp=share_link
 
 ### 🔧 Features
 
