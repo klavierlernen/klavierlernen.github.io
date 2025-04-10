@@ -2832,11 +2832,29 @@ const fingerSpreadData = [
                 console.warn('Speichern-Button nicht gefunden.');
             }
         });
+        function handleEasterEggMIDIMessage(status, data1, data2) {
+          if ((status & 0xf0) === 0x90 && data2 > 0) {
+            const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+            const midiNote = noteNames[data1 % 12];
+            const octave = Math.floor(data1 / 12) - 1;
+            
+            // Vergleiche die gespielte Note (ohne Oktave) mit der Note des vordersten Staff-Objekts
+            if (window.easterEggStaffs && window.easterEggStaffs.length > 0) {
+              const activeStaff = window.easterEggStaffs[0];
+              if (midiNote.toLowerCase() === activeStaff.note.toLowerCase()) {
+                // Richtig: Entferne das aktive Notensystem und ggf. Zeige Feedback
+                window.easterEggStaffs.shift();
+              } else {
+                // Falsch: Hier könnte man zusätzliches Feedback implementieren
+              }
+            }
+          }
+        }
         
     </script>
     
+</div style="position: fixed; bottom: 20px; left: 20px; z-index: 3000;">
+    <button id="easterEggTestButton" onclick="activateEasterEggMode()">Start Easter Egg Mode</button>
+</div>
 </body>
 </html>
-
-        
-        
