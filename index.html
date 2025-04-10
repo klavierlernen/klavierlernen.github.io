@@ -1988,7 +1988,7 @@ const drawSeries = () => {
         pauseRemaining = 300; // 5 Minuten = 300 Sekunden
         updateLocalTimer();
         pauseInterval = setInterval(() => {
-          pauseRemaining--; 
+          pauseRemaining--;
           updateLocalTimer();
           if (pauseRemaining <= 0) {
             clearInterval(pauseInterval);
@@ -1996,6 +1996,8 @@ const drawSeries = () => {
           }
         }, 1000);
       };
+      
+      
 
       const updateLocalTimer = () => {
         const timerElem = document.getElementById("timerContainer");
