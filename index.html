@@ -2675,17 +2675,21 @@ const drawSeries = () => {
     let content = document.createElement('div');
     content.innerHTML = `
       <h2>Hilfe</h2>
-      <p>Erklärung der Menü-Funktionen:</p>
-      <ul>
-        <li><strong>🛟 Rettungsring:</strong> Öffnet dieses Hilfefenster.</li>
-        <li><strong>✋ Handwechsel:</strong> Wechselt zwischen linker und rechter Hand.</li>
-        <li><strong>🐇 Zufallsmodus:</strong> Schaltet den Zufallsmodus ein/aus.</li>
-        <li><strong>⏲️ Metronom:</strong> Aktiviert/Deaktiviert das Metronom und ermöglicht die BPM-Einstellung.</li>
-        <li><strong>🌙 Dunkelmodus:</strong> Schaltet in den Dunkelmodus um.</li>
-        <li><strong>🖍️ Benutzerdefiniert:</strong> Öffnet die Einstellungen für den Custom Mode.</li>
-      </ul>
-      <p>Klicke auf das X oder außerhalb des Fensters, um zu schließen.</p>
-    `;
+    <br>
+            <strong>🔌 Verbindung:</strong> Stelle sicher, dass das MIDI Kabel verbunden und das Klavier eingeschaltet ist, bevor du die App startest. Alternativ starte dein Gerät neu.</p>
+ <br><strong>Menüpunkte:</Strong><br>
+        <strong>🛟 Rettungsring:</strong> Öffnet dieses Hilfefenster.<br>
+        <strong>✋ Handwechsel:</strong> Wechselt zwischen linker und rechter Hand.<br>
+        <strong>🐇 Zufallsmodus:</strong> Schaltet den Zufallsmodus ein/aus.<br>
+        <br><strong>⏲️ Metronom:</strong> Aktiviert/Deaktiviert das Metronom und ermöglicht die BPM-Einstellung.</li>
+        <strong>🌙 Dunkelmodus:</strong> Schaltet in den Dunkelmodus um.<br>
+        <strong>🖍️ Benutzerdefiniert:</strong> Öffnet die Einstellungen für den Custom Mode.
+      <br>
+      <br>
+      <a href="https://github.com/jp0024/piano.github.io/wiki/4-%E2%80%90-Support">Support</a>
+ 
+      `;
+    content.style.textAlign = 'left';
     helpWindow.appendChild(content);
 
     helpOverlay.appendChild(helpWindow);
