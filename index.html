@@ -1277,12 +1277,18 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
   }
   const timerElem = document.getElementById("timerContainer");
   const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  if (isiOS && timerElem) {
+  if (
+    isiOS &&
+    timerElem &&
+    window.webkit &&
+    window.webkit.messageHandlers &&
+    window.webkit.messageHandlers.gameCenter
+  ) {
     timerElem.textContent = "Speichere Daten in GameCenter...";
     setTimeout(() => {
       startRealPauseCountdown(); // Startet den eigentlichen Countdown
     }, 2000);
-    return; // Stoppe hier, der Rest läuft in startRealPauseCountdown
+    return;
   }
   
       stopMetronome();
