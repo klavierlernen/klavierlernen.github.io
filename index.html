@@ -2792,6 +2792,26 @@ const drawSeries = () => {
     document.body.appendChild(helpOverlay);
   }
 </script>
+  </script>
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const notationDiv = document.getElementById("notation");
+    if (notationDiv) {
+      const isiPad = /iPad/.test(navigator.userAgent);
+      if (isiPad) {
+        notationDiv.style.position = "absolute";
+        notationDiv.style.top = "80%";
+        notationDiv.style.left = "65%";
+        notationDiv.style.transform = "translate(-50%, -50%)";
+      } else {
+        notationDiv.style.position = "absolute";
+        notationDiv.style.top = "50%";
+        notationDiv.style.left = "50%";
+        notationDiv.style.transform = "translate(-50%, -50%)";
+      }
+    }
+  });
+  </script>
 </body>
 </html>
 
