@@ -1275,6 +1275,15 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
     console.error("Keine userID gesetzt! Abbruch.");
     return;
   }
+  const timerElem = document.getElementById("timerContainer");
+  const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isiOS && timerElem) {
+    timerElem.textContent = "Speichere Daten in GameCenter...";
+    setTimeout(() => {
+      startRealPauseCountdown(); // Startet den eigentlichen Countdown
+    }, 2000);
+    return; // Stoppe hier, der Rest läuft in startRealPauseCountdown
+  }
   
       stopMetronome();
       sessionPaused = true;
