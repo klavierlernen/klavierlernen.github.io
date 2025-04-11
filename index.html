@@ -768,6 +768,16 @@
         appStartTime: appStartTime
       };
       localStorage.setItem("appStatistics", JSON.stringify(stats));
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.gameCenter) {
+        window.webkit.messageHandlers.gameCenter.postMessage({
+          type: "highscore",
+          value: {
+            accuracy: Math.round((correctAnswers / totalAttempts) * 100),
+            duration: Math.floor((Date.now() - appStartTime) / 1000),
+            mode: randomMode ? "random" : selectedMode
+          }
+        });
+      }
     }
 
     // Lädt die Statistiken aus dem localStorage und weist sie den globalen Variablen zu
@@ -1086,6 +1096,14 @@
         });
 
         localStorage.setItem("unlockedTrophies", JSON.stringify(unlockedTrophies));
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.gameCenter) {
+          unlockedTrophies.forEach(id => {
+            window.webkit.messageHandlers.gameCenter.postMessage({
+              type: "achievement",
+              value: "trophy_" + id
+            });
+          });
+        }
         wrapper.appendChild(trophyGrid);
         wrapper.appendChild(descriptionBox);
         tile.appendChild(wrapper);
