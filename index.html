@@ -768,6 +768,7 @@
         appStartTime: appStartTime
       };
       localStorage.setItem("appStatistics", JSON.stringify(stats));
+      // Ensure all leaderboard values (accuracy, duration, mode) are sent for proper leaderboard updates
       if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.gameCenter) {
         window.webkit.messageHandlers.gameCenter.postMessage({
           type: "highscore",
@@ -1057,11 +1058,11 @@
     descriptionBox.style.maxWidth = "200px";
 
         const allTrophies = [
-          "🐢","🐌","🚶‍♂️","🏃","⚡",
-          "🎼","🎹","🎺","🪕","🪗",
-          "🌱","🌿","🌻","🌲","🎄","🔥","🚀","🪐","🌞","👑",
-          "🔀","🌀","🔁","⏩","⚙️",
-          "📏","📐","🧭","🎯","🏁"
+          "🐢", "🐌", "🚶‍♂️", "🏃", "⚡",     // Speed
+          "🎼", "🎹", "🎺", "🪕", "🪗",     // Clef Accuracy
+          "🌱", "🌿", "🌻", "🌲", "🎄", "🔥", "🚀", "🪐", "🌞", "👑", // Streak
+          "🔀", "🌀", "🔁", "⏩", "⚙️",     // Mode switching
+          "📏", "📐", "🧭", "🎯", "🏁"      // Metronome precision
         ];
 
         const unlockedTrophies = JSON.parse(localStorage.getItem("unlockedTrophies") || "[]");
@@ -1256,6 +1257,16 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       
     const startPauseCountdown = () => {
   logSessionStart(); // Neuen Session-Zeitstempel speichern
+  if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.gameCenter) {
+    window.webkit.messageHandlers.gameCenter.postMessage({
+      type: "highscore",
+      value: {
+        accuracy: Math.round((correctAnswers / totalAttempts) * 100),
+        duration: Math.floor((Date.now() - appStartTime) / 1000),
+        mode: randomMode ? "random" : selectedMode
+      }
+    });
+  }
   const quote = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
   const speed = responseTimes.length > 0
     ? Math.round(responseTimes.reduce((a, b) => a + b) / responseTimes.length)
