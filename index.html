@@ -144,6 +144,7 @@
       color: #000;
       white-space: nowrap;
       margin-left: 10px;
+      font-weight: bold;
     }
     /* Kachelwand im Pausenmodus – Füllt den restlichen Raum wie eine Tapete */
     #pauseTiles {
@@ -232,9 +233,10 @@
     /* Timer Container */
     /* Timer Container */
         #timerContainer {
+            font-weight: bold;
           position: fixed;
           right: 10px;
-          bottom: 30px;
+          bottom: 48px;
           font-size: 1.5em;
           z-index: 100;
           display: flex; /* Versteckt, bis der Intro-Modus beendet ist */
@@ -295,6 +297,8 @@
     /* 3D-Stil für das Lagen-Rechteck    */
     /* ================================= */
     #clefTitle {
+        text-transform: uppercase;
+        font-weight: bold;
       background: #d0e8d0;
       border: 2px solid #b7d3b7;
       border-radius: 8px;
@@ -711,7 +715,7 @@
       document.addEventListener("DOMContentLoaded", () => {
         const timerElem = document.getElementById("timerContainer");
         // Beispiel: Direkt eine Info setzen
-        timerElem.textContent = `${sessionCounter} Noten, vsl. 00:00 min verbleibend`;
+        timerElem.textContent = `${sessionCounter} Noten, vsl. 00:00 min`;
         // Oder den Timer sofort updaten, falls du eine Funktion hast:
         updateTimer();
       // Entfernt: Doppele Aufruf von startTutorialSequence() wurde entfernt,
@@ -1039,7 +1043,7 @@
         let seconds = Math.floor(predictedTimeSec % 60);
         let timeStr = (minutes < 10 ? "0" + minutes : minutes) + ":" + (seconds < 10 ? "0" + seconds : seconds);
         
-        timerElem.textContent = `${sessionCounter} Noten, vsl. ${timeStr} min verbleibend`;
+        timerElem.textContent = `${sessionCounter} Noten, vsl. ${timeStr} min`;
       };
       
       function updatePauseTiles() {
