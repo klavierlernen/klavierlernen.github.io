@@ -578,10 +578,131 @@
      .hidden {
          display: none !important;
      }
-      
+      #tutorialOverlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #F8F8FF; /* gleiche Farbe wie normaler Hintergrund */
+        z-index: 3000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 2em;
+        color: #000; /* schwarze Schrift */
+        text-align: center;
+        opacity: 0;
+        transition: opacity 1s ease;
+      }
   </style>
   <script>
-      
+   
+        document.addEventListener("DOMContentLoaded", function() {
+          // Überprüfen, ob der Benutzer das Tutorial abgeschlossen hat
+        if (!localStorage.getItem("tutorialCompleted")) {
+          // Überprüfen, ob ein MIDI-Gerät verbunden ist
+          if (!navigator.requestMIDIAccess) {
+            console.error("Web MIDI API wird im Browser nicht unterstützt.");
+            startTutorialSequence();
+            return;
+          }
+
+          navigator.requestMIDIAccess()
+            .then((midiAccess) => {
+              const inputs = midiAccess.inputs;
+              if (inputs.size === 0) {
+                // Keine MIDI-Verbindung, also Tutorial starten
+                startTutorialSequence();
+              } else {
+                console.log("MIDI-Gerät gefunden. Tutorial wird nicht angezeigt.");
+              }
+            })
+            .catch((error) => {
+              console.error("Fehler beim Abrufen von MIDI-Zugriff:", error);
+              startTutorialSequence();
+            });
+        }
+        });
+
+        function startTutorialSequence() {
+          const steps = [
+            ["Hallo!", "Du scheinst das erste Mal hier zu sein", "Lass uns dir zeigen, wie die App funktioniert"],
+            ["⚙️ Wir überprüfen, ob du zum Spielen startklar bist", "Das MIDI Kabel ist nicht verbunden", "✅ Danke!"],
+            ["Du kannst nun angezeigte Noten im Notensystem spielen.", "Hierzu gibt es folgende Einstellungsmöglichkeiten:", "✋ Auswahl der Hand", "🐇 Zufallsmodus oder 🖍️ Benutzerdefiniert", "🌙 Dark Mode", "⏲️ Metronom"],
+            ["Soweit startklar?", "Viel Spaß beim Spielen!"]
+          ];
+
+          const tutorialOverlay = document.createElement("div");
+          tutorialOverlay.id = "tutorialOverlay";
+          tutorialOverlay.style.position = "fixed";
+          tutorialOverlay.style.top = "0";
+          tutorialOverlay.style.left = "0";
+          tutorialOverlay.style.width = "100%";
+          tutorialOverlay.style.height = "100%";
+          tutorialOverlay.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+          tutorialOverlay.style.zIndex = "3000";
+          tutorialOverlay.style.display = "flex";
+          tutorialOverlay.style.justifyContent = "center";
+          tutorialOverlay.style.alignItems = "center";
+          tutorialOverlay.style.color = "#FFF";
+
+          const tutorialTextContainer = document.createElement("div");
+          tutorialTextContainer.id = "tutorialTextContainer";
+          tutorialTextContainer.style.fontSize = "2em";
+          tutorialTextContainer.style.textAlign = "center";
+          tutorialTextContainer.style.opacity = "0";
+          tutorialTextContainer.style.transition = "opacity 1s ease";
+
+          tutorialOverlay.appendChild(tutorialTextContainer);
+          document.body.appendChild(tutorialOverlay);
+
+          // Verstecke den Hauptinhalt während des Tutorials
+          document.getElementById("mainContent").style.display = "none";
+          document.getElementById("timerContainer").style.display = "none";
+          document.getElementById("settingsPanel").style.display = "none";
+
+          let phase = 0;
+          let index = 0;
+
+          function showNext() {
+            if (phase >= steps.length) {
+              tutorialOverlay.remove();
+              document.getElementById("mainContent").style.display = "block";
+              document.getElementById("timerContainer").style.display = "flex";
+              document.getElementById("settingsPanel").style.display = "flex";
+              localStorage.setItem("tutorialCompleted", "true");  // Markiere das Tutorial als abgeschlossen
+              return;
+            }
+
+            const step = steps[phase];
+            const message = step[index];
+
+            tutorialTextContainer.style.opacity = "0";
+            setTimeout(() => {
+              tutorialTextContainer.textContent = message;
+              tutorialTextContainer.style.opacity = "1";
+            }, 1000);
+
+            index++;
+            if (index < step.length) {
+              setTimeout(() => {
+                tutorialTextContainer.style.opacity = "0";
+                setTimeout(showNext, 1000);
+              }, 3000);
+            } else {
+              phase++;
+              index = 0;
+              setTimeout(() => {
+                tutorialTextContainer.style.opacity = "0";
+                setTimeout(showNext, 1000);
+              }, 3000);
+            }
+          }
+
+          showNext();
+        }
+    
       
       document.addEventListener("DOMContentLoaded", () => {
         const timerElem = document.getElementById("timerContainer");
@@ -589,6 +710,8 @@
         timerElem.textContent = `${sessionCounter} Noten, vsl. 00:00 min verbleibend`;
         // Oder den Timer sofort updaten, falls du eine Funktion hast:
         updateTimer();
+      // Entfernt: Doppele Aufruf von startTutorialSequence() wurde entfernt,
+      // da das Tutorial nun ausschließlich über die MIDI-Prüfung gestartet wird.
       });
       let elapsedTimer = 0;
       let cachedUserRank = null;
@@ -1577,6 +1700,11 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       }
       document.getElementById("welcomeMessage").innerHTML = greeting + "<br>Schön, dass du da bist!";
       setTimeout(proceedToMainScreen, 5000);
+      setTimeout(() => {
+        if (!localStorage.getItem("tutorialCompleted")) {
+          startTutorialSequence();
+        }
+      }, 5100);
       
       const settingsPanel = document.getElementById("settingsPanel");
       // Handtoggle
@@ -2267,6 +2395,86 @@ const drawSeries = () => {
   
 </script>
 <script>
+    
+    
+    function startTutorialSequence() {
+      const steps = [
+        ["Hallo!", "Du scheinst das erste Mal hier zu sein", "Lass uns dir zeigen, wie die App funktioniert"],
+        ["⚙️ Wir überprüfen, ob du zum Spielen startklar bist", "Das MIDI Kabel ist nicht verbunden", "✅ Danke!"],
+        ["Du kannst nun angezeigte Noten im Notensystem spielen.", "Hierzu gibt es folgende Einstellungsmöglichkeiten:", "✋ Auswahl der Hand", "🐇 Zufallsmodus oder 🖍️ Benutzerdefiniert", "🌙 Dark Mode", "⏲️ Metronom"],
+        ["Soweit startklar?", "Viel Spaß beim Spielen!"]
+      ];
+
+      const tutorialOverlay = document.createElement("div");
+      tutorialOverlay.id = "tutorialOverlay";
+      tutorialOverlay.style.position = "fixed";
+      tutorialOverlay.style.top = "0";
+      tutorialOverlay.style.left = "0";
+      tutorialOverlay.style.width = "100%";
+      tutorialOverlay.style.height = "100%";
+      tutorialOverlay.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+      tutorialOverlay.style.zIndex = "3000";
+      tutorialOverlay.style.display = "flex";
+      tutorialOverlay.style.justifyContent = "center";
+      tutorialOverlay.style.alignItems = "center";
+      tutorialOverlay.style.color = "#FFF";
+
+      const tutorialTextContainer = document.createElement("div");
+      tutorialTextContainer.id = "tutorialTextContainer";
+      tutorialTextContainer.style.fontSize = "2em";
+      tutorialTextContainer.style.textAlign = "center";
+      tutorialTextContainer.style.opacity = "0";
+      tutorialTextContainer.style.transition = "opacity 1s ease";
+
+      tutorialOverlay.appendChild(tutorialTextContainer);
+      document.body.appendChild(tutorialOverlay);
+
+      document.getElementById("mainContent").style.display = "none";
+      document.getElementById("timerContainer").style.display = "none";
+      document.getElementById("settingsPanel").style.display = "none";
+
+      let phase = 0;
+      let index = 0;
+
+      function showNext() {
+        if (phase >= steps.length) {
+          tutorialOverlay.remove();
+          document.getElementById("mainContent").style.display = "block";
+          document.getElementById("timerContainer").style.display = "flex";
+          document.getElementById("settingsPanel").style.display = "flex";
+          localStorage.setItem("tutorialCompleted", "true");
+          return;
+        }
+
+        const step = steps[phase];
+        const message = step[index];
+
+        tutorialTextContainer.style.opacity = "0";
+        setTimeout(() => {
+          tutorialTextContainer.textContent = message;
+          tutorialTextContainer.style.opacity = "1";
+        }, 1000);
+
+        index++;
+        if (index < step.length) {
+          setTimeout(() => {
+            tutorialTextContainer.style.opacity = "0";
+            setTimeout(showNext, 1000);
+          }, 3000);
+        } else {
+          phase++;
+          index = 0;
+          setTimeout(() => {
+            tutorialTextContainer.style.opacity = "0";
+            setTimeout(showNext, 1000);
+          }, 3000);
+        }
+      }
+
+      showNext();
+    }
+</script>
+<script>
   document.addEventListener("DOMContentLoaded", function() {
     console.log("--- Schnittstellen-Überprüfung ---");
     console.log("Web MIDI API: " + (navigator.requestMIDIAccess ? "verfügbar" : "nicht verfügbar"));
@@ -2722,76 +2930,6 @@ const drawSeries = () => {
         
     </script>
     
-<script>
-  function openHelpWindow() {
-    // Erzeuge ein halbtransparentes Overlay
-    let helpOverlay = document.createElement('div');
-    helpOverlay.id = 'helpOverlay';
-    helpOverlay.style.position = 'fixed';
-    helpOverlay.style.top = '0';
-    helpOverlay.style.left = '0';
-    helpOverlay.style.width = '100%';
-    helpOverlay.style.height = '100%';
-    helpOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-    helpOverlay.style.display = 'flex';
-    helpOverlay.style.justifyContent = 'center';
-    helpOverlay.style.alignItems = 'center';
-    helpOverlay.style.zIndex = '300';
-
-    // Erzeuge das Hilfefenster
-    let helpWindow = document.createElement('div');
-    helpWindow.id = 'helpWindow';
-    helpWindow.style.backgroundColor = '#fff';
-    helpWindow.style.borderRadius = '10px';
-    helpWindow.style.padding = '20px';
-    helpWindow.style.width = '80%';
-    helpWindow.style.maxWidth = '600px';
-    helpWindow.style.boxShadow = '0px 0px 10px rgba(0, 0, 0, 0.5)';
-    helpWindow.style.position = 'relative';
-
-    // Schließen-Button
-    let closeButton = document.createElement('span');
-    closeButton.textContent = '✖';
-    closeButton.style.position = 'absolute';
-    closeButton.style.top = '10px';
-    closeButton.style.right = '10px';
-    closeButton.style.cursor = 'pointer';
-    closeButton.style.fontSize = '1.2em';
-    helpWindow.appendChild(closeButton);
-    closeButton.addEventListener('click', () => {
-      document.body.removeChild(helpOverlay);
-    });
-
-    // Inhalt des Hilfefensters: Kurze Erklärung der Menü-Buttons (nur die Menü-Emojis)
-    let content = document.createElement('div');
-    content.innerHTML = `
-      <h2>Hilfe</h2>
-    <br>
-            <strong>🔌 Verbindung:</strong> Stelle sicher, dass das MIDI Kabel verbunden und das Klavier eingeschaltet ist, bevor du die App startest. Alternativ starte dein Gerät neu.</p>
- <br><strong>Menüpunkte:</Strong><br>
-        <strong>🛟 Rettungsring:</strong> Öffnet dieses Hilfefenster.<br>
-        <strong>✋ Handwechsel:</strong> Wechselt zwischen linker und rechter Hand.<br>
-        <strong>🐇 Zufallsmodus:</strong> Schaltet den Zufallsmodus ein/aus.<br>
-        <br><strong>⏲️ Metronom:</strong> Aktiviert/Deaktiviert das Metronom und ermöglicht die BPM-Einstellung.</li>
-        <strong>🌙 Dunkelmodus:</strong> Schaltet in den Dunkelmodus um.<br>
-        <strong>🖍️ Benutzerdefiniert:</strong> Öffnet die Einstellungen für den Custom Mode.
-      <br>
-      <br>
-      <a href="https://github.com/jp0024/piano.github.io/wiki/4-%E2%80%90-Support">Support</a>
- 
-      `;
-    content.style.textAlign = 'left';
-    helpWindow.appendChild(content);
-
-    helpOverlay.appendChild(helpWindow);
-    helpOverlay.addEventListener('click', (e) => {
-      if(e.target === helpOverlay) {
-        document.body.removeChild(helpOverlay);
-      }
-    });
-    document.body.appendChild(helpOverlay);
-  }
-</script>
 </body>
 </html>
 
