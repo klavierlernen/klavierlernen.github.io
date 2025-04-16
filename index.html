@@ -2094,7 +2094,9 @@ const drawSeries = () => {
         const midiInfo = (() => {
           const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
           const octave = Math.floor(data1 / 12) - 1;
-          return { note: noteNames[data1 % 12], octave: octave };
+          const rawNote = noteNames[data1 % 12];
+          const convertedNote = (rawNote === "a#") ? "bb" : rawNote;
+          return { note: convertedNote, octave: octave };
         })();
         const playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note) + midiInfo.octave;
         const noteDisplay = document.getElementById("noteNameDisplay");
@@ -2733,14 +2735,14 @@ const drawSeries = () => {
             const customLeftNotesMapping = {
                 "C": ["C", "D", "E", "F", "G", "A"],
                 "D": ["D", "E", "F#", "G", "A", "B"],
-                "F": ["F", "G", "A", "Bb", "C", "D"],
+                "F": ["F", "G", "A", "Bb", "C"],
                 "G": ["G", "A", "B", "C", "D", "E"],
                 "MC": ["F", "G", "A", "B", "C"]
             };
             const customRightNotesMapping = {
                 "C": ["C", "D", "E", "F", "G", "A"],
                 "D": ["D", "E", "F#", "G", "A", "B"],
-                "F": ["F", "G", "A", "Bb", "C", "D"],
+                "F": ["F", "G", "A", "Bb", "D"],
                 "G": ["G", "A", "B", "C", "D", "E"],
                 "MC": ["F", "G", "A", "B", "C"]
             };
