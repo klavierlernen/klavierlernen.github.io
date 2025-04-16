@@ -865,7 +865,7 @@
     const rangeNotes = {
       "C": ["c", "d", "e", "f", "g"],
       "D": ["d", "e", "f#", "g", "a"],
-      "F": ["f", "g", "a", "b", "c"],
+      "F": ["f", "g", "a", "bb", "c"],
       "G": ["g", "a", "b", "c", "d"],
       "MC": ["c", "d", "e", "f", "g"]
     };
@@ -1823,14 +1823,8 @@ const generateSeries = () => {
       let noteOctave;
       if (currentRange === "MC") {
         noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
-        if (currentRange === "F") {
-          if (chosenNote.endsWith("1")) noteOctave = 3;
-          else if (chosenNote.endsWith("2")) noteOctave = 4;
-          else if (seriesClef === "bass") noteOctave = 3;
-          else noteOctave = 4;
-        } else {
-          noteOctave = seriesClef === "bass" ? 3 : 4;
-        }
+      } else {
+        noteOctave = seriesClef === "bass" ? 3 : 4;
       }
       let accidental = undefined;
       if (["F", "G"].includes(currentRange)) {
@@ -2028,23 +2022,12 @@ const drawSeries = () => {
   }
 };
     
-    const isEnharmonicEquivalent = (noteA, noteB) => {
-      const enharmonicMap = {
-        "a#": "bb", "bb": "a#",
-        "c#": "db", "db": "c#",
-        "d#": "eb", "eb": "d#",
-        "f#": "gb", "gb": "f#",
-        "g#": "ab", "ab": "g#"
-      };
-      return noteA === noteB || enharmonicMap[noteA] === noteB;
-    };
-
     const isNoteCorrect = (midiInfo) => {
       const expected = currentSeriesSingle[seriesCounter];
       if (!expected) return false;
       const playedNote = midiInfo.note.toLowerCase();
       const expectedNote = expected.note.toLowerCase();
-      return isEnharmonicEquivalent(playedNote, expectedNote) && midiInfo.octave === expected.octave;
+      return playedNote === expectedNote && midiInfo.octave === expected.octave;
     };
     const removeFromErrorNotes = (noteObj) => {
       errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
@@ -2607,14 +2590,14 @@ const drawSeries = () => {
             const customLeftNotesMapping = {
                 "C": ["C", "D", "E", "F", "G", "A"],
                 "D": ["D", "E", "F#", "G", "A", "B"],
-                "F": ["F", "G", "A", "Bb", "C1"]
+                "F": ["F", "G", "A", "Bb", "C", "D"],
                 "G": ["G", "A", "B", "C", "D", "E"],
                 "MC": ["F", "G", "A", "H", "C"]
             };
             const customRightNotesMapping = {
                 "C": ["C", "D", "E", "F", "G", "A"],
                 "D": ["D", "E", "F#", "G", "A", "B"],
-                "F": ["F1", "G1", "A1", "Bb", "C2"]
+                "F": ["F", "G", "A", "Bb", "C", "D"],
                 "G": ["G", "A", "B", "C", "D", "E"],
                 "MC": ["F", "G", "A", "H", "C"]
             };
@@ -2745,7 +2728,7 @@ const drawSeries = () => {
             const customLeftNotesMapping = {
                 "C": ["C", "D", "E", "F", "G", "A"],
                 "D": ["D", "E", "F#", "G", "A", "B"],
-                "F": ["F", "G", "A", "Bb", "C"],
+                "F": ["F", "G", "A", "Bb", "C", "D"],
                 "G": ["G", "A", "B", "C", "D", "E"],
                 "MC": ["F", "G", "A", "B", "C"]
             };
