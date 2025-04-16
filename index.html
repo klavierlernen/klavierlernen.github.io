@@ -1592,6 +1592,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
 
       if (storedName !== null) {
         welcomeMessage.innerHTML = `${greeting}, ${storedName || ""}<br> Willkommen zurück.<br>`;
+        welcomeMessage.style.fontSize = "2em";
         setTimeout(proceedToMainScreen, 5000);
       } else {
         document.getElementById("mainContent").style.opacity = "0";
@@ -1639,6 +1640,14 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
         button.style.backgroundColor = "#fff";
         button.style.color = "#000";
         button.style.border = "2px solid #000";
+        button.disabled = true;
+        button.style.opacity = "0.8";
+        
+        input.addEventListener("input", () => {
+          const hasText = input.value.trim().length > 0;
+          button.disabled = !hasText;
+          button.style.opacity = hasText ? "1" : "0.8";
+        });
 
         const skip = document.createElement("button");
         skip.textContent = "Keinen Namen angeben";
@@ -1795,7 +1804,8 @@ metronomeToggle.addEventListener("click", () => {
       customModeToggle.style.marginTop = "10px";
       settingsPanel.appendChild(customModeToggle);
       customModeToggle.addEventListener("click", () => {
-        document.getElementById("customModeModal").classList.remove("hidden");
+        const modal = document.getElementById("customModeModal");
+        modal.classList.toggle("hidden");
       });
       
 document.getElementById("timerContainer").addEventListener("click", () => {
