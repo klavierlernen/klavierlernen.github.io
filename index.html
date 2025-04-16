@@ -1433,6 +1433,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       }
     };
     const cycleRange = () => {
+      window.customModeSettings = null;
       currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
       currentRange = rangeArray[currentRangeIndex];
       document.getElementById("clefTitle").textContent = currentRange + "-Lage";
@@ -1772,6 +1773,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
           selectedMode = handOptions[currentHandIndex].mode;
           handToggle.textContent = handOptions[currentHandIndex].symbol;
           handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
+          window.customModeSettings = null;
           generateSeries();
         }
       });
