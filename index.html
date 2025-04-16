@@ -1823,8 +1823,14 @@ const generateSeries = () => {
       let noteOctave;
       if (currentRange === "MC") {
         noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
-      } else {
-        noteOctave = seriesClef === "bass" ? 3 : 4;
+        if (currentRange === "F") {
+          if (chosenNote.endsWith("1")) noteOctave = 3;
+          else if (chosenNote.endsWith("2")) noteOctave = 4;
+          else if (seriesClef === "bass") noteOctave = 3;
+          else noteOctave = 4;
+        } else {
+          noteOctave = seriesClef === "bass" ? 3 : 4;
+        }
       }
       let accidental = undefined;
       if (["F", "G"].includes(currentRange)) {
@@ -2601,14 +2607,14 @@ const drawSeries = () => {
             const customLeftNotesMapping = {
                 "C": ["C", "D", "E", "F", "G", "A"],
                 "D": ["D", "E", "F#", "G", "A", "B"],
-                "F": ["F1", "G1", "A1", "Bb", "C2"],
+                "F": ["F", "G", "A", "Bb", "C1"]
                 "G": ["G", "A", "B", "C", "D", "E"],
                 "MC": ["F", "G", "A", "H", "C"]
             };
             const customRightNotesMapping = {
                 "C": ["C", "D", "E", "F", "G", "A"],
                 "D": ["D", "E", "F#", "G", "A", "B"],
-                "F": ["F", "G", "A", "Bb", "C1"],
+                "F": ["F1", "G1", "A1", "Bb", "C2"]
                 "G": ["G", "A", "B", "C", "D", "E"],
                 "MC": ["F", "G", "A", "H", "C"]
             };
