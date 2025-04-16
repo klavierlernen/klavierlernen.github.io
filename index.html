@@ -2019,12 +2019,7 @@ const generateSeries = () => {
       }
       const randomIndex = Math.floor(Math.random() * customNotes.length);
       const chosenNote = customNotes[randomIndex];
-      let noteOctave;
-      if (currentRange === "MC") {
-        noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
-      } else {
-        noteOctave = seriesClef === "bass" ? 3 : 4;
-      }
+      let noteOctave = seriesClef === "bass" ? 3 : 4;
       let accidental = undefined;
       if (["F", "G"].includes(currentRange)) {
         if (currentRange === "F" && chosenNote.toLowerCase() === "bb") {
@@ -2085,12 +2080,7 @@ const generateSeries = () => {
       }
       const randomIndex = Math.floor(Math.random() * defaultNotes.length);
       const chosenNote = defaultNotes[randomIndex];
-      let noteOctave;
-      if (currentRange === "MC") {
-        noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
-      } else {
-        noteOctave = seriesClef === "bass" ? 3 : 4;
-      }
+      let noteOctave = seriesClef === "bass" ? 3 : 4;
       let accidental = undefined;
       if (["F", "G"].includes(currentRange)) {
         if (currentRange === "F" && chosenNote.toLowerCase() === "bb") {
