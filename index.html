@@ -603,6 +603,7 @@
       });
       let elapsedTimer = 0;
       let cachedUserRank = null;
+      let kidsMode = false;
       
       function updateUserPlacement(valueElem, data) {
         const sorted = data.sort((a, b) => {
@@ -1872,6 +1873,18 @@ metronomeToggle.addEventListener("click", () => {
   }
 });
 
+const kidsModeToggle = document.createElement("span");
+kidsModeToggle.id = "kidsModeToggle";
+kidsModeToggle.textContent = "🐝";
+kidsModeToggle.style.cursor = "pointer";
+kidsModeToggle.style.opacity = "0.5";
+settingsPanel.appendChild(kidsModeToggle);
+
+kidsModeToggle.addEventListener("click", () => {
+  kidsMode = !kidsMode;
+  kidsModeToggle.style.opacity = kidsMode ? "1" : "0.5";
+  drawSeries();
+});
 
       const customModeToggle = document.createElement("span");
       customModeToggle.id = "customModeToggle";
@@ -2100,17 +2113,23 @@ const generateSeries = () => {
 };
                                             
 const drawSeries = () => {
+  const noteAnimals = {
+    "c": "🐱", "d": "🐳", "e": "🐷", "f": "🐟",
+    "g": "🐤", "a": "🦊", "b": "🐝", "bb": "🦁",
+    "f#": "🐙", "g#": "🐵", "d#": "🐭"
+  };
+
   const notationDiv = document.getElementById("notation");
   const baseWidth = 600;
   const ratio = window.devicePixelRatio || 1;
   const height = 300 * ratio;
   notationDiv.style.display = "block";
   notationDiv.innerHTML = "";
-  
-  // Erzeuge den Renderer und passe Größe an
+
   const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
-  const zoomFactor = 1.4; // Zoom-Faktor anpassen
+  const zoomFactor = 1.4;
   renderer.resize(baseWidth * ratio * zoomFactor, height * zoomFactor);
+
   const svg = notationDiv.querySelector("svg");
   if (svg) {
     svg.setAttribute("width", baseWidth * zoomFactor);
@@ -2118,80 +2137,81 @@ const drawSeries = () => {
     svg.style.transform = `scale(${zoomFactor})`;
     svg.style.transformOrigin = "top left";
   }
+
   const context = renderer.getContext();
-  
-  // Erzeuge den Stave
   const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
   if (currentSeriesSingle.length) {
     stave.addClef(currentSeriesSingle[0].clef);
   }
-  
-  // Füge Key Signature (Vorzeichen) hinzu, je nach aktueller Lage
-  if (currentRange === "D") {
-    stave.addKeySignature("G");
-  } else if (currentRange === "F") {
-    stave.addKeySignature("F");
-  } else if (currentRange === "G") {
-    stave.addKeySignature("G");
-  }
-  
+
+  if (currentRange === "D") stave.addKeySignature("G");
+  else if (currentRange === "F") stave.addKeySignature("F");
+  else if (currentRange === "G") stave.addKeySignature("G");
+
   stave.setContext(context).draw();
-  
-  // Definiere noteDuration aus den benutzerdefinierten Einstellungen (Standard: "q")
+
   const noteDuration = (window.customModeSettings && window.customModeSettings.noteValue) || "q";
-  
-  // Erzeuge die StaveNotes für die Serie (Notennamen bleiben unverändert, da die Vorzeichen über die Key Signature definiert werden)
   const noteOrder = ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"];
+
   const staveNotes = currentSeriesSingle.map(item => {
-    let noteName = item.note.toLowerCase();
-    // Falls wir nicht in den speziellen Lagen arbeiten, ersetze Unicode-Vorzeichen durch ASCII
-    if (!("D,F,G".includes(currentRange))) {
-      noteName = noteName.replace(/♯/g, "#").replace(/♭/g, "b");
-    }
+    let noteName = item.note.toLowerCase().replace(/♯/g, "#").replace(/♭/g, "b");
     const key = noteName + "/" + item.octave;
     const staveNote = new Vex.Flow.StaveNote({
       clef: item.clef,
       keys: [key],
       duration: noteDuration
+      
     });
+
     staveNote.setStyle({ fillStyle: item.color, strokeStyle: item.color });
-  
+
     const noteIndex = noteOrder.indexOf(noteName);
     const midiNumber = (item.octave + 1) * 12 + noteIndex;
-    let threshold;
-    if (item.clef === "treble") {
-      threshold = 71;
-    } else if (item.clef === "bass") {
-      threshold = 50;
-    } else {
-      threshold = 71;
-    }
-    if (midiNumber >= threshold) {
-      staveNote.setStemDirection(-1);
-    } else {
-      staveNote.setStemDirection(1);
-    }
-  
+    const threshold = item.clef === "bass" ? 50 : 71;
+    staveNote.setStemDirection(midiNumber >= threshold ? -1 : 1);
+
     return staveNote;
   });
-  
-  // Erstelle den Voice und erlaube unvollständige Stimmen
+
   const voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
   voice.setStrict(false);
   staveNotes.forEach(note => voice.addTickable(note));
   new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
   voice.draw(context, stave);
-  
-  // Dreieck-Indikator für die aktuell abgefragte Note
+
+  // 🐝 Kinder-Modus: Emojis auf die Notenköpfe setzen
+  if (kidsMode) {
+    const svg = notationDiv.querySelector("svg");
+    if (!svg) return;
+
+    svg.querySelectorAll(".note-emoji").forEach(el => el.remove());
+
+    staveNotes.forEach((note, index) => {
+      const coords = note.getModifierStartXY(Vex.Flow.Modifier.Position.LEFT, 0);
+      const emoji = noteAnimals[currentSeriesSingle[index].note.toLowerCase()] || "❓";
+      const centerX = coords.x + 8;
+      const centerY = coords.y - 2;
+
+      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      text.setAttribute("x", centerX);
+      text.setAttribute("y", centerY); // kleiner Feintuning-Wert
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("dominant-baseline", "middle");
+      text.setAttribute("font-size", "30"); // etwas größer als Notenkopf
+      text.setAttribute("class", "note-emoji");
+      text.textContent = emoji;
+      svg.appendChild(text);
+    });
+  }
+
+  // Dreieck-Markierung für aktive Note
   if (seriesCounter < staveNotes.length) {
     const activeNote = staveNotes[seriesCounter];
     if (activeNote && typeof activeNote.getBoundingBox === 'function') {
       const bbox = activeNote.getBoundingBox();
       if (bbox) {
-        // Berechne die Mitte der Note
         const noteX = bbox.getX() + bbox.getW() / 2;
         const triangleHeight = 5;
-        // Positioniere das Dreieck oberhalb des Notensystems mit ca. 20px Abstand
         const noteY = stave.getY() - 1 - triangleHeight;
         const triangleWidth = 10;
         const p1 = `${noteX - triangleWidth / 2},${noteY}`;
@@ -2204,8 +2224,7 @@ const drawSeries = () => {
       }
     }
   }
-  
-  // Falls Achtelnoten gewählt wurden, erzeugen wir Beams
+
   if (noteDuration === "8") {
     const beams = Vex.Flow.Beam.generateBeams(staveNotes);
     beams.forEach(beam => beam.setContext(context).draw());
@@ -2284,7 +2303,17 @@ const drawSeries = () => {
           const convertedNote = (rawNote === "a#") ? "bb" : rawNote;
           return { note: convertedNote, octave: octave };
         })();
-        const playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note) + midiInfo.octave;
+    let playedNoteDisplay;
+    if (kidsMode) {
+      const emojiMap = {
+        "c": "🐱", "d": "🐳", "e": "🐷", "f": "🐟",
+        "g": "🐤", "a": "🦊", "b": "🐝", "bb": "🦁",
+        "f#": "🐙", "g#": "🐵", "d#": "🐭"
+      };
+      playedNoteDisplay = emojiMap[midiInfo.note.toLowerCase()] || "❓";
+    } else {
+      playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note) + midiInfo.octave;
+    }
         const noteDisplay = document.getElementById("noteNameDisplay");
         totalAttempts++;
         
@@ -2329,11 +2358,22 @@ const drawSeries = () => {
           currentSeriesSingle[seriesCounter].color = "red";
           errorNotes.push(currentSeriesSingle[seriesCounter]);
           addCircle("negative");
-          if (noteDisplay) {
-            const correctRaw = currentSeriesSingle[seriesCounter].note;
-            const correctDisplay = (correctRaw === "b" ? "h" : correctRaw) + currentSeriesSingle[seriesCounter].octave;
+        if (noteDisplay) {
+          const correctRaw = currentSeriesSingle[seriesCounter].note;
+          const correctDisplay = (correctRaw === "b" ? "h" : correctRaw) + currentSeriesSingle[seriesCounter].octave;
+          if (kidsMode) {
+            const emojiMap = {
+              "c": "🐱", "d": "🐳", "e": "🐷", "f": "🐟",
+              "g": "🐤", "a": "🦊", "b": "🐝", "bb": "🦁",
+              "f#": "🐙", "g#": "🐵", "d#": "🐭"
+            };
+            const playedEmoji = emojiMap[midiInfo.note.toLowerCase()] || "❓";
+            const correctEmoji = emojiMap[correctRaw.toLowerCase()] || "❓";
+            noteDisplay.innerHTML = '<span style="color:red;">Du hast ' + playedEmoji + ' gespielt, aber es muss ' + correctEmoji + ' sein.</span>';
+          } else {
             noteDisplay.innerHTML = '<span style="color:red;">' + playedNoteDisplay + '</span> <span style="color:green;">' + correctDisplay + '</span>';
           }
+        }
           if (!unlimitedLives) {
             hearts--;
             updateHeartsDisplay();
