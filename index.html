@@ -1592,6 +1592,80 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
 
       if (storedName !== null) {
         welcomeMessage.innerHTML = `${greeting}, ${storedName || ""}<br> Willkommen zurück.<br>`;
+        welcomeMessage.style.cursor = "pointer";
+        welcomeMessage.addEventListener("click", () => {
+          const storedName = localStorage.getItem("userName");
+          if (storedName !== null) {
+            const nameOverlay = document.createElement("div");
+            nameOverlay.id = "nameOverlay";
+            nameOverlay.style.position = "fixed";
+            nameOverlay.style.top = "0";
+            nameOverlay.style.left = "0";
+            nameOverlay.style.width = "100%";
+            nameOverlay.style.height = "100%";
+            nameOverlay.style.backgroundColor = "rgba(255,255,255,0.95)";
+            nameOverlay.style.display = "flex";
+            nameOverlay.style.justifyContent = "center";
+            nameOverlay.style.alignItems = "center";
+            nameOverlay.style.zIndex = "9999";
+
+            const modal = document.createElement("div");
+            modal.style.background = "#fff";
+            modal.style.padding = "20px";
+            modal.style.border = "2px solid #000";
+            modal.style.borderRadius = "10px";
+            modal.style.textAlign = "center";
+
+            const label = document.createElement("label");
+            label.textContent = "Wie heißt du?";
+            label.style.fontSize = "1.5em";
+
+            const input = document.createElement("input");
+            input.type = "text";
+            input.value = storedName;
+            input.style.display = "block";
+            input.style.margin = "15px auto";
+            input.style.fontSize = "1.2em";
+            input.style.padding = "5px";
+
+            const button = document.createElement("button");
+            button.textContent = "Speichern";
+            button.style.padding = "10px 20px";
+            button.style.border = "2px solid #000";
+            button.style.borderRadius = "5px";
+            button.style.backgroundColor = "#fff";
+            button.style.color = "#000";
+            button.style.cursor = "pointer";
+
+            const skip = document.createElement("button");
+            skip.textContent = "Keinen Namen anzeigen";
+            skip.style.padding = "10px 20px";
+            skip.style.border = "2px solid #000";
+            skip.style.borderRadius = "5px";
+            skip.style.backgroundColor = "#fff";
+            skip.style.color = "#000";
+            skip.style.cursor = "pointer";
+
+            button.addEventListener("click", () => {
+              localStorage.setItem("userName", input.value.trim());
+              document.body.removeChild(nameOverlay);
+              location.reload();
+            });
+
+            skip.addEventListener("click", () => {
+              localStorage.setItem("userName", "");
+              document.body.removeChild(nameOverlay);
+              location.reload();
+            });
+
+            modal.appendChild(label);
+            modal.appendChild(input);
+            modal.appendChild(button);
+            modal.appendChild(skip);
+            nameOverlay.appendChild(modal);
+            document.body.appendChild(nameOverlay);
+          }
+        });
         welcomeMessage.style.fontSize = "2em";
         setTimeout(proceedToMainScreen, 5000);
       } else {
