@@ -881,7 +881,7 @@
     let responseTimes = [];
     let lastNoteTimestamp = Date.now();
     let appStartTime = Date.now();
-    let sessionCounter = 5; // 5 korrekte Noten erforderlich
+    let sessionCounter = Number(localStorage.getItem("sessionCounter")) || 5; // 5 korrekte Noten erforderlich
     let sessionPaused = false;
     let scoreRecorded = false;
     let sessionCount = 0;
@@ -1460,6 +1460,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       }
     };
     /* Animation (Hintergrund-Kreise) */
+    let blobsEnabled = true;
     let circles = [];
     const gradients = {
       "green": ["rgba(0,255,0,1)", "rgba(0,255,0,0.3)", "rgba(255,255,255,0)"],
@@ -1474,6 +1475,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
     const positiveColors = ["green", "blue", "pink", "yellow"];
     const negativeColors = ["orange", "violet", "crimson"];
     function addCircle(type) {
+      if (!blobsEnabled) return;
       const canvas = document.getElementById("animationCanvas");
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
@@ -1576,18 +1578,103 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       window.addEventListener("resize", resizeCanvas);
       animateCircles();
       resetInactivityTimer();
-      const now = new Date();
-      const hour = now.getHours();
+      const storedName = localStorage.getItem("userName");
+      const welcomeMessage = document.getElementById("welcomeMessage");
+      const hour = new Date().getHours();
       let greeting;
       if (hour >= 6 && hour < 12) {
-        greeting = "Guten Morgen!";
+        greeting = "Guten Morgen";
       } else if (hour >= 12 && hour < 17) {
-        greeting = "Guten Tag!";
+        greeting = "Guten Tag";
       } else {
-        greeting = "Guten Abend!";
+        greeting = "Guten Abend";
       }
-      document.getElementById("welcomeMessage").innerHTML = greeting + "<br>Schön, dass du da bist!";
-      setTimeout(proceedToMainScreen, 5000);
+
+      if (storedName !== null) {
+        welcomeMessage.innerHTML = `${greeting}, ${storedName || ""}<br> Willkommen zurück.<br>`;
+        setTimeout(proceedToMainScreen, 5000);
+      } else {
+        document.getElementById("mainContent").style.opacity = "0";
+        document.getElementById("timerContainer").style.opacity = "0";
+        document.getElementById("settingsPanel").style.opacity = "0";
+
+        const nameOverlay = document.createElement("div");
+        nameOverlay.id = "nameOverlay";
+        nameOverlay.style.position = "fixed";
+        nameOverlay.style.top = "0";
+        nameOverlay.style.left = "0";
+        nameOverlay.style.width = "100%";
+        nameOverlay.style.height = "100%";
+        nameOverlay.style.backgroundColor = "rgba(255,255,255,0.95)";
+        nameOverlay.style.display = "flex";
+        nameOverlay.style.justifyContent = "center";
+        nameOverlay.style.alignItems = "center";
+        nameOverlay.style.zIndex = "9999";
+
+        const modal = document.createElement("div");
+        modal.style.background = "#fff";
+        modal.style.padding = "20px";
+        modal.style.border = "2px solid #000";
+        modal.style.borderRadius = "10px";
+        modal.style.textAlign = "center";
+
+        const label = document.createElement("label");
+        label.textContent = "Wie heißt du?";
+        label.style.fontSize = "1.5em";
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.style.display = "block";
+        input.style.margin = "15px auto";
+        input.style.fontSize = "1.2em";
+        input.style.padding = "5px";
+
+        const button = document.createElement("button");
+        button.textContent = "Weiter";
+        button.style.fontSize = "1em";
+        button.style.marginRight = "10px";
+        button.style.padding = "10px 20px";
+        button.style.border = "none";
+        button.style.borderRadius = "5px";
+        button.style.backgroundColor = "#fff";
+        button.style.color = "#000";
+        button.style.border = "2px solid #000";
+
+        const skip = document.createElement("button");
+        skip.textContent = "Keinen Namen angeben";
+        skip.style.fontSize = "1em";
+        skip.style.padding = "10px 20px";
+        skip.style.border = "none";
+        skip.style.borderRadius = "5px";
+        skip.style.backgroundColor = "#fff";
+        skip.style.color = "#000";
+        skip.style.border = "2px solid #000";
+
+        button.addEventListener("click", () => {
+          localStorage.setItem("userName", input.value.trim());
+          document.body.removeChild(nameOverlay);
+          proceedToMainScreen();
+          document.getElementById("mainContent").style.opacity = "1";
+          document.getElementById("timerContainer").style.opacity = "1";
+          document.getElementById("settingsPanel").style.opacity = "1";
+        });
+
+        skip.addEventListener("click", () => {
+          localStorage.setItem("userName", "");
+          document.body.removeChild(nameOverlay);
+          proceedToMainScreen();
+          document.getElementById("mainContent").style.opacity = "1";
+          document.getElementById("timerContainer").style.opacity = "1";
+          document.getElementById("settingsPanel").style.opacity = "1";
+        });
+
+        modal.appendChild(label);
+        modal.appendChild(input);
+        modal.appendChild(button);
+        modal.appendChild(skip);
+        nameOverlay.appendChild(modal);
+        document.body.appendChild(nameOverlay);
+      }
       
       const settingsPanel = document.getElementById("settingsPanel");
       // Handtoggle
@@ -1616,6 +1703,16 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
         generateSeries();
       });
       
+      const blobToggle = document.createElement("span");
+      blobToggle.id = "blobToggle";
+      blobToggle.textContent = "🔆";
+      blobToggle.style.cursor = "pointer";
+      settingsPanel.appendChild(blobToggle);
+
+      blobToggle.addEventListener("click", () => {
+        blobsEnabled = !blobsEnabled;
+        blobToggle.textContent = blobsEnabled ? "🔆" : "🔅";
+      });
       
       // Pausen-Button
       function blinkGreenBackground() {
@@ -1731,6 +1828,7 @@ document.getElementById("timerContainer").addEventListener("click", () => {
         const num = parseInt(input.value, 10);
         if (!isNaN(num) && num > 0) {
           sessionCounter = num;
+          localStorage.setItem("sessionCounter", sessionCounter);
           updateTimer();
           if (sessionCounter === 0 && !sessionPaused) {
             startPauseCountdown();
@@ -1758,6 +1856,8 @@ document.getElementById("timerContainer").addEventListener("click", () => {
       
       autoSelectMode();
       generateSeries();
+      
+      
       
       updateHeartsDisplay();
       document.addEventListener("keydown", (event) => {
