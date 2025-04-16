@@ -2369,7 +2369,7 @@ const drawSeries = () => {
             };
             const playedEmoji = emojiMap[midiInfo.note.toLowerCase()] || "❓";
             const correctEmoji = emojiMap[correctRaw.toLowerCase()] || "❓";
-            noteDisplay.innerHTML = '<span style="color:red;">Du hast ' + playedEmoji + ' gespielt, aber es muss ' + correctEmoji + ' sein.</span>';
+            noteDisplay.innerHTML = '<span style="color:red;">' + playedEmoji + ' hätte ' + correctEmoji + ' sein müssen</span>';
           } else {
             noteDisplay.innerHTML = '<span style="color:red;">' + playedNoteDisplay + '</span> <span style="color:green;">' + correctDisplay + '</span>';
           }
