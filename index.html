@@ -589,8 +589,10 @@
     /* Carousel Hint Speech Bubble */
     .speech-bubble {
       position: absolute;
-      /* bottom: 140px; */
-      /* right: 20px; */
+      right: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+      margin-right: 10px;
       width: 180px;
       padding: 10px;
       background: #fff;
@@ -616,9 +618,25 @@
       cursor: pointer;
       font-weight: bold;
     }
-    /* Carousel container */
-    #carouselContainer { position: relative; width: 40px; height: 40px; overflow: hidden; margin: 0 auto; }
-    #carouselContainer span { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; }
+    /* Carousel container and track */
+    #carouselContainer {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      overflow: hidden;
+      margin: 0 auto;
+    }
+    #carouselTrack {
+      display: flex;
+      height: 100%;
+      transition: transform 0.3s ease;
+    }
+    .carouselItem {
+      flex: 0 0 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
   </style>
   <script>
    
@@ -1985,19 +2003,25 @@ document.getElementById("timerContainer").addEventListener("click", () => {
       settingsPanel.appendChild(darkModeToggle);
       darkModeToggle.addEventListener("click", toggleDarkMode);
 
-      // Improved carousel: group toggles and enable swipe on container
+      // Animated carousel using a sliding track
       const carouselContainer = document.createElement('div');
       carouselContainer.id = 'carouselContainer';
+      const carouselTrack = document.createElement('div');
+      carouselTrack.id = 'carouselTrack';
+      carouselContainer.appendChild(carouselTrack);
       settingsPanel.appendChild(carouselContainer);
       const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle];
-      carouselButtons.forEach(btn => carouselContainer.appendChild(btn));
-      let currentCarouselIndex = 0;
-      function showCarouselButton() {
-        carouselButtons.forEach((btn, idx) => {
-          btn.style.display = idx === currentCarouselIndex ? 'block' : 'none';
-        });
+      carouselButtons.forEach(btn => {
+        const item = document.createElement('div');
+        item.className = 'carouselItem';
+        item.appendChild(btn);
+        carouselTrack.appendChild(item);
+      });
+      let currentIndex = 0;
+      function updateCarousel() {
+        carouselTrack.style.transform = `translateX(-${currentIndex * 100}%)`;
       }
-      showCarouselButton();
+      updateCarousel();
       let startX = null;
       carouselContainer.addEventListener('touchstart', e => {
         startX = e.touches[0].clientX;
@@ -2007,42 +2031,23 @@ document.getElementById("timerContainer").addEventListener("click", () => {
         if (startX !== null) {
           const deltaX = endX - startX;
           if (deltaX < -30) {
-            currentCarouselIndex = (currentCarouselIndex + 1) % carouselButtons.length;
+            currentIndex = (currentIndex + 1) % carouselButtons.length;
           } else if (deltaX > 30) {
-            currentCarouselIndex = (currentCarouselIndex - 1 + carouselButtons.length) % carouselButtons.length;
+            currentIndex = (currentIndex - 1 + carouselButtons.length) % carouselButtons.length;
           }
-          showCarouselButton();
+          updateCarousel();
         }
         startX = null;
       });
 
-      // Cookie helpers
-      function setCookie(name, value, days) {
-        const expires = new Date(Date.now() + days * 864e5).toUTCString();
-        document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
-      }
-      function getCookie(name) {
-        return document.cookie.split('; ').reduce((r, v) => {
-          const parts = v.split('=');
-          return parts[0] === name ? decodeURIComponent(parts[1]) : r;
-        }, '');
-      }
-
       // Speech bubble hint for carousel, only once
-      if (!getCookie('carouselHintShown')) {
+      if (!localStorage.getItem('carouselHintShown')) {
         const bubble = document.createElement('div');
         bubble.className = 'speech-bubble';
         bubble.innerHTML = '<span class="close-btn">×</span>Wische hier, um weitere Funktionen zu sehen!';
-        document.body.appendChild(bubble);
-        // Position bubble at the same vertical level as the help button
-        const pauseBtn = document.getElementById('pauseButton');
-        if (pauseBtn) {
-          const rect = pauseBtn.getBoundingClientRect();
-          bubble.style.top = `${rect.top}px`;
-          bubble.style.left = `${rect.left - bubble.offsetWidth - 10}px`;
-        }
+        carouselContainer.appendChild(bubble);
         bubble.querySelector('.close-btn').addEventListener('click', () => {
-          setCookie('carouselHintShown', 'true', 365);
+          localStorage.setItem('carouselHintShown', 'true');
           bubble.remove();
         });
       }
