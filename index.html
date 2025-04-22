@@ -586,6 +586,39 @@
      .hidden {
          display: none !important;
      }
+    /* Carousel Hint Speech Bubble */
+    .speech-bubble {
+      position: absolute;
+      /* bottom: 140px; */
+      /* right: 20px; */
+      width: 180px;
+      padding: 10px;
+      background: #fff;
+      border: 2px solid #000;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      font-size: 0.9em;
+      z-index: 1001;
+    }
+    .speech-bubble::after {
+      content: "";
+      position: absolute;
+      bottom: -10px;
+      right: 30px;
+      border-width: 10px 10px 0;
+      border-style: solid;
+      border-color: #fff transparent;
+    }
+    .speech-bubble .close-btn {
+      position: absolute;
+      top: 2px;
+      right: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    /* Carousel container */
+    #carouselContainer { position: relative; width: 40px; height: 40px; overflow: hidden; margin: 0 auto; }
+    #carouselContainer span { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: none; }
   </style>
   <script>
    
@@ -1952,36 +1985,67 @@ document.getElementById("timerContainer").addEventListener("click", () => {
       settingsPanel.appendChild(darkModeToggle);
       darkModeToggle.addEventListener("click", toggleDarkMode);
 
-      // Carousel logic: show one button at a time, swipe to cycle
-      // Place after all four buttons are appended to settingsPanel
-      // (pauseButton, blobToggle, kidsModeToggle, darkModeToggle)
-      const menuButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle];
-      let currentMenuIndex = 0;
-      function showMenuButton() {
-        menuButtons.forEach((btn, idx) => {
-          btn.style.display = idx === currentMenuIndex ? 'inline-block' : 'none';
+      // Improved carousel: group toggles and enable swipe on container
+      const carouselContainer = document.createElement('div');
+      carouselContainer.id = 'carouselContainer';
+      settingsPanel.appendChild(carouselContainer);
+      const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle];
+      carouselButtons.forEach(btn => carouselContainer.appendChild(btn));
+      let currentCarouselIndex = 0;
+      function showCarouselButton() {
+        carouselButtons.forEach((btn, idx) => {
+          btn.style.display = idx === currentCarouselIndex ? 'block' : 'none';
         });
       }
-      showMenuButton();
-
+      showCarouselButton();
       let startX = null;
-      settingsPanel.addEventListener('touchstart', e => {
+      carouselContainer.addEventListener('touchstart', e => {
         startX = e.touches[0].clientX;
       });
-      settingsPanel.addEventListener('touchend', e => {
+      carouselContainer.addEventListener('touchend', e => {
         const endX = e.changedTouches[0].clientX;
         if (startX !== null) {
           const deltaX = endX - startX;
           if (deltaX < -30) {
-            currentMenuIndex = (currentMenuIndex + 1) % menuButtons.length;
-            showMenuButton();
+            currentCarouselIndex = (currentCarouselIndex + 1) % carouselButtons.length;
           } else if (deltaX > 30) {
-            currentMenuIndex = (currentMenuIndex - 1 + menuButtons.length) % menuButtons.length;
-            showMenuButton();
+            currentCarouselIndex = (currentCarouselIndex - 1 + carouselButtons.length) % carouselButtons.length;
           }
+          showCarouselButton();
         }
         startX = null;
       });
+
+      // Cookie helpers
+      function setCookie(name, value, days) {
+        const expires = new Date(Date.now() + days * 864e5).toUTCString();
+        document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
+      }
+      function getCookie(name) {
+        return document.cookie.split('; ').reduce((r, v) => {
+          const parts = v.split('=');
+          return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+        }, '');
+      }
+
+      // Speech bubble hint for carousel, only once
+      if (!getCookie('carouselHintShown')) {
+        const bubble = document.createElement('div');
+        bubble.className = 'speech-bubble';
+        bubble.innerHTML = '<span class="close-btn">×</span>Wische hier, um weitere Funktionen zu sehen!';
+        document.body.appendChild(bubble);
+        // Position bubble at the same vertical level as the help button
+        const pauseBtn = document.getElementById('pauseButton');
+        if (pauseBtn) {
+          const rect = pauseBtn.getBoundingClientRect();
+          bubble.style.top = `${rect.top}px`;
+          bubble.style.left = `${rect.left - bubble.offsetWidth - 10}px`;
+        }
+        bubble.querySelector('.close-btn').addEventListener('click', () => {
+          setCookie('carouselHintShown', 'true', 365);
+          bubble.remove();
+        });
+      }
       // Scoreboard-Toggle
       
       autoSelectMode();
