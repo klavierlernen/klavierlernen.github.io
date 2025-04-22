@@ -286,12 +286,6 @@
       /* Animation/Übergänge beim Drücken */
       transition: transform 0.2s, box-shadow 0.2s, opacity 0.5s ease;
     }
-    #settingsPanel:active {
-      transform: translateY(6px);
-      box-shadow:
-        0 0 0 #abc9ab,
-        0 6px 6px rgba(0,0,0,0.2);
-    }
 
     /* ================================= */
     /* 3D-Stil für das Lagen-Rechteck    */
@@ -588,11 +582,7 @@
      }
     /* Carousel Hint Speech Bubble */
     .speech-bubble {
-      position: absolute;
-      right: 100%;
-      top: 50%;
-      transform: translateY(-50%);
-      margin-right: 10px;
+      position: fixed;
       width: 180px;
       padding: 10px;
       background: #fff;
@@ -605,8 +595,9 @@
     .speech-bubble::after {
       content: "";
       position: absolute;
-      bottom: -10px;
-      right: 30px;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
       border-width: 10px 10px 0;
       border-style: solid;
       border-color: #fff transparent;
@@ -2045,7 +2036,17 @@ document.getElementById("timerContainer").addEventListener("click", () => {
         const bubble = document.createElement('div');
         bubble.className = 'speech-bubble';
         bubble.innerHTML = '<span class="close-btn">×</span>Wische hier, um weitere Funktionen zu sehen!';
-        carouselContainer.appendChild(bubble);
+        document.body.appendChild(bubble);
+        const pauseBtn = document.getElementById('pauseButton');
+        if (pauseBtn) {
+          // Wait one frame so bubble has its dimensions
+          requestAnimationFrame(() => {
+            const rect = pauseBtn.getBoundingClientRect();
+            const bubbleRect = bubble.getBoundingClientRect();
+            bubble.style.top = `${rect.top - bubbleRect.height - 10}px`;
+            bubble.style.left = `${rect.left + (rect.width - bubbleRect.width) / 2}px`;
+          });
+        }
         bubble.querySelector('.close-btn').addEventListener('click', () => {
           localStorage.setItem('carouselHintShown', 'true');
           bubble.remove();
