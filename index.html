@@ -338,6 +338,25 @@
       background: rgba(0, 0, 0, 0.1);
       border-radius: 10px;
     }
+
+    /* Swipe Menu Styles */
+    #swipeMenuContainer {
+      display: flex;
+      overflow: hidden;
+      width: 60px;
+      height: 60px;
+      position: relative;
+    }
+
+    .swipeMenuButton {
+      flex: 0 0 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8em;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
     @keyframes float {
       0% { transform: translateY(0); }
       50% { transform: translateY(-3px); }
@@ -834,16 +853,63 @@
       return Math.floor(Math.random() * 4) + 2;
     }
     
+    // Swipe Menu Setup
     document.addEventListener("DOMContentLoaded", () => {
       const settingsPanel = document.getElementById("settingsPanel");
-      const pauseButton = document.createElement("span");
-      pauseButton.id = "pauseButton";
-      pauseButton.textContent = "🛟";
-      settingsPanel.appendChild(pauseButton);
-
-      pauseButton.addEventListener("click", () => {
-        openHelpWindow();
+      // Remove old individual buttons if present (legacy, for safety)
+      ["pauseButton", "darkModeToggle", "kidsModeToggle", "blobToggle", "metronomeToggle", "customModeToggle"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.remove();
       });
+      // Insert swipe menu container if not already present
+      if (!document.getElementById("swipeMenuContainer")) {
+        const swipeMenu = document.createElement("div");
+        swipeMenu.id = "swipeMenuContainer";
+        swipeMenu.innerHTML = `
+          <div class="swipeMenuButton" data-action="help">🛟</div>
+          <div class="swipeMenuButton" data-action="dark">🌙</div>
+          <div class="swipeMenuButton" data-action="kids">🐝</div>
+          <div class="swipeMenuButton" data-action="blobs">🔆</div>
+        `;
+        settingsPanel.appendChild(swipeMenu);
+      }
+      // Swipe logic
+      let currentSwipeIndex = 0;
+      const swipeButtons = settingsPanel.querySelectorAll(".swipeMenuButton");
+      const swipeContainer = document.getElementById("swipeMenuContainer");
+      function updateSwipeView() {
+        swipeButtons.forEach((btn, index) => {
+          btn.style.transform = `translateX(${(index - currentSwipeIndex) * 100}%)`;
+        });
+      }
+      swipeContainer.addEventListener("touchstart", handleTouchStart, false);
+      swipeContainer.addEventListener("touchmove", handleTouchMove, false);
+      let xDown = null;
+      function handleTouchStart(evt) {
+        xDown = evt.touches[0].clientX;
+      }
+      function handleTouchMove(evt) {
+        if (!xDown) return;
+        let xUp = evt.touches[0].clientX;
+        let xDiff = xDown - xUp;
+        if (Math.abs(xDiff) > 20) {
+          if (xDiff > 0) currentSwipeIndex = (currentSwipeIndex + 1) % swipeButtons.length;
+          else currentSwipeIndex = (currentSwipeIndex - 1 + swipeButtons.length) % swipeButtons.length;
+          updateSwipeView();
+          xDown = null;
+        }
+      }
+      swipeButtons.forEach(btn => {
+        btn.addEventListener("click", () => {
+          switch (btn.dataset.action) {
+            case "help": openHelpWindow(); break;
+            case "dark": toggleDarkMode(); break;
+            case "kids": kidsMode = !kidsMode; drawSeries(); break;
+            case "blobs": blobsEnabled = !blobsEnabled; break;
+          }
+        });
+      });
+      updateSwipeView();
     });
       
     /************** Globale Variablen & Konstanten **************/
@@ -1789,113 +1855,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
         generateSeries();
       });
       
-      const blobToggle = document.createElement("span");
-      blobToggle.id = "blobToggle";
-      blobToggle.textContent = "🔆";
-      blobToggle.style.cursor = "pointer";
-      settingsPanel.appendChild(blobToggle);
-
-      blobToggle.addEventListener("click", () => {
-        blobsEnabled = !blobsEnabled;
-        blobToggle.textContent = blobsEnabled ? "🔆" : "🔅";
-      });
-      
-      // Pausen-Button
-      function blinkGreenBackground() {
-        // Ursprüngliche Hintergrundfarbe speichern (falls gesetzt, sonst Standardwert)
-        const originalBg = document.body.style.backgroundColor || "";
-        // Setze den Hintergrund auf den bekannten Grünton
-        document.body.style.backgroundColor = "LightBlue"; // hier den gewünschten Grünton anpassen
-        // Nach 300 Millisekunden wieder zurücksetzen
-        setTimeout(function() {
-          document.body.style.backgroundColor = originalBg;
-        }, 300);
-      }
-      
-      pauseButton.addEventListener("click", () => {
-        if (!sessionPaused) {
-          saveStatistics();
-          saveButtonEffect();
-          console.log("Statistiken gespeichert und grüner Farbtupfer ausgelöst.");
-        }
-      });
-      
-      
-      
-      // Metronom-Toggle
-      const metronomeToggle = document.createElement("span");
-      metronomeToggle.id = "metronomeToggle";
-      metronomeToggle.textContent = "⏲️";
-      metronomeToggle.style.opacity = "0.5"; // an/off Anzeige: 0.5 = aus, 1 = an
-      settingsPanel.appendChild(metronomeToggle);
-metronomeToggle.addEventListener("click", () => {
-  if (metronomeOn) {
-    stopMetronome();
-    metronomeOn = false;
-    metronomeToggle.style.opacity = "0.5";
-  } else {
-    let existingInput = document.getElementById("bpmInput");
-    if (!existingInput) {
-      let input = document.createElement("input");
-      input.id = "bpmInput";
-      input.type = "number";
-      input.min = "1";
-      input.placeholder = metronomeBPM > 0 ? metronomeBPM : "";
-      input.style.backgroundColor = "white";
-      input.style.border = "1px solid #000";
-      input.style.width = "60px";
-      input.style.fontSize = "1em";
-      input.style.borderRadius = "5px";
-      input.style.outline = "none";
-      input.style.marginLeft = "5px";
-
-      metronomeToggle.parentElement.appendChild(input);
-      input.focus();
-
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          const bpm = Number(input.value);
-          if (bpm > 0) {
-            metronomeBPM = bpm;
-            metronomeInterval = 60000 / bpm;
-            startMetronome();
-            metronomeToggle.style.opacity = "1";
-            metronomeOn = true;
-          }
-          input.remove();
-        }
-      });
-
-      input.addEventListener("blur", () => {
-        input.remove();
-      });
-    }
-  }
-});
-
-const kidsModeToggle = document.createElement("span");
-kidsModeToggle.id = "kidsModeToggle";
-kidsModeToggle.textContent = "🐝";
-kidsModeToggle.style.cursor = "pointer";
-kidsModeToggle.style.opacity = "0.5";
-settingsPanel.appendChild(kidsModeToggle);
-
-kidsModeToggle.addEventListener("click", () => {
-  kidsMode = !kidsMode;
-  kidsModeToggle.style.opacity = kidsMode ? "1" : "0.5";
-  drawSeries();
-});
-
-      const customModeToggle = document.createElement("span");
-      customModeToggle.id = "customModeToggle";
-      customModeToggle.textContent = "🖍️";
-      customModeToggle.style.cursor = "pointer";
-      customModeToggle.style.marginTop = "10px";
-      settingsPanel.appendChild(customModeToggle);
-      customModeToggle.addEventListener("click", () => {
-        const modal = document.getElementById("customModeModal");
-        modal.classList.toggle("hidden");
-      });
+      // The following toggles and buttons are now handled by the swipe menu and are removed.
       
 document.getElementById("timerContainer").addEventListener("click", () => {
   let existingInput = document.getElementById("counterInput");
