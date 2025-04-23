@@ -903,31 +903,22 @@
     }
     
     document.addEventListener("DOMContentLoaded", () => {
-      // Toggle virtual keyboard and notation position on klaviaturButton click
-      const klaviaturButton = document.getElementById("klaviaturButton");
-      if (klaviaturButton) {
-        klaviaturButton.addEventListener("click", () => {
-          const notationElem = document.getElementById("notation");
-          const vk = document.getElementById("virtualKeyboard");
-          if (vk) {
-            // Toggle keyboard visibility
-            const isHidden = vk.style.display === "none";
-            vk.style.display = isHidden ? "block" : "none";
-            // Adjust notation position accordingly
-            if (notationElem) {
-              notationElem.style.top = isHidden ? "55%" : "85%";
-            }
-          }
-        });
-      }
       const settingsPanel = document.getElementById("settingsPanel");
       const pauseButton = document.createElement("span");
       pauseButton.id = "pauseButton";
-      pauseButton.textContent = "🛟";
+      pauseButton.textContent = "🎹";
       settingsPanel.appendChild(pauseButton);
 
       pauseButton.addEventListener("click", () => {
-        openHelpWindow();
+        const notationElem = document.getElementById("notation");
+        const vk = document.getElementById("virtualKeyboard");
+        if (vk) {
+          const isHidden = vk.style.visibility === "hidden";
+          vk.style.visibility = isHidden ? "visible" : "hidden";
+          if (notationElem) {
+            notationElem.style.top = isHidden ? "55%" : "85%";
+          }
+        }
       });
 
       // ---- Virtual Keyboard below notation ----
@@ -939,18 +930,30 @@
         vk.id = "virtualKeyboard";
         vk.textContent = "Virtuelles Keyboard";
         // Keyboard initially hidden
-        vk.style.display = "none";
+        vk.style.visibility = "hidden";
         vk.style.position = "fixed";
-        // Position keyboard 5px above the button container
-        const bcRect = bc.getBoundingClientRect();
-        const vkHeight = vk.offsetHeight || 200;
-        vk.style.top = (bcRect.top - vkHeight - 5) + "px";
-        vk.style.left = "50%";
-        vk.style.transform = "translateX(-50%)";
+        vk.style.top = "150%";
+        vk.style.transform = "translateY(210%)";
         vk.style.zIndex = "100";
         vk.style.background = "#eee";
         vk.style.padding = "10px";
+        // Initially place it just above the button container
+        // We'll update its position on window resize and DOMContentLoaded
+        function positionVK() {
+          const bcRect = bc.getBoundingClientRect();
+          const vkHeight = vk.offsetHeight || 200;
+          // Place it above the button container, but not out of screen
+          let top = bcRect.top - vkHeight - 5;
+          if (top < 0) top = 0;
+          vk.style.top = `${top}px`;
+        }
+        // Append first so offsetHeight is available
         document.body.appendChild(vk);
+        // Position after appending
+        positionVK();
+        // Update position on window resize and orientation change
+        window.addEventListener("resize", positionVK);
+        window.addEventListener("orientationchange", positionVK);
       }
     });
       
@@ -3278,7 +3281,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // 4) Add toggle button to settings panel
       const btn = document.createElement("span");
       btn.id = "keyboardToggle";
-      btn.textContent = "🎹";
+      btn.textContent = "";
       btn.style.cursor = "pointer";
       const settingsPanel = document.getElementById("settingsPanel");
       if (settingsPanel) settingsPanel.appendChild(btn);
@@ -3551,6 +3554,9 @@ document.addEventListener("DOMContentLoaded", () => {
     </script>
     
 </body>
+</script>
+</head>
+<body>
 </html>
 
         
