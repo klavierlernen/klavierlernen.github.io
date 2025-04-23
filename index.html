@@ -708,23 +708,6 @@
         bottom: auto !important;
       }
       
-  /* Zoom controls for notation */
-  #zoomIn, #zoomOut {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    background: white;
-    border: 2px solid black;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    font-size: 1.5em;
-    text-align: center;
-    line-height: 36px;
-    cursor: pointer;
-  }
-  #zoomIn { right: 80px; top: 20px; }
-  #zoomOut { right: 80px; top: 70px; }
   </style>
   <script>
    
@@ -733,48 +716,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const notation = document.getElementById('notation');
   if (!notation) return;
 
-  // Load or set default position and scale
-  let baseTransform = localStorage.getItem('notationTransform');
-  if (!baseTransform) {
-    baseTransform = 'translate(-50%, -50%)';
-    localStorage.setItem('notationTransform', baseTransform);
+  // Load or set default transform
+  let saved = localStorage.getItem('notationTransform');
+  if (!saved) {
+    saved = 'translate(-50%, -50%)';
+    localStorage.setItem('notationTransform', saved);
   }
-  let savedScale = parseFloat(localStorage.getItem('notationScale'));
-  let scale = !isNaN(savedScale) ? savedScale : 1;
-  notation.style.transform = `${baseTransform} scale(${scale})`;
-
-  // Create zoom controls
-  const zoomInBtn = document.createElement('button');
-  zoomInBtn.id = 'zoomIn';
-  zoomInBtn.textContent = '+';
-  const zoomOutBtn = document.createElement('button');
-  zoomOutBtn.id = 'zoomOut';
-  zoomOutBtn.textContent = '-';
-  document.body.appendChild(zoomInBtn);
-  document.body.appendChild(zoomOutBtn);
-  // Hide zoom controls by default; show only in Geodreieck-Modus
-  zoomInBtn.style.display = 'none';
-  zoomOutBtn.style.display = 'none';
-  zoomInBtn.addEventListener('click', () => {
-    scale *= 1.1;
-    notation.style.transform = `${baseTransform} scale(${scale})`;
-    localStorage.setItem('notationScale', scale);
-  });
-  zoomOutBtn.addEventListener('click', () => {
-    scale /= 1.1;
-    notation.style.transform = `${baseTransform} scale(${scale})`;
-    localStorage.setItem('notationScale', scale);
-  });
-
-  // Toggle zoom controls when geometry (Geodreieck) mode is activated
-  const geoToggle = document.getElementById('geometryToggle');
-  if (geoToggle) {
-    geoToggle.addEventListener('click', () => {
-      const active = geoToggle.classList.contains('active') || geoToggle.dataset.active === 'true';
-      zoomInBtn.style.display = active ? 'block' : 'none';
-      zoomOutBtn.style.display = active ? 'block' : 'none';
-    });
-  }
+  notation.style.transform = saved;
 
   // Prepare variables for touch dragging
   let startX = 0, startY = 0;
@@ -815,16 +763,14 @@ document.addEventListener('DOMContentLoaded', () => {
       newTop > 0 &&
       newTop < window.innerHeight
     ) {
-      baseTransform = `translate(${newX}px, ${newY}px)`;
-      notation.style.transform = `${baseTransform} scale(${scale})`;
+      notation.style.transform = `translate(${newX}px, ${newY}px)`;
     }
   }, { passive: false });
 
   notation.addEventListener('touchend', () => {
     if (!dragging) return;
     dragging = false;
-    localStorage.setItem('notationTransform', baseTransform);
-    localStorage.setItem('notationScale', scale);
+    localStorage.setItem('notationTransform', notation.style.transform);
   });
 });
     
@@ -1147,17 +1093,6 @@ document.addEventListener('DOMContentLoaded', () => {
             key.style.height = '80px';
             key.style.marginLeft = '-7px';
             key.style.marginRight = '-7px';
-          });
-          // Nur Tasten der aktuellen Lage anzeigen
-          const allowedNotes = rangeNotes[currentRange] || [];
-          vk.querySelectorAll('.white-key, .white, .black-key, .black').forEach(key => {
-            const noteAttr = key.getAttribute('data-note');
-            if (noteAttr) {
-              const baseNote = noteAttr.split('/')[0];
-              if (!allowedNotes.includes(baseNote)) {
-                key.style.display = 'none';
-              }
-            }
           });
         }, 100);
         // Position after appending
