@@ -2081,6 +2081,7 @@ metronomeToggle.addEventListener("click", () => {
         drawSeries();
       });
 
+
       const customModeToggle = document.createElement("span");
       customModeToggle.id = "customModeToggle";
       customModeToggle.textContent = "🖍️";
@@ -2090,6 +2091,80 @@ metronomeToggle.addEventListener("click", () => {
       customModeToggle.addEventListener("click", () => {
         const modal = document.getElementById("customModeModal");
         modal.classList.toggle("hidden");
+      });
+
+      // Move Notation Toggle
+      const moveNotationToggle = document.createElement("span");
+      moveNotationToggle.id = "moveNotationToggle";
+      moveNotationToggle.textContent = "📐";
+      settingsPanel.appendChild(moveNotationToggle);
+
+      let moveModeActive = false;
+      let xSlider, ySlider;
+
+      moveNotationToggle.addEventListener("click", () => {
+        const notation = document.getElementById("notation");
+
+        if (!moveModeActive) {
+          moveModeActive = true;
+
+          // Erzeuge die Slider
+          xSlider = document.createElement("input");
+          xSlider.type = "range";
+          xSlider.min = "-50";
+          xSlider.max = "50";
+          xSlider.value = "0";
+          xSlider.style.position = "fixed";
+          xSlider.style.left = "50%";
+          xSlider.style.bottom = "100px";
+          xSlider.style.transform = "translateX(-50%)";
+          xSlider.style.zIndex = "2000";
+
+          ySlider = document.createElement("input");
+          ySlider.type = "range";
+          ySlider.min = "-50";
+          ySlider.max = "50";
+          ySlider.value = "0";
+          ySlider.style.position = "fixed";
+          ySlider.style.left = "50%";
+          ySlider.style.bottom = "60px";
+          ySlider.style.transform = "translateX(-50%)";
+          ySlider.style.zIndex = "2000";
+
+          document.body.appendChild(xSlider);
+          document.body.appendChild(ySlider);
+
+          // Neue applyTransform Funktion, die das Notensystem im sichtbaren Bereich hält
+          const applyTransform = () => {
+            const x = parseInt(xSlider.value, 10);
+            const y = parseInt(ySlider.value, 10);
+            const notation = document.getElementById("notation");
+
+            // Berechne den maximal möglichen Versatz basierend auf Fenstergröße
+            const maxX = window.innerWidth / 2;
+            const maxY = window.innerHeight / 2;
+
+            // Begrenze die Verschiebung auf den sichtbaren Bereich
+            const clampedX = Math.max(-maxX, Math.min(maxX, x));
+            const clampedY = Math.max(-maxY, Math.min(maxY, y));
+
+            notation.style.transform = `translate(${clampedX}px, ${clampedY}px)`;
+          };
+
+          xSlider.addEventListener("input", applyTransform);
+          ySlider.addEventListener("input", applyTransform);
+        } else {
+          moveModeActive = false;
+          // Position speichern als feste Werte
+          const currentTransform = getComputedStyle(document.getElementById("notation")).transform;
+          if (currentTransform !== "none") {
+            notation.style.transform = currentTransform;
+          }
+
+          // Slider entfernen
+          if (xSlider && xSlider.parentElement) xSlider.parentElement.removeChild(xSlider);
+          if (ySlider && ySlider.parentElement) ySlider.parentElement.removeChild(ySlider);
+        }
       });
       
 document.getElementById("timerContainer").addEventListener("click", () => {
@@ -2154,7 +2229,7 @@ document.getElementById("timerContainer").addEventListener("click", () => {
       carouselTrack.id = 'carouselTrack';
       carouselContainer.appendChild(carouselTrack);
       settingsPanel.appendChild(carouselContainer);
-      const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle];
+      const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle, moveNotationToggle];
       carouselButtons.forEach(btn => {
         const item = document.createElement('div');
         item.className = 'carouselItem';
