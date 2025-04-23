@@ -2108,11 +2108,12 @@ metronomeToggle.addEventListener("click", () => {
         if (!moveModeActive) {
           moveModeActive = true;
 
-          // Erzeuge die Slider
+          // Dynamisch berechnete Slider-Bereiche basierend auf der Viewport-Größe
+          // Allow full window width/height for movement
           xSlider = document.createElement("input");
           xSlider.type = "range";
-          xSlider.min = "-50";
-          xSlider.max = "50";
+          xSlider.min = -window.innerWidth;
+          xSlider.max = window.innerWidth;
           xSlider.value = "0";
           xSlider.style.position = "fixed";
           xSlider.style.left = "50%";
@@ -2122,8 +2123,8 @@ metronomeToggle.addEventListener("click", () => {
 
           ySlider = document.createElement("input");
           ySlider.type = "range";
-          ySlider.min = "-50";
-          ySlider.max = "50";
+          ySlider.min = -Math.floor(window.innerHeight / 2);
+          ySlider.max = Math.floor(window.innerHeight / 2);
           ySlider.value = "0";
           ySlider.style.position = "fixed";
           ySlider.style.left = "50%";
@@ -2138,17 +2139,7 @@ metronomeToggle.addEventListener("click", () => {
           const applyTransform = () => {
             const x = parseInt(xSlider.value, 10);
             const y = parseInt(ySlider.value, 10);
-            const notation = document.getElementById("notation");
-
-            // Berechne den maximal möglichen Versatz basierend auf Fenstergröße
-            const maxX = window.innerWidth / 2;
-            const maxY = window.innerHeight / 2;
-
-            // Begrenze die Verschiebung auf den sichtbaren Bereich
-            const clampedX = Math.max(-maxX, Math.min(maxX, x));
-            const clampedY = Math.max(-maxY, Math.min(maxY, y));
-
-            notation.style.transform = `translate(${clampedX}px, ${clampedY}px)`;
+            notation.style.transform = `translate(${x}px, ${y}px)`;
           };
 
           xSlider.addEventListener("input", applyTransform);
