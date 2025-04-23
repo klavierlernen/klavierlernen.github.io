@@ -775,23 +775,6 @@
       
       // Hole die Position des Menüs (settingsPanel)
       const settingsPanel = document.getElementById("settingsPanel");
-      // --- Restore notation position from localStorage if available ---
-      const notation = document.getElementById("notation");
-      const savedTransform = localStorage.getItem("notationTransform");
-      if (savedTransform && notation) {
-        const match = savedTransform.match(/translate\((-?\d+)px,\s*(-?\d+)px\)/);
-        if (match) {
-          const savedX = parseInt(match[1], 10);
-          const savedY = parseInt(match[2], 10);
-          const rect = notation.getBoundingClientRect();
-          const restoredX = window.innerWidth / 2 - rect.width / 2 + savedX;
-          const restoredY = window.innerHeight / 2 - rect.height / 2 + savedY;
-          notation.style.position = "fixed";
-          notation.style.top = `${restoredY}px`;
-          notation.style.left = `${restoredX}px`;
-          notation.style.transform = "none";
-        }
-      }
       let x, y;
       if (settingsPanel) {
         const rect = settingsPanel.getBoundingClientRect();
@@ -2304,81 +2287,24 @@ metronomeToggle.addEventListener("click", () => {
             yLabel.style.top = `calc(50% + ${currentY}px + 5px)`;
             yLabel.textContent = `${Math.round((currentY / window.innerHeight) * 100)}%`;
 
-            // Use viewport center for positioning
-            const centerX = window.innerWidth / 2;
-            const centerY = window.innerHeight / 2;
-            notation.style.top = `${centerY + currentY}px`;
-            notation.style.left = `${centerX + currentX}px`;
-            notation.style.transform = "none";
+            notation.style.position = "fixed";
+            notation.style.top = "50%";
+            notation.style.left = "50%";
+            notation.style.transform = `translate(-50%, -50%) translate(${currentX}px, ${currentY}px)`;
           };
           endDrag = () => {
             isDragging = false;
           };
 
-          // --- Touch drag handlers for move notation mode ---
-          const startDragTouch = (e) => {
-            isDragging = true;
-            const touch = e.touches[0];
-            startX = touch.clientX;
-            startY = touch.clientY;
-            e.preventDefault(); // wichtig: verhindert Scrollen auf Mobilgeräten
-          };
-
-          const duringDragTouch = (e) => {
-            if (!isDragging) return;
-            const touch = e.touches[0];
-            const dx = touch.clientX - startX;
-            const dy = touch.clientY - startY;
-            currentX += dx;
-            currentY += dy;
-            startX = touch.clientX;
-            startY = touch.clientY;
-
-            const notation = document.getElementById("notation");
-            // Use viewport center for positioning
-            const centerX = window.innerWidth / 2;
-            const centerY = window.innerHeight / 2;
-
-            xGuide.style.left = `${centerX}px`;
-            xGuide.style.transform = `translateX(${currentX}px)`;
-            xLabel.style.left = `${centerX + currentX + 5}px`;
-
-            yGuide.style.top = `${centerY}px`;
-            yGuide.style.transform = `translateY(${currentY}px)`;
-            yLabel.style.top = `${centerY + currentY + 5}px`;
-
-            notation.style.top = `${centerY + currentY}px`;
-            notation.style.left = `${centerX + currentX}px`;
-            notation.style.transform = "none";
-          };
-
-          const endDragTouch = () => {
-            isDragging = false;
-          };
-
-          // Add invisible draggable handle in center of crosshair
-          const dragHandle = document.createElement("div");
-          dragHandle.style.position = "fixed";
-          dragHandle.style.top = "50%";
-          dragHandle.style.left = "50%";
-          dragHandle.style.width = "30px";
-          dragHandle.style.height = "30px";
-          dragHandle.style.transform = "translate(-50%, -50%)";
-          dragHandle.style.zIndex = "2000";
-          dragHandle.style.cursor = "move";
-          dragHandle.style.backgroundColor = "transparent";
-          dragHandle.style.touchAction = "none"; // Ensure touchAction disables default browser gestures
-          document.body.appendChild(dragHandle);
-          // Save references for cleanup later
-          window._notationGuides = [xGuide, yGuide, xLabel, yLabel, dragHandle];
-          // Add mouse and touch event listeners to the handle for drag
-          dragHandle.addEventListener("mousedown", startDrag);
-          dragHandle.addEventListener("touchstart", startDragTouch, { passive: false });
-          // Register global listeners for both mouse and touch movement/end
+          [xGuide, yGuide, xLabel, yLabel].forEach(el => {
+            el.style.touchAction = "none";
+            el.addEventListener("mousedown", startDrag);
+            el.addEventListener("touchstart", startDrag);
+          });
           window.addEventListener("mousemove", duringDrag);
+          window.addEventListener("touchmove", duringDrag);
           window.addEventListener("mouseup", endDrag);
-          window.addEventListener("touchmove", duringDragTouch, { passive: false });
-          window.addEventListener("touchend", endDragTouch);
+          window.addEventListener("touchend", endDrag);
 
         } else {
           moveModeActive = false;
@@ -2386,8 +2312,8 @@ metronomeToggle.addEventListener("click", () => {
           localStorage.setItem("notationTransform", `translate(-50%, -50%) translate(${currentX}px, ${currentY}px)`);
           // Store the final position and clean up listeners and guides
           if (window._notationGuides) {
-            [xGuide, yGuide, xLabel, yLabel, dragHandle] = window._notationGuides;
-            [xGuide, yGuide, xLabel, yLabel, dragHandle].forEach(el => {
+            [xGuide, yGuide, xLabel, yLabel] = window._notationGuides;
+            [xGuide, yGuide, xLabel, yLabel].forEach(el => {
               if (el && el.parentElement) el.parentElement.removeChild(el);
             });
             window._notationGuides = null;
