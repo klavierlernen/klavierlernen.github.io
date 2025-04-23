@@ -1746,6 +1746,17 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
     }
     document.addEventListener("DOMContentLoaded", () => {
       let canvas = document.getElementById("animationCanvas");
+      // --- Apply saved notation position from localStorage ---
+      const savedTransform = localStorage.getItem("notationTransform");
+      if (savedTransform) {
+        const notation = document.getElementById("notation");
+        if (notation) {
+          notation.style.position = "fixed";
+          notation.style.top = "50%";
+          notation.style.left = "50%";
+          notation.style.transform = savedTransform;
+        }
+      }
       if (!canvas) {
         canvas = document.createElement("canvas");
         canvas.id = "animationCanvas";
@@ -2168,42 +2179,17 @@ metronomeToggle.addEventListener("click", () => {
       settingsPanel.appendChild(moveNotationToggle);
 
       let moveModeActive = false;
-      let xSlider, ySlider;
+      let currentX = 0, currentY = 0; // Persist position for storage
+      let startX = 0, startY = 0;
+      let isDragging = false;
+      let xGuide, yGuide, xLabel, yLabel;
+      let duringDrag, endDrag; // For removal of listeners
 
       moveNotationToggle.addEventListener("click", () => {
         const notation = document.getElementById("notation");
-        // Declare guides/labels in outer scope so they're accessible in both branches
-        let xGuide, yGuide, xLabel, yLabel;
-        // Store on window to access for removal in else branch
+        // Ensure startX, startY are declared only once at top-level
         if (!moveModeActive) {
           moveModeActive = true;
-
-          // Dynamisch berechnete Slider-Bereiche basierend auf der Viewport-Größe
-          // Allow full window width/height for movement
-          xSlider = document.createElement("input");
-          xSlider.type = "range";
-          xSlider.min = -window.innerWidth;
-          xSlider.max = window.innerWidth;
-          xSlider.value = "0";
-          xSlider.style.position = "fixed";
-          xSlider.style.left = "50%";
-          xSlider.style.bottom = "100px";
-          xSlider.style.transform = "translateX(-50%)";
-          xSlider.style.zIndex = "2000";
-
-          ySlider = document.createElement("input");
-          ySlider.type = "range";
-          ySlider.min = -Math.floor(window.innerHeight / 2);
-          ySlider.max = Math.floor(window.innerHeight / 2);
-          ySlider.value = "0";
-          ySlider.style.position = "fixed";
-          ySlider.style.left = "50%";
-          ySlider.style.bottom = "60px";
-          ySlider.style.transform = "translateX(-50%)";
-          ySlider.style.zIndex = "2000";
-
-          document.body.appendChild(xSlider);
-          document.body.appendChild(ySlider);
 
           // --- Add dynamic guide lines with percentage labels ---
           xGuide = document.createElement("div");
@@ -2214,7 +2200,7 @@ metronomeToggle.addEventListener("click", () => {
           xGuide.style.background = "blue";
           xGuide.style.zIndex = "1999";
           xGuide.style.left = "50%";
-          xGuide.style.transform = `translateX(${xSlider.value}px)`;
+          xGuide.style.transform = `translateX(${currentX}px)`;
 
           yGuide = document.createElement("div");
           yGuide.style.position = "fixed";
@@ -2224,25 +2210,25 @@ metronomeToggle.addEventListener("click", () => {
           yGuide.style.background = "blue";
           yGuide.style.zIndex = "1999";
           yGuide.style.top = "50%";
-          yGuide.style.transform = `translateY(${ySlider.value}px)`;
+          yGuide.style.transform = `translateY(${currentY}px)`;
 
           xLabel = document.createElement("div");
           xLabel.style.position = "fixed";
           xLabel.style.top = "0";
-          xLabel.style.left = `calc(50% + ${xSlider.value}px + 5px)`;
+          xLabel.style.left = `calc(50% + ${currentX}px + 5px)`;
           xLabel.style.color = "blue";
           xLabel.style.fontSize = "12px";
           xLabel.style.zIndex = "1999";
-          xLabel.textContent = `${Math.round((xSlider.value / window.innerWidth) * 100)}%`;
+          xLabel.textContent = `${Math.round((currentX / window.innerWidth) * 100)}%`;
 
           yLabel = document.createElement("div");
           yLabel.style.position = "fixed";
           yLabel.style.left = "0";
-          yLabel.style.top = `calc(50% + ${ySlider.value}px + 5px)`;
+          yLabel.style.top = `calc(50% + ${currentY}px + 5px)`;
           yLabel.style.color = "blue";
           yLabel.style.fontSize = "12px";
           yLabel.style.zIndex = "1999";
-          yLabel.textContent = `${Math.round((ySlider.value / window.innerHeight) * 100)}%`;
+          yLabel.textContent = `${Math.round((currentY / window.innerHeight) * 100)}%`;
 
           document.body.appendChild(xGuide);
           document.body.appendChild(yGuide);
@@ -2252,39 +2238,79 @@ metronomeToggle.addEventListener("click", () => {
           // Save references for later removal
           window._notationGuides = [xGuide, yGuide, xLabel, yLabel];
 
-          const updateGuides = () => {
-            xGuide.style.transform = `translateX(${xSlider.value}px)`;
-            yGuide.style.transform = `translateY(${ySlider.value}px)`;
-            xLabel.style.left = `calc(50% + ${xSlider.value}px + 5px)`;
-            xLabel.textContent = `${Math.round((xSlider.value / window.innerWidth) * 100)}%`;
-            yLabel.style.top = `calc(50% + ${ySlider.value}px + 5px)`;
-            yLabel.textContent = `${Math.round((ySlider.value / window.innerHeight) * 100)}%`;
-          };
-          xSlider.addEventListener("input", updateGuides);
-          ySlider.addEventListener("input", updateGuides);
+          // --- Pointer-based drag functionality ---
+          startX = 0;
+          startY = 0;
+          // Try to restore from localStorage if exists
+          let saved = localStorage.getItem("notationTransform");
+          if (saved && saved.includes("translate(-50%, -50%) translate(")) {
+            // Try to extract px values
+            let match = saved.match(/translate\(-50%, -50%\)\s*translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
+            if (match) {
+              currentX = parseFloat(match[1]);
+              currentY = parseFloat(match[2]);
+            }
+          }
+          xGuide.style.transform = `translateX(${currentX}px)`;
+          yGuide.style.transform = `translateY(${currentY}px)`;
+          xLabel.style.left = `calc(50% + ${currentX}px + 5px)`;
+          xLabel.textContent = `${Math.round((currentX / window.innerWidth) * 100)}%`;
+          yLabel.style.top = `calc(50% + ${currentY}px + 5px)`;
+          yLabel.textContent = `${Math.round((currentY / window.innerHeight) * 100)}%`;
+          notation.style.position = "fixed";
+          notation.style.top = "50%";
+          notation.style.left = "50%";
+          notation.style.transform = `translate(-50%, -50%) translate(${currentX}px, ${currentY}px)`;
 
-          // Neue applyTransform Funktion, die das Notensystem relativ zur Mitte verschiebt
-          const applyTransform = () => {
-            const x = parseInt(xSlider.value, 10);
-            const y = parseInt(ySlider.value, 10);
+          // Drag logic
+          const startDrag = (e) => {
+            isDragging = true;
+            const evt = e.touches ? e.touches[0] : e;
+            startX = evt.clientX;
+            startY = evt.clientY;
+            e.preventDefault();
+          };
+          duringDrag = (e) => {
+            if (!isDragging) return;
+            const evt = e.touches ? e.touches[0] : e;
+            const dx = evt.clientX - startX;
+            const dy = evt.clientY - startY;
+            currentX += dx;
+            currentY += dy;
+            startX = evt.clientX;
+            startY = evt.clientY;
+
+            xGuide.style.transform = `translateX(${currentX}px)`;
+            yGuide.style.transform = `translateY(${currentY}px)`;
+            xLabel.style.left = `calc(50% + ${currentX}px + 5px)`;
+            xLabel.textContent = `${Math.round((currentX / window.innerWidth) * 100)}%`;
+            yLabel.style.top = `calc(50% + ${currentY}px + 5px)`;
+            yLabel.textContent = `${Math.round((currentY / window.innerHeight) * 100)}%`;
+
             notation.style.position = "fixed";
             notation.style.top = "50%";
             notation.style.left = "50%";
-            notation.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+            notation.style.transform = `translate(-50%, -50%) translate(${currentX}px, ${currentY}px)`;
+          };
+          endDrag = () => {
+            isDragging = false;
           };
 
-          xSlider.addEventListener("input", applyTransform);
-          ySlider.addEventListener("input", applyTransform);
+          [xGuide, yGuide, xLabel, yLabel].forEach(el => {
+            el.style.touchAction = "none";
+            el.addEventListener("mousedown", startDrag);
+            el.addEventListener("touchstart", startDrag);
+          });
+          window.addEventListener("mousemove", duringDrag);
+          window.addEventListener("touchmove", duringDrag);
+          window.addEventListener("mouseup", endDrag);
+          window.addEventListener("touchend", endDrag);
+
         } else {
           moveModeActive = false;
-          // Position speichern als feste Werte
-          const currentTransform = getComputedStyle(document.getElementById("notation")).transform;
-          if (currentTransform !== "none") {
-            notation.style.transform = currentTransform;
-            localStorage.setItem("notationTransform", currentTransform);
-          }
-
-          // Remove guide lines and labels
+          // Persist the final position when move mode is disabled
+          localStorage.setItem("notationTransform", `translate(-50%, -50%) translate(${currentX}px, ${currentY}px)`);
+          // Store the final position and clean up listeners and guides
           if (window._notationGuides) {
             [xGuide, yGuide, xLabel, yLabel] = window._notationGuides;
             [xGuide, yGuide, xLabel, yLabel].forEach(el => {
@@ -2292,10 +2318,10 @@ metronomeToggle.addEventListener("click", () => {
             });
             window._notationGuides = null;
           }
-
-          // Slider entfernen
-          if (xSlider && xSlider.parentElement) xSlider.parentElement.removeChild(xSlider);
-          if (ySlider && ySlider.parentElement) ySlider.parentElement.removeChild(ySlider);
+          window.removeEventListener("mousemove", duringDrag);
+          window.removeEventListener("touchmove", duringDrag);
+          window.removeEventListener("mouseup", endDrag);
+          window.removeEventListener("touchend", endDrag);
         }
       });
       
@@ -2373,7 +2399,6 @@ document.getElementById("timerContainer").addEventListener("click", () => {
         carouselTrack.style.transform = `translateX(-${currentIndex * 100}%)`;
       }
       updateCarousel();
-      let startX = null;
       carouselContainer.addEventListener('touchstart', e => {
         startX = e.touches[0].clientX;
       });
