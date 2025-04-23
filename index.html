@@ -656,7 +656,23 @@
   </style>
   <script>
    
-
+   document.addEventListener("DOMContentLoaded", () => {
+     const savedTransform = localStorage.getItem("notationTransform");
+     if (savedTransform) {
+       const notationElem = document.getElementById("notation");
+       if (notationElem) {
+         notationElem.style.transform = savedTransform;
+       }
+     }
+   });
+      
+   const savedTransform = localStorage.getItem("notationTransform");
+   if (savedTransform) {
+     const notationElem = document.getElementById("notation");
+     if (notationElem) {
+       notationElem.style.transform = savedTransform;
+     }
+   }
     
       
       document.addEventListener("DOMContentLoaded", () => {
@@ -2156,7 +2172,9 @@ metronomeToggle.addEventListener("click", () => {
 
       moveNotationToggle.addEventListener("click", () => {
         const notation = document.getElementById("notation");
-
+        // Declare guides/labels in outer scope so they're accessible in both branches
+        let xGuide, yGuide, xLabel, yLabel;
+        // Store on window to access for removal in else branch
         if (!moveModeActive) {
           moveModeActive = true;
 
@@ -2187,11 +2205,72 @@ metronomeToggle.addEventListener("click", () => {
           document.body.appendChild(xSlider);
           document.body.appendChild(ySlider);
 
-          // Neue applyTransform Funktion, die das Notensystem im sichtbaren Bereich hält
+          // --- Add dynamic guide lines with percentage labels ---
+          xGuide = document.createElement("div");
+          xGuide.style.position = "fixed";
+          xGuide.style.top = "0";
+          xGuide.style.height = "100%";
+          xGuide.style.width = "1px";
+          xGuide.style.background = "blue";
+          xGuide.style.zIndex = "1999";
+          xGuide.style.left = "50%";
+          xGuide.style.transform = `translateX(${xSlider.value}px)`;
+
+          yGuide = document.createElement("div");
+          yGuide.style.position = "fixed";
+          yGuide.style.left = "0";
+          yGuide.style.width = "100%";
+          yGuide.style.height = "1px";
+          yGuide.style.background = "blue";
+          yGuide.style.zIndex = "1999";
+          yGuide.style.top = "50%";
+          yGuide.style.transform = `translateY(${ySlider.value}px)`;
+
+          xLabel = document.createElement("div");
+          xLabel.style.position = "fixed";
+          xLabel.style.top = "0";
+          xLabel.style.left = `calc(50% + ${xSlider.value}px + 5px)`;
+          xLabel.style.color = "blue";
+          xLabel.style.fontSize = "12px";
+          xLabel.style.zIndex = "1999";
+          xLabel.textContent = `${Math.round((xSlider.value / window.innerWidth) * 100)}%`;
+
+          yLabel = document.createElement("div");
+          yLabel.style.position = "fixed";
+          yLabel.style.left = "0";
+          yLabel.style.top = `calc(50% + ${ySlider.value}px + 5px)`;
+          yLabel.style.color = "blue";
+          yLabel.style.fontSize = "12px";
+          yLabel.style.zIndex = "1999";
+          yLabel.textContent = `${Math.round((ySlider.value / window.innerHeight) * 100)}%`;
+
+          document.body.appendChild(xGuide);
+          document.body.appendChild(yGuide);
+          document.body.appendChild(xLabel);
+          document.body.appendChild(yLabel);
+
+          // Save references for later removal
+          window._notationGuides = [xGuide, yGuide, xLabel, yLabel];
+
+          const updateGuides = () => {
+            xGuide.style.transform = `translateX(${xSlider.value}px)`;
+            yGuide.style.transform = `translateY(${ySlider.value}px)`;
+            xLabel.style.left = `calc(50% + ${xSlider.value}px + 5px)`;
+            xLabel.textContent = `${Math.round((xSlider.value / window.innerWidth) * 100)}%`;
+            yLabel.style.top = `calc(50% + ${ySlider.value}px + 5px)`;
+            yLabel.textContent = `${Math.round((ySlider.value / window.innerHeight) * 100)}%`;
+          };
+          xSlider.addEventListener("input", updateGuides);
+          ySlider.addEventListener("input", updateGuides);
+
+          // Neue applyTransform Funktion, die das Notensystem relativ zur Mitte verschiebt
           const applyTransform = () => {
             const x = parseInt(xSlider.value, 10);
             const y = parseInt(ySlider.value, 10);
-            notation.style.transform = `translate(${x}px, ${y}px)`;
+            notation.style.position = "fixed";
+            notation.style.top = "50%";
+            notation.style.left = "50%";
+            notation.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
           };
 
           xSlider.addEventListener("input", applyTransform);
@@ -2202,6 +2281,16 @@ metronomeToggle.addEventListener("click", () => {
           const currentTransform = getComputedStyle(document.getElementById("notation")).transform;
           if (currentTransform !== "none") {
             notation.style.transform = currentTransform;
+            localStorage.setItem("notationTransform", currentTransform);
+          }
+
+          // Remove guide lines and labels
+          if (window._notationGuides) {
+            [xGuide, yGuide, xLabel, yLabel] = window._notationGuides;
+            [xGuide, yGuide, xLabel, yLabel].forEach(el => {
+              if (el && el.parentElement) el.parentElement.removeChild(el);
+            });
+            window._notationGuides = null;
           }
 
           // Slider entfernen
