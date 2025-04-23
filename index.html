@@ -928,6 +928,8 @@
         // Create a virtual keyboard element (example)
         const vk = document.createElement("div");
         vk.id = "virtualKeyboard";
+        vk.style.width = "60%";
+        vk.style.maxWidth = "500px";
         vk.textContent = "Virtuelles Keyboard";
         // Keyboard initially hidden
         vk.style.visibility = "hidden";
@@ -954,6 +956,56 @@
         // Update position on window resize and orientation change
         window.addEventListener("resize", positionVK);
         window.addEventListener("orientationchange", positionVK);
+
+        // --- Prevent multiple triggers from same key press for virtual keyboard ---
+        // If you add key buttons to the virtual keyboard, here's example logic:
+        let vkLastPressedKey = null;
+        let vkKeyReleaseTimeout = null;
+        // Example: dynamically add buttons for demonstration
+        // (Replace with your actual keyboard layout/buttons creation)
+        // Remove demo buttons if you already have your own key creation
+        vk.innerHTML = ""; // Remove "Virtuelles Keyboard" text
+        const keyNames = ["C", "D", "E", "F", "G", "A", "B"];
+        keyNames.forEach((note) => {
+          const btn = document.createElement("button");
+          btn.textContent = note;
+          btn.style.margin = "2px";
+          btn.style.fontSize = "1.2em";
+          btn.style.padding = "8px 12px";
+          btn.style.borderRadius = "6px";
+          btn.style.border = "1px solid #aaa";
+          btn.style.background = "#fff";
+          btn.style.cursor = "pointer";
+          // Prevent multiple triggers: Only allow if not the last pressed or after release
+          btn.addEventListener("mousedown", (e) => {
+            if (vkLastPressedKey === note) return;
+            vkLastPressedKey = note;
+            // Call your key handling logic here, e.g. handleVirtualKey(note);
+            if (typeof handleVirtualKey === "function") handleVirtualKey(note);
+            btn.style.background = "#cce5ff";
+          });
+          btn.addEventListener("mouseup", (e) => {
+            vkLastPressedKey = null;
+            btn.style.background = "#fff";
+          });
+          btn.addEventListener("mouseleave", (e) => {
+            vkLastPressedKey = null;
+            btn.style.background = "#fff";
+          });
+          // Touch support
+          btn.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            if (vkLastPressedKey === note) return;
+            vkLastPressedKey = note;
+            if (typeof handleVirtualKey === "function") handleVirtualKey(note);
+            btn.style.background = "#cce5ff";
+          }, {passive: false});
+          btn.addEventListener("touchend", (e) => {
+            vkLastPressedKey = null;
+            btn.style.background = "#fff";
+          });
+          vk.appendChild(btn);
+        });
       }
     });
       
