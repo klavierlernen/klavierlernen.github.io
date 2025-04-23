@@ -700,6 +700,7 @@
       let metronomeInterval = 0;
       let metronomeTimer = null;
       let lastTickTime = 0;
+      let metronomeTolerance = 100; // ms Toleranz für MIDI-Übertragung
       // Tick-Sound (bitte ggf. die URL anpassen)
       const tickSound = new Audio("https://raw.githubusercontent.com/JP0024/piano.github.io/main/tick.mp3");
     
@@ -1865,11 +1866,25 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       
       
       // Metronom-Toggle
+      // Metronom-Container mit Emoji und BPM-Anzeige
+      const metronomeContainer = document.createElement("div");
+      metronomeContainer.style.display = "inline-block";
+      metronomeContainer.style.textAlign = "center";
+      settingsPanel.appendChild(metronomeContainer);
+
       const metronomeToggle = document.createElement("span");
       metronomeToggle.id = "metronomeToggle";
       metronomeToggle.textContent = "⏲️";
-      metronomeToggle.style.opacity = "0.5"; // an/off Anzeige: 0.5 = aus, 1 = an
-      settingsPanel.appendChild(metronomeToggle);
+      metronomeToggle.style.opacity = "0.5";
+      metronomeContainer.appendChild(metronomeToggle);
+
+      const bpmDisplay = document.createElement("span");
+      bpmDisplay.id = "bpmDisplay";
+      bpmDisplay.style.display = "block";
+      // const emojiWidth = metronomeToggle.getBoundingClientRect().width;
+      bpmDisplay.style.fontSize = "14px"; // feste Schriftgröße, frei anpassbar
+      bpmDisplay.textContent = metronomeBPM > 0 ? metronomeBPM + " BPM" : "";
+      metronomeContainer.appendChild(bpmDisplay);
 metronomeToggle.addEventListener("click", () => {
   if (metronomeOn) {
     stopMetronome();
@@ -1900,6 +1915,7 @@ metronomeToggle.addEventListener("click", () => {
           if (bpm > 0) {
             metronomeBPM = bpm;
             metronomeInterval = 60000 / bpm;
+            document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
             startMetronome();
             metronomeToggle.style.opacity = "1";
             metronomeOn = true;
@@ -2380,6 +2396,14 @@ const drawSeries = () => {
       
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
+      if (metronomeOn) {
+        const now = Date.now();
+        const diff = now - lastTickTime;
+        if (Math.abs(diff) > metronomeTolerance) {
+          console.log(`MIDI außerhalb der Metronom-Toleranz: ${diff}ms`);
+          return;
+        }
+      }
       resetInactivityTimer();
       if ((status & 0xf0) === 0x90 && data2 > 0) {
         if (seriesCounter >= currentSeriesSingle.length) return;
