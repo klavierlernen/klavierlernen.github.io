@@ -2697,7 +2697,6 @@ function scheduleReverseAnimation() {
     });
   }
 
-  document.addEventListener("DOMContentLoaded", initMIDIAccess);
   
   function onMIDISuccess(midiAccess) {
     // Alle vorhandenen MIDI-Eingänge initialisieren
@@ -2724,9 +2723,67 @@ function scheduleReverseAnimation() {
     console.error("Zugriff auf MIDI-Geräte fehlgeschlagen:", error);
   }
   
-  document.addEventListener("DOMContentLoaded", function() {
-    initMIDIAccess();
-  });
+</script>
+<script>
+  // Initialisiere MIDI-Zugriff (Web MIDI API)
+  function initMIDIAccess() {
+    if (!navigator.requestMIDIAccess) {
+      console.warn("Web MIDI API wird nicht unterstützt.");
+      return;
+    }
+
+    navigator.requestMIDIAccess({ sysex: false }).then((midiAccess) => {
+      console.log("✅ MIDI Access erfolgreich.");
+      midiAccess.inputs.forEach((input) => {
+        console.log("🎹 Eingabegerät erkannt:", input.name);
+        input.onmidimessage = ({ data }) => {
+          const [status, data1, data2] = data;
+          handleMIDIMessage(status, data1, data2);
+        };
+      });
+
+      midiAccess.onstatechange = (event) => {
+        const port = event.port;
+        if (port.type === "input" && port.state === "connected") {
+          console.log("🔌 Neues Gerät verbunden:", port.name);
+          port.onmidimessage = ({ data }) => {
+            const [status, data1, data2] = data;
+            handleMIDIMessage(status, data1, data2);
+          };
+        }
+      };
+    }).catch((err) => {
+      console.error("❌ MIDI Zugriff fehlgeschlagen:", err);
+    });
+  }
+
+  function onMIDISuccess(midiAccess) {
+    // Alle vorhandenen MIDI-Eingänge initialisieren
+    midiAccess.inputs.forEach((input) => {
+      input.onmidimessage = (msg) => {
+        const [status, data1, data2] = msg.data;
+        handleMIDIMessage(status, data1, data2);
+      };
+    });
+    // Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
+    midiAccess.onstatechange = (event) => {
+      const port = event.port;
+      console.log("MIDI-Gerätestatus hat sich geändert:", port.name, port.state);
+      if (port.state === "connected" && port.type === "input") {
+        port.onmidimessage = (msg) => {
+          const [status, data1, data2] = msg.data;
+          handleMIDIMessage(status, data1, data2);
+        };
+      }
+    };
+  }
+  
+  function onMIDIFailure(error) {
+    console.error("Zugriff auf MIDI-Geräte fehlgeschlagen:", error);
+  }
+
+  // Direkt beim Parsen starten
+  initMIDIAccess();
   </script>
 <script>
     
@@ -2754,6 +2811,8 @@ function scheduleReverseAnimation() {
       tutorialOverlay.style.justifyContent = "center";
       tutorialOverlay.style.alignItems = "center";
       tutorialOverlay.style.color = "#FFF";
+      // Stack vertically
+      tutorialOverlay.style.flexDirection = "column";
 
       const tutorialTextContainer = document.createElement("div");
       tutorialTextContainer.id = "tutorialTextContainer";
@@ -2844,6 +2903,16 @@ function scheduleReverseAnimation() {
             skipBtn.id = "tutorialSkipBtn";
             skipBtn.textContent = "Überspringen";
             skipBtn.style.marginTop = "20px";
+            // Style the skip button
+            skipBtn.style.backgroundColor = "#000";
+            skipBtn.style.color = "#FFF";
+            skipBtn.style.border = "1px solid #FFF";
+            skipBtn.style.padding = "0.5em 1em";
+            skipBtn.style.cursor = "pointer";
+            skipBtn.style.fontSize = "1em";
+            skipBtn.style.borderRadius = "4px";
+            skipBtn.style.boxShadow = "none";
+            skipBtn.style.backgroundImage = "none";
             tutorialOverlay.appendChild(skipBtn);
             skipBtn.addEventListener("click", () => {
               skipRequested = true;
