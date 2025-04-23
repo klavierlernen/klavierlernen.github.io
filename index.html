@@ -2304,10 +2304,12 @@ metronomeToggle.addEventListener("click", () => {
             yLabel.style.top = `calc(50% + ${currentY}px + 5px)`;
             yLabel.textContent = `${Math.round((currentY / window.innerHeight) * 100)}%`;
 
-            notation.style.position = "fixed";
-            notation.style.top = "50%";
-            notation.style.left = "50%";
-            notation.style.transform = `translate(-50%, -50%) translate(${currentX}px, ${currentY}px)`;
+            // Use viewport center for positioning
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            notation.style.top = `${centerY + currentY}px`;
+            notation.style.left = `${centerX + currentX}px`;
+            notation.style.transform = "none";
           };
           endDrag = () => {
             isDragging = false;
@@ -2333,9 +2335,9 @@ metronomeToggle.addEventListener("click", () => {
             startY = touch.clientY;
 
             const notation = document.getElementById("notation");
-            const rect = notation.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
+            // Use viewport center for positioning
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
 
             xGuide.style.left = `${centerX}px`;
             xGuide.style.transform = `translateX(${currentX}px)`;
@@ -2354,15 +2356,27 @@ metronomeToggle.addEventListener("click", () => {
             isDragging = false;
           };
 
-          [xGuide, yGuide, xLabel, yLabel].forEach(el => {
-            el.style.touchAction = "none";
-            el.addEventListener("mousedown", startDrag);
-            el.addEventListener("touchstart", startDragTouch, { passive: false });
-          });
+          // Add invisible draggable handle in center of crosshair
+          const dragHandle = document.createElement("div");
+          dragHandle.style.position = "fixed";
+          dragHandle.style.top = "50%";
+          dragHandle.style.left = "50%";
+          dragHandle.style.width = "30px";
+          dragHandle.style.height = "30px";
+          dragHandle.style.transform = "translate(-50%, -50%)";
+          dragHandle.style.zIndex = "2000";
+          dragHandle.style.cursor = "move";
+          dragHandle.style.backgroundColor = "transparent";
+          dragHandle.style.touchAction = "none"; // Ensure touchAction disables default browser gestures
+          document.body.appendChild(dragHandle);
+          // Save references for cleanup later
+          window._notationGuides = [xGuide, yGuide, xLabel, yLabel, dragHandle];
+          // Add mouse and touch event listeners to the handle for drag
+          dragHandle.addEventListener("mousedown", startDrag);
+          dragHandle.addEventListener("touchstart", startDragTouch, { passive: false });
+          // Register global listeners for both mouse and touch movement/end
           window.addEventListener("mousemove", duringDrag);
-          window.addEventListener("touchmove", duringDrag);
           window.addEventListener("mouseup", endDrag);
-          window.addEventListener("touchend", endDrag);
           window.addEventListener("touchmove", duringDragTouch, { passive: false });
           window.addEventListener("touchend", endDragTouch);
 
@@ -2372,8 +2386,8 @@ metronomeToggle.addEventListener("click", () => {
           localStorage.setItem("notationTransform", `translate(-50%, -50%) translate(${currentX}px, ${currentY}px)`);
           // Store the final position and clean up listeners and guides
           if (window._notationGuides) {
-            [xGuide, yGuide, xLabel, yLabel] = window._notationGuides;
-            [xGuide, yGuide, xLabel, yLabel].forEach(el => {
+            [xGuide, yGuide, xLabel, yLabel, dragHandle] = window._notationGuides;
+            [xGuide, yGuide, xLabel, yLabel, dragHandle].forEach(el => {
               if (el && el.parentElement) el.parentElement.removeChild(el);
             });
             window._notationGuides = null;
