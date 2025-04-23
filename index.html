@@ -676,6 +676,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let dragging = false;
 
   notation.addEventListener('touchstart', e => {
+    // Only allow dragging if the Geodreieck-Button ("geometryToggle") is active
+    const toggle = document.getElementById('geometryToggle');
+    const isActive = toggle && (toggle.classList.contains('active') || toggle.dataset.active === 'true');
+    if (!isActive) return;
     e.preventDefault();
     dragging = true;
     const touch = e.touches[0];
@@ -693,7 +697,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const touch = e.touches[0];
     const dx = touch.clientX - startX;
     const dy = touch.clientY - startY;
-    notation.style.transform = `translate(${initX + dx}px, ${initY + dy}px)`;
+    const newX = initX + dx;
+    const newY = initY + dy;
+    // Calculate the position of the center of notation in viewport
+    // The transform is relative to (left:50%, top:50%)
+    const newLeft = newX + window.innerWidth / 2;
+    const newTop = newY + window.innerHeight / 2;
+    if (
+      newLeft > 0 &&
+      newLeft < window.innerWidth &&
+      newTop > 0 &&
+      newTop < window.innerHeight
+    ) {
+      notation.style.transform = `translate(${newX}px, ${newY}px)`;
+    }
   }, { passive: false });
 
   notation.addEventListener('touchend', () => {
@@ -979,7 +996,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Find the button container
       const bc = document.getElementById("buttonContainer");
       if (bc) {
-        // Create a virtual keyboard element (example)
+        // Create a virtual keyboard element
         const vk = document.createElement("div");
         vk.id = "virtualKeyboard";
         vk.style.width = "60%";
@@ -1010,55 +1027,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update position on window resize and orientation change
         window.addEventListener("resize", positionVK);
         window.addEventListener("orientationchange", positionVK);
-
-        // --- Prevent multiple triggers from same key press for virtual keyboard ---
-        // If you add key buttons to the virtual keyboard, here's example logic:
-        let vkLastPressedKey = null;
-        let vkKeyReleaseTimeout = null;
-        let vkLastPlayedNote = null;
-        let vkLastPlayedTime = 0;
-        function playDebounced(note) {
-          const now = Date.now();
-          if (note === vkLastPlayedNote && now - vkLastPlayedTime < 100) return;
-          vkLastPlayedNote = note;
-          vkLastPlayedTime = now;
-          if (typeof handleVirtualKey === 'function') handleVirtualKey(note);
-        }
-        // Example: dynamically add buttons for demonstration
-        // (Replace with your actual keyboard layout/buttons creation)
-        // Remove demo buttons if you already have your own key creation
-        vk.innerHTML = ""; // Remove "Virtuelles Keyboard" text
-        const keyNames = ["C", "D", "E", "F", "G", "A", "B"];
-        keyNames.forEach((note) => {
-          const btn = document.createElement("button");
-          btn.textContent = note;
-          btn.style.margin = "1px";
-          btn.style.fontSize = "1.2em";
-          btn.style.padding = "4px 6px";
-          btn.style.width = "30px";
-          btn.style.borderRadius = "6px";
-          btn.style.border = "1px solid #aaa";
-          btn.style.background = "#fff";
-          btn.style.cursor = "pointer";
-          // Prevent default touch/mouse behavior and unify events
-          btn.style.touchAction = "none";
-          btn.addEventListener('pointerdown', e => {
-            e.preventDefault();
-            if (vkLastPressedKey === note) return;
-            vkLastPressedKey = note;
-            playDebounced(note);
-            btn.style.background = '#cce5ff';
-          });
-          btn.addEventListener('pointerup', () => {
-            vkLastPressedKey = null;
-            btn.style.background = '#fff';
-          });
-          btn.addEventListener('pointerleave', () => {
-            vkLastPressedKey = null;
-            btn.style.background = '#fff';
-          });
-          vk.appendChild(btn);
-        });
+        // The virtual keyboard layout and input is now handled only by QwertyHancock or other dedicated code.
+        // No manual <button> elements are created here.
       }
     });
       
@@ -3001,6 +2971,10 @@ function scheduleReverseAnimation() {
       midiAccess.inputs.forEach((input) => {
         console.log("🎹 Eingabegerät erkannt:", input.name);
         input.onmidimessage = ({ data }) => {
+          const vk = document.getElementById("virtualKeyboard");
+          const isVisible = vk && vk.style.display !== "none";
+          if (isVisible) return; // Ignore MIDI cable input when virtual keyboard is active
+
           const [status, data1, data2] = data;
           if ((status & 0xf0) === 0x90 && data2 > 0) {
             handleMIDIMessage(status, data1, data2);
@@ -3013,6 +2987,9 @@ function scheduleReverseAnimation() {
         if (port.type === "input" && port.state === "connected") {
           console.log("🔌 Neues Gerät verbunden:", port.name);
           port.onmidimessage = ({ data }) => {
+            const vk = document.getElementById("virtualKeyboard");
+            const isVisible = vk && vk.style.display !== "none";
+            if (isVisible) return;
             const [status, data1, data2] = data;
             if ((status & 0xf0) === 0x90 && data2 > 0) {
               handleMIDIMessage(status, data1, data2);
@@ -3065,6 +3042,10 @@ function scheduleReverseAnimation() {
       midiAccess.inputs.forEach((input) => {
         console.log("🎹 Eingabegerät erkannt:", input.name);
         input.onmidimessage = ({ data }) => {
+          const vk = document.getElementById("virtualKeyboard");
+          const isVisible = vk && vk.style.display !== "none";
+          if (isVisible) return;
+
           const [status, data1, data2] = data;
           handleMIDIMessage(status, data1, data2);
         };
@@ -3075,6 +3056,9 @@ function scheduleReverseAnimation() {
         if (port.type === "input" && port.state === "connected") {
           console.log("🔌 Neues Gerät verbunden:", port.name);
           port.onmidimessage = ({ data }) => {
+            const vk = document.getElementById("virtualKeyboard");
+            const isVisible = vk && vk.style.display !== "none";
+            if (isVisible) return;
             const [status, data1, data2] = data;
             handleMIDIMessage(status, data1, data2);
           };
@@ -3547,9 +3531,7 @@ document.addEventListener("DOMContentLoaded", () => {
       keyboard.keyDown = (note, freq) => {
         handleMIDIMessage(144, noteToMidi(note), 127);
       };
-      keyboard.keyUp = (note, freq) => {
-        handleMIDIMessage(128, noteToMidi(note), 0);
-      };
+      keyboard.keyUp = () => {};
 
       // 4) Add toggle button to settings panel
       const btn = document.createElement("span");
