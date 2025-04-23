@@ -28,6 +28,9 @@
       text-align: center;
       transition: background-color 0.3s, color 0.3s;
       overflow: hidden;
+      position: fixed;
+      width: 100%;
+      height: 100%;
     }
 
     body.dark-mode {
@@ -709,6 +712,13 @@
       }
       
   </style>
+  <script>
+    // Disable any scrolling
+    window.addEventListener('scroll', function(e) {
+      e.preventDefault();
+      window.scrollTo(0, 0);
+    }, { passive: false });
+  </script>
   <script>
    
 // === Touch‐based positioning for the notation crosshair ===
