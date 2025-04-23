@@ -2732,10 +2732,12 @@ function scheduleReverseAnimation() {
     
     
     function startTutorialSequence() {
+      const savedName = localStorage.getItem("userName") || "";
+      const greeting = savedName ? `Hallo, ${savedName}!` : "Hallo!";
       const steps = [
-        ["Hallo!", "Du scheinst das erste Mal hier zu sein", "Lass uns dir zeigen, wie die App funktioniert"],
-        ["⚙️ Wir überprüfen, ob du zum Spielen startklar bist", "Das MIDI Kabel ist nicht verbunden", "✅ Danke!"],
-        ["Du kannst nun angezeigte Noten im Notensystem spielen.", "Hierzu gibt es folgende Einstellungsmöglichkeiten:", "✋ Auswahl der Hand", "🐇 Zufallsmodus oder 🖍️ Benutzerdefiniert", "🌙 Dark Mode", "⏲️ Metronom"],
+        [greeting, "Du scheinst das erste Mal hier zu sein ...", "...lass uns dir zeigen, wie die App funktioniert!"],
+        ["⚙️ Wir prüfen gerade alle technischen Vorraussetzungen", "❌ Das MIDI Kabel ist nicht verbunden. Bitte verbinde es mit beiden Geräten", "✅ Danke!"],
+        ["Du kannst nun angezeigte Noten im Notensystem spielen.", "Hierzu gibt es folgende Einstellungsmöglichkeiten...", "✋ Auswahl der Hand", "🐇 Zufallsmodus oder 🖍️ Benutzerdefiniert", "🌙 Dark Mode", "⏲️ Metronom"],
         ["Soweit startklar?", "Viel Spaß beim Spielen!"]
       ];
 
@@ -2746,7 +2748,7 @@ function scheduleReverseAnimation() {
       tutorialOverlay.style.left = "0";
       tutorialOverlay.style.width = "100%";
       tutorialOverlay.style.height = "100%";
-      tutorialOverlay.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+      tutorialOverlay.style.backgroundColor = "#000";
       tutorialOverlay.style.zIndex = "3000";
       tutorialOverlay.style.display = "flex";
       tutorialOverlay.style.justifyContent = "center";
@@ -2770,43 +2772,92 @@ function scheduleReverseAnimation() {
       let phase = 0;
       let index = 0;
 
+      // Wartet, bis ein MIDI-Input verbunden wird
+      function waitForMIDIDetection() {
+        return navigator.requestMIDIAccess({ sysex: false })
+          .then(midiAccess => {
+            if (midiAccess.inputs.size > 0) return Promise.resolve();
+            return new Promise(resolve => {
+              midiAccess.onstatechange = e => {
+                if (e.port.type === "input" && e.port.state === "connected") {
+                  resolve();
+                }
+              };
+            });
+          });
+      }
+
       function showNext() {
         if (phase >= steps.length) {
-          tutorialOverlay.remove();
-          document.getElementById("mainContent").style.display = "block";
-          document.getElementById("timerContainer").style.display = "flex";
-          document.getElementById("settingsPanel").style.display = "flex";
-          localStorage.setItem("tutorialCompleted", "true");
+          // Fade-Übergang zum Hauptscreen
+          tutorialOverlay.style.transition = "opacity 1s";
+          tutorialOverlay.style.opacity = "0";
+          const mainContent = document.getElementById("mainContent");
+          const timerContainer = document.getElementById("timerContainer");
+          const settingsPanel = document.getElementById("settingsPanel");
+          mainContent.style.display = "block";
+          timerContainer.style.display = "flex";
+          settingsPanel.style.display = "flex";
+          mainContent.style.opacity = "0";
+          timerContainer.style.opacity = "0";
+          settingsPanel.style.opacity = "0";
+          setTimeout(() => {
+            mainContent.style.transition = "opacity 1s";
+            timerContainer.style.transition = "opacity 1s";
+            settingsPanel.style.transition = "opacity 1s";
+            mainContent.style.opacity = "1";
+            timerContainer.style.opacity = "1";
+            settingsPanel.style.opacity = "1";
+          }, 50);
+          setTimeout(() => {
+            tutorialOverlay.remove();
+            localStorage.setItem("tutorialCompleted", "true");
+          }, 1050);
           return;
         }
-
         const step = steps[phase];
-        const message = step[index];
-
-        tutorialTextContainer.style.opacity = "0";
-        setTimeout(() => {
-          tutorialTextContainer.textContent = message;
-          tutorialTextContainer.style.opacity = "1";
-        }, 1000);
-
-        index++;
-        if (index < step.length) {
-          setTimeout(() => {
-            tutorialTextContainer.style.opacity = "0";
-            setTimeout(showNext, 1000);
-          }, 3000);
-        } else {
+        // Wenn alle Nachrichten dieser Phase durchlaufen sind, zur nächsten Phase wechseln
+        if (index >= step.length) {
           phase++;
           index = 0;
-          setTimeout(() => {
-            tutorialTextContainer.style.opacity = "0";
-            setTimeout(showNext, 1000);
-          }, 3000);
+          setTimeout(showNext, 500);
+          return;
         }
+        const message = step[index];
+        // Nachricht ausblenden
+        tutorialTextContainer.style.opacity = "0";
+        setTimeout(() => {
+          // Nachricht setzen und einblenden
+          tutorialTextContainer.textContent = message;
+          tutorialTextContainer.style.opacity = "1";
+          // Spezielle Phase 1, Nachricht 2: auf MIDI warten
+          if (phase === 1 && index === 1) {
+            waitForMIDIDetection().then(() => {
+              tutorialTextContainer.style.opacity = "0";
+              setTimeout(() => {
+                index++;
+                showNext();
+              }, 1000);
+            });
+          } else {
+            // Normales Weiterschalten nach 3 Sekunden
+            index++;
+            setTimeout(() => {
+              tutorialTextContainer.style.opacity = "0";
+              setTimeout(showNext, 1000);
+            }, 3000);
+          }
+        }, 1000);
       }
 
       showNext();
     }
+// Starte das Hilfe-/Tutorial-Fenster beim Laden, falls noch nicht abgeschlossen
+document.addEventListener("DOMContentLoaded", () => {
+  if (!localStorage.getItem('tutorialCompleted')) {
+    startTutorialSequence();
+  }
+});
 </script>
 <style>
 @keyframes flyOutRight {
