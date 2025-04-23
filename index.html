@@ -1921,6 +1921,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       bpmDisplay.style.display = "block";
       // const emojiWidth = metronomeToggle.getBoundingClientRect().width;
       bpmDisplay.style.fontSize = "14px"; // feste Schriftgröße, frei anpassbar
+      bpmDisplay.style.fontWeight = "bold";
       bpmDisplay.textContent = metronomeBPM > 0 ? metronomeBPM + " BPM" : "";
       metronomeContainer.appendChild(bpmDisplay);
       bpmDisplay.addEventListener("click", () => {
@@ -2162,16 +2163,6 @@ document.getElementById("timerContainer").addEventListener("click", () => {
       });
   
       
-      document.getElementById("userIDIcon").addEventListener("click", () => {
-        if (document.getElementById("userIDIcon").textContent === "🔒") {
-          localStorage.removeItem("storedUserID");
-          document.getElementById("userIDInput").value = "";
-          document.getElementById("userIDInput").focus();
-          document.getElementById("userIDIcon").textContent = "🖍️";
-          document.getElementById("createNewID").style.display = "inline";
-          document.getElementById("userIDStatus").textContent = "";
-        }
-      });
     });
                   
 let melodyContext = {
@@ -2738,10 +2729,6 @@ function scheduleReverseAnimation() {
   });
   </script>
 <script>
-  // Versuche, Web Bluetooth zu initialisieren, falls verfügbar und Web MIDI nicht unterstützt wird
-  
-</script>
-<script>
     
     
     function startTutorialSequence() {
@@ -2820,16 +2807,6 @@ function scheduleReverseAnimation() {
 
       showNext();
     }
-</script>
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
-    console.log("--- Schnittstellen-Überprüfung ---");
-    console.log("Web MIDI API: " + (navigator.requestMIDIAccess ? "verfügbar" : "nicht verfügbar"));
-    console.log("Web Bluetooth API: " + (navigator.bluetooth ? "verfügbar" : "nicht verfügbar"));
-    // Optional: Weitere Schnittstellen können hier hinzugefügt werden
-    console.log("Custom Prompt (window.webkit.messageHandlers.customPrompt): " + (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt ? "verfügbar" : "nicht verfügbar"));
-    console.log("---------------------------------");
-  });
 </script>
 <style>
 @keyframes flyOutRight {
