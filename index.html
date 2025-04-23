@@ -1879,6 +1879,31 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       
       
       // Metronom-Toggle
+      // Metronom-Setup: Zustandsvariablen und Steuerfunktionen
+      let metronomeOn = false;
+      let metronomeInterval = 60000;         // Millisekunden pro Schlag, wird bei BPM-Änderung angepasst
+      let lastTickTime = Date.now();         // Zeitstempel des letzten Metronom-Schlags
+      let metronomeTimer;                    // Intervall-Timer für Metronom
+      let metronomeTolerance = 0;            // Fehlertoleranz (wird noch gesetzt)
+
+      // Startet das Metronom: aktualisiert lastTickTime bei jedem Schlag
+      function startMetronome() {
+        if (metronomeTimer) clearInterval(metronomeTimer);
+        metronomeOn = true;
+        lastTickTime = Date.now();
+        metronomeTimer = setInterval(() => {
+          lastTickTime = Date.now();
+        }, metronomeInterval);
+      }
+
+      // Stoppt das Metronom
+      function stopMetronome() {
+        metronomeOn = false;
+        if (metronomeTimer) {
+          clearInterval(metronomeTimer);
+          metronomeTimer = null;
+        }
+      }
       // Metronom-Container mit Emoji und BPM-Anzeige
       const metronomeContainer = document.createElement("div");
       metronomeContainer.style.display = "inline-block";
@@ -1924,6 +1949,8 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
                 metronomeBPM = bpm;
                 metronomeInterval = 60000 / bpm;
                 document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
+                metronomeTolerance = metronomeInterval * 0.3;
+                if (metronomeOn) startMetronome();
                 startMetronome();
                 metronomeToggle.style.opacity = "1";
                 metronomeOn = true;
@@ -1968,6 +1995,8 @@ metronomeToggle.addEventListener("click", () => {
             metronomeBPM = bpm;
             metronomeInterval = 60000 / bpm;
             document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
+            metronomeTolerance = metronomeInterval * 0.3;
+            if (metronomeOn) startMetronome();
             startMetronome();
             metronomeToggle.style.opacity = "1";
             metronomeOn = true;
