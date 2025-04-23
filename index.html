@@ -1885,11 +1885,50 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       bpmDisplay.style.fontSize = "14px"; // feste Schriftgröße, frei anpassbar
       bpmDisplay.textContent = metronomeBPM > 0 ? metronomeBPM + " BPM" : "";
       metronomeContainer.appendChild(bpmDisplay);
+      bpmDisplay.addEventListener("click", () => {
+        let existingInput = document.getElementById("bpmInput");
+        if (!existingInput) {
+          const input = document.createElement("input");
+          input.id = "bpmInput";
+          input.type = "number";
+          input.min = "1";
+          input.placeholder = metronomeBPM > 0 ? metronomeBPM : "";
+          Object.assign(input.style, {
+            backgroundColor: "white",
+            border: "1px solid #000",
+            width: "60px",
+            fontSize: "1em",
+            borderRadius: "5px",
+            outline: "none",
+            marginLeft: "5px"
+          });
+          metronomeContainer.appendChild(input);
+          input.focus();
+          input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              const bpm = Number(input.value);
+              if (bpm > 0) {
+                metronomeBPM = bpm;
+                metronomeInterval = 60000 / bpm;
+                document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
+                startMetronome();
+                metronomeToggle.style.opacity = "1";
+                metronomeOn = true;
+              }
+              input.remove();
+            }
+          });
+          input.addEventListener("blur", () => {
+            input.remove();
+          });
+        }
+      });
 metronomeToggle.addEventListener("click", () => {
   if (metronomeOn) {
     stopMetronome();
     metronomeOn = false;
     metronomeToggle.style.opacity = "0.5";
+    document.getElementById("bpmDisplay").textContent = "";
   } else {
     let existingInput = document.getElementById("bpmInput");
     if (!existingInput) {
