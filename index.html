@@ -654,6 +654,44 @@
       .fly-out-left {
         animation: flyOutLeft 0.5s forwards;
         
+      }
+      
+      #virtualKeyboard {
+        position: fixed;
+        top: 150%;
+        left: 30px;
+        right: 30px;
+        width: auto;
+        max-width: calc(100% - 60px);
+        height: 100px;
+        transform-origin: top center; /* Für skalierte Darstellung */
+      }
+
+      /* Real Piano Key Sizes */
+      #virtualKeyboard .white-key, #virtualKeyboard .white {
+        width: 23px !important;
+        height: 560px !important;
+      }
+
+      #virtualKeyboard .black-key, #virtualKeyboard .black {
+        width: 14px !important;
+        height: 80px !important;
+        margin-left: -7px;
+        margin-right: -7px;
+      }
+
+      /* Nur Touch-Interaktionen für die virtuelle Klaviatur erlauben */
+      @media (pointer: fine) {
+        #virtualKeyboard {
+          pointer-events: none;
+        }
+      }
+      @media (pointer: coarse) {
+        #virtualKeyboard {
+          pointer-events: auto;
+          margin: 0 20px; /* Abstand zu den Bildschirmrändern */
+        }
+      }
   </style>
   <script>
    
@@ -999,17 +1037,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Create a virtual keyboard element
         const vk = document.createElement("div");
         vk.id = "virtualKeyboard";
-        vk.style.width = "60%";
-        vk.style.maxWidth = "500px";
         vk.textContent = "Virtuelles Keyboard";
         // Keyboard initially hidden
         vk.style.visibility = "hidden";
         vk.style.position = "fixed";
         vk.style.top = "150%";
-        vk.style.transform = "translateY(210%)";
+        vk.style.transform = "translateY(210%) scale(0.75)"; // Zoomfaktor 0.8 für kleineres Keyboard
         vk.style.zIndex = "100";
         vk.style.background = "#eee";
-        vk.style.padding = "10px";
+        vk.style.padding = "100px";
         // Initially place it just above the button container
         // We'll update its position on window resize and DOMContentLoaded
         function positionVK() {
@@ -1022,6 +1058,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // Append first so offsetHeight is available
         document.body.appendChild(vk);
+        // --- Override key dimensions after rendering ---
+        setTimeout(() => {
+          const whiteKeys = vk.querySelectorAll('.white-key, .white');
+          whiteKeys.forEach(key => {
+            key.style.width = '23px';
+            key.style.height = '260px';
+          });
+          const blackKeys = vk.querySelectorAll('.black-key, .black');
+          blackKeys.forEach(key => {
+            key.style.width = '14px';
+            key.style.height = '80px';
+            key.style.marginLeft = '-7px';
+            key.style.marginRight = '-7px';
+          });
+        }, 100);
         // Position after appending
         positionVK();
         // Update position on window resize and orientation change
@@ -3007,8 +3058,14 @@ function scheduleReverseAnimation() {
     // Alle vorhandenen MIDI-Eingänge initialisieren
     midiAccess.inputs.forEach((input) => {
       input.onmidimessage = (msg) => {
+        const vk = document.getElementById("virtualKeyboard");
+        const isVisible = vk && vk.style.display !== "none";
+        if (isVisible) return;
+
         const [status, data1, data2] = msg.data;
-        handleMIDIMessage(status, data1, data2);
+        if ((status & 0xf0) === 0x90 && data2 > 0) {
+          handleMIDIMessage(status, data1, data2);
+        }
       };
     });
     // Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
@@ -3017,8 +3074,13 @@ function scheduleReverseAnimation() {
       console.log("MIDI-Gerätestatus hat sich geändert:", port.name, port.state);
       if (port.state === "connected" && port.type === "input") {
         port.onmidimessage = (msg) => {
+          const vk = document.getElementById("virtualKeyboard");
+          const isVisible = vk && vk.style.display !== "none";
+          if (isVisible) return;
           const [status, data1, data2] = msg.data;
-          handleMIDIMessage(status, data1, data2);
+          if ((status & 0xf0) === 0x90 && data2 > 0) {
+            handleMIDIMessage(status, data1, data2);
+          }
         };
       }
     };
@@ -3529,6 +3591,9 @@ document.addEventListener("DOMContentLoaded", () => {
         hoverColour: "#f00"
       });
       keyboard.keyDown = (note, freq) => {
+        const vk = document.getElementById("virtualKeyboard");
+        const isVisible = vk && vk.style.display !== "none";
+        if (!isVisible) return; // Prevent double trigger when not actively visible
         handleMIDIMessage(144, noteToMidi(note), 127);
       };
       keyboard.keyUp = () => {};
