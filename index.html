@@ -2771,6 +2771,7 @@ function scheduleReverseAnimation() {
 
       let phase = 0;
       let index = 0;
+      let skipRequested = false;
 
       // Wartet, bis das mittlere C (MIDI-Note 60) gespielt wird
       function waitForMiddleC() {
@@ -2837,12 +2838,32 @@ function scheduleReverseAnimation() {
           tutorialTextContainer.style.opacity = "1";
           // Spezielle Phase 1, Nachricht 2: auf das mittlere C warten
           if (phase === 1 && index === 1) {
-            waitForMiddleC().then(() => {
+            // Reset skip flag and show skip button
+            skipRequested = false;
+            const skipBtn = document.createElement("button");
+            skipBtn.id = "tutorialSkipBtn";
+            skipBtn.textContent = "Überspringen";
+            skipBtn.style.marginTop = "20px";
+            tutorialOverlay.appendChild(skipBtn);
+            skipBtn.addEventListener("click", () => {
+              skipRequested = true;
+              skipBtn.remove();
               tutorialTextContainer.style.opacity = "0";
               setTimeout(() => {
                 index++;
                 showNext();
               }, 1000);
+            });
+            // Wait for middle C or skip
+            waitForMiddleC().then(() => {
+              skipBtn.remove();
+              if (!skipRequested) {
+                tutorialTextContainer.style.opacity = "0";
+                setTimeout(() => {
+                  index++;
+                  showNext();
+                }, 1000);
+              }
             });
           } else {
             // Normales Weiterschalten nach 3 Sekunden
