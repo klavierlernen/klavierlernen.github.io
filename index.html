@@ -2573,7 +2573,7 @@ function scheduleReverseAnimation() {
             const correctEmoji = emojiMap[correctRaw.toLowerCase()] || "❓";
             noteDisplay.innerHTML = '<span style="color:red;">' + playedEmoji + ' hätte ' + correctEmoji + ' sein müssen</span>';
           } else {
-            noteDisplay.innerHTML = '<span style="color:red;">' + playedNoteDisplay + '</span> <span style="color:green;">' + correctDisplay + '</span>';
+            noteDisplay.innerHTML = '<span style="color:red;">' + playedNoteDisplay + '</span> <span style="color:black; font-size:1em; margin:0 5px;">&#8594;</span> <span style="color:green;">' + correctDisplay + '</span>';
           }
         }
           if (!unlimitedLives) {
