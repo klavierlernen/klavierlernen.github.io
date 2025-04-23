@@ -628,6 +628,19 @@
       justify-content: center;
       align-items: center;
     }
+      
+      @keyframes flyOutRight {
+        to { opacity: 0; transform: translateX(100%); }
+      }
+      @keyframes flyOutLeft {
+        to { opacity: 0; transform: translateX(-100%); }
+      }
+      .fly-out-right {
+        animation: flyOutRight 0.5s forwards;
+      }
+      .fly-out-left {
+        animation: flyOutLeft 0.5s forwards;
+        
   </style>
   <script>
    
@@ -2433,8 +2446,43 @@ const drawSeries = () => {
         resetGame();
       };
       
+let reverseAnimationTimeout;
+let menusHidden = false;
+function scheduleReverseAnimation() {
+  clearTimeout(reverseAnimationTimeout);
+  reverseAnimationTimeout = setTimeout(() => {
+        const settingsPanel = document.getElementById("settingsPanel");
+        const streakDisplay = document.getElementById("streakDisplay");
+        if (settingsPanel) {
+          settingsPanel.classList.remove("fly-out-right");
+          settingsPanel.classList.add("fly-in-right");
+        }
+        if (streakDisplay) {
+          streakDisplay.classList.remove("fly-out-left");
+          streakDisplay.classList.add("fly-in-left");
+        }
+        menusHidden = false;
+      }, 2000);
+}
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
+      // Animation beim Anschlagen einer Taste:
+      const settingsPanel = document.getElementById("settingsPanel");
+      const streakDisplay = document.getElementById("streakDisplay");
+      if (!menusHidden) {
+        if (settingsPanel) {
+          settingsPanel.classList.remove("fly-in-right", "fly-out-right");
+          void settingsPanel.offsetWidth;
+          settingsPanel.classList.add("fly-out-right");
+        }
+        if (streakDisplay) {
+          streakDisplay.classList.remove("fly-in-left", "fly-out-left");
+          void streakDisplay.offsetWidth;
+          streakDisplay.classList.add("fly-out-left");
+        }
+        menusHidden = true;
+      }
+      scheduleReverseAnimation();
       if (metronomeOn) {
         const now = Date.now();
         const diff = now - lastTickTime;
@@ -2466,7 +2514,7 @@ const drawSeries = () => {
       };
       playedNoteDisplay = emojiMap[midiInfo.note.toLowerCase()] || "❓";
     } else {
-      playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note) + midiInfo.octave;
+      playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note);
     }
         const noteDisplay = document.getElementById("noteNameDisplay");
         totalAttempts++;
@@ -2514,7 +2562,7 @@ const drawSeries = () => {
           addCircle("negative");
         if (noteDisplay) {
           const correctRaw = currentSeriesSingle[seriesCounter].note;
-          const correctDisplay = (correctRaw === "b" ? "h" : correctRaw) + currentSeriesSingle[seriesCounter].octave;
+          const correctDisplay = (correctRaw === "b" ? "h" : correctRaw);
           if (kidsMode) {
             const emojiMap = {
               "c": "🐱", "d": "🐳", "e": "🐷", "f": "🐟",
@@ -2754,6 +2802,36 @@ const drawSeries = () => {
     console.log("---------------------------------");
   });
 </script>
+<style>
+@keyframes flyOutRight {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(100%); }
+}
+@keyframes flyOutLeft {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-100%); }
+}
+.fly-out-right {
+  animation: flyOutRight 0.5s forwards;
+}
+.fly-out-left {
+  animation: flyOutLeft 0.5s forwards;
+}
+@keyframes flyInRight {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes flyInLeft {
+  from { opacity: 0; transform: translateX(-100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.fly-in-right {
+  animation: flyInRight 0.5s forwards;
+}
+.fly-in-left {
+  animation: flyInLeft 0.5s forwards;
+}
+</style>
 </head>
 <body>
     <div id="streakDisplay"></div>
@@ -2789,7 +2867,7 @@ const drawSeries = () => {
     <!-- Timer Container -->
     <div id="timerContainer"></div>
     <!-- Hauptinhalt -->
-    <div id="settingsPanel" style="position: fixed; top: 20%; right: 10px; background: rgba(255,255,255,0.8); padding: 10px; border: 1px solid #000; z-index: 200;"></div>
+    <div id="settingsPanel" style="position: fixed; top: 20%; right: 10px; background: rgba(255,255,255,0.8); padding: 10px; border: 1px solid #000; border-radius: 8px; z-index: 200;"></div>
     <div id="mainContent">
        
         <div id="notation"></div>
