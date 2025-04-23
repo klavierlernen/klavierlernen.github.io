@@ -656,23 +656,51 @@
   </style>
   <script>
    
-   document.addEventListener("DOMContentLoaded", () => {
-     const savedTransform = localStorage.getItem("notationTransform");
-     if (savedTransform) {
-       const notationElem = document.getElementById("notation");
-       if (notationElem) {
-         notationElem.style.transform = savedTransform;
-       }
-     }
-   });
-      
-   const savedTransform = localStorage.getItem("notationTransform");
-   if (savedTransform) {
-     const notationElem = document.getElementById("notation");
-     if (notationElem) {
-       notationElem.style.transform = savedTransform;
-     }
-   }
+// === Touch‐based positioning for the notation crosshair ===
+document.addEventListener('DOMContentLoaded', () => {
+  const notation = document.getElementById('notation');
+  if (!notation) return;
+
+  // Load or set default transform
+  let saved = localStorage.getItem('notationTransform');
+  if (!saved) {
+    saved = 'translate(-50%, -50%)';
+    localStorage.setItem('notationTransform', saved);
+  }
+  notation.style.transform = saved;
+
+  // Prepare variables for touch dragging
+  let startX = 0, startY = 0;
+  let initX = 0, initY = 0;
+  let dragging = false;
+
+  notation.addEventListener('touchstart', e => {
+    e.preventDefault();
+    dragging = true;
+    const touch = e.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+    const style = window.getComputedStyle(notation);
+    const matrix = new DOMMatrix(style.transform);
+    initX = matrix.m41;
+    initY = matrix.m42;
+  }, { passive: false });
+
+  notation.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    notation.style.transform = `translate(${initX + dx}px, ${initY + dy}px)`;
+  }, { passive: false });
+
+  notation.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    localStorage.setItem('notationTransform', notation.style.transform);
+  });
+});
     
       
       document.addEventListener("DOMContentLoaded", () => {
