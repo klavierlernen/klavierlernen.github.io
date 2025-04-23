@@ -1015,6 +1015,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // If you add key buttons to the virtual keyboard, here's example logic:
         let vkLastPressedKey = null;
         let vkKeyReleaseTimeout = null;
+        let vkLastPlayedNote = null;
+        let vkLastPlayedTime = 0;
+        function playDebounced(note) {
+          const now = Date.now();
+          if (note === vkLastPlayedNote && now - vkLastPlayedTime < 100) return;
+          vkLastPlayedNote = note;
+          vkLastPlayedTime = now;
+          if (typeof handleVirtualKey === 'function') handleVirtualKey(note);
+        }
         // Example: dynamically add buttons for demonstration
         // (Replace with your actual keyboard layout/buttons creation)
         // Remove demo buttons if you already have your own key creation
@@ -1037,7 +1046,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             if (vkLastPressedKey === note) return;
             vkLastPressedKey = note;
-            if (typeof handleVirtualKey === 'function') handleVirtualKey(note);
+            playDebounced(note);
             btn.style.background = '#cce5ff';
           });
           btn.addEventListener('pointerup', () => {
@@ -2993,7 +3002,9 @@ function scheduleReverseAnimation() {
         console.log("🎹 Eingabegerät erkannt:", input.name);
         input.onmidimessage = ({ data }) => {
           const [status, data1, data2] = data;
-          handleMIDIMessage(status, data1, data2);
+          if ((status & 0xf0) === 0x90 && data2 > 0) {
+            handleMIDIMessage(status, data1, data2);
+          }
         };
       });
 
@@ -3003,7 +3014,9 @@ function scheduleReverseAnimation() {
           console.log("🔌 Neues Gerät verbunden:", port.name);
           port.onmidimessage = ({ data }) => {
             const [status, data1, data2] = data;
-            handleMIDIMessage(status, data1, data2);
+            if ((status & 0xf0) === 0x90 && data2 > 0) {
+              handleMIDIMessage(status, data1, data2);
+            }
           };
         }
       };
