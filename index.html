@@ -2313,53 +2313,51 @@ metronomeToggle.addEventListener("click", () => {
             isDragging = false;
           };
 
+          // --- Touch drag handlers for move notation mode ---
+          const startDragTouch = (e) => {
+            isDragging = true;
+            const touch = e.touches[0];
+            startX = touch.clientX;
+            startY = touch.clientY;
+            e.preventDefault(); // wichtig: verhindert Scrollen auf Mobilgeräten
+          };
+
+          const duringDragTouch = (e) => {
+            if (!isDragging) return;
+            const touch = e.touches[0];
+            const dx = touch.clientX - startX;
+            const dy = touch.clientY - startY;
+            currentX += dx;
+            currentY += dy;
+            startX = touch.clientX;
+            startY = touch.clientY;
+
+            const notation = document.getElementById("notation");
+            const rect = notation.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            xGuide.style.left = `${centerX}px`;
+            xGuide.style.transform = `translateX(${currentX}px)`;
+            xLabel.style.left = `${centerX + currentX + 5}px`;
+
+            yGuide.style.top = `${centerY}px`;
+            yGuide.style.transform = `translateY(${currentY}px)`;
+            yLabel.style.top = `${centerY + currentY + 5}px`;
+
+            notation.style.top = `${centerY + currentY}px`;
+            notation.style.left = `${centerX + currentX}px`;
+            notation.style.transform = "none";
+          };
+
+          const endDragTouch = () => {
+            isDragging = false;
+          };
+
           [xGuide, yGuide, xLabel, yLabel].forEach(el => {
             el.style.touchAction = "none";
             el.addEventListener("mousedown", startDrag);
             el.addEventListener("touchstart", startDragTouch, { passive: false });
-            // TOUCH: Start
-            const startDragTouch = (e) => {
-              isDragging = true;
-              const touch = e.touches[0];
-              startX = touch.clientX;
-              startY = touch.clientY;
-              e.preventDefault(); // wichtig: verhindert Scrollen auf Mobilgeräten
-            };
-
-            // TOUCH: Bewegen
-            const duringDragTouch = (e) => {
-              if (!isDragging) return;
-              const touch = e.touches[0];
-              const dx = touch.clientX - startX;
-              const dy = touch.clientY - startY;
-              currentX += dx;
-              currentY += dy;
-              startX = touch.clientX;
-              startY = touch.clientY;
-
-              const notation = document.getElementById("notation");
-              const rect = notation.getBoundingClientRect();
-              const centerX = rect.left + rect.width / 2;
-              const centerY = rect.top + rect.height / 2;
-
-              xGuide.style.left = `${centerX}px`;
-              xGuide.style.transform = `translateX(${currentX}px)`;
-              xLabel.style.left = `${centerX + currentX + 5}px`;
-
-              yGuide.style.top = `${centerY}px`;
-              yGuide.style.transform = `translateY(${currentY}px)`;
-              yLabel.style.top = `${centerY + currentY + 5}px`;
-
-              notation.style.top = `${centerY + currentY}px`;
-              notation.style.left = `${centerX + currentX}px`;
-              notation.style.transform = "none";
-            };
-
-            // TOUCH: Ende
-            const endDragTouch = () => {
-              isDragging = false;
-            };
-            el.addEventListener("touchstart", startDrag);
           });
           window.addEventListener("mousemove", duringDrag);
           window.addEventListener("touchmove", duringDrag);
