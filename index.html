@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>Klavier</title>
   <!-- VexFlow laden -->
   <link rel="manifest" href="https://raw.githubusercontent.com/JP0024/piano.github.io/main/manifest.json">
@@ -28,17 +28,6 @@
       text-align: center;
       transition: background-color 0.3s, color 0.3s;
       overflow: hidden;
-    }
-
-    /* Verhindere jegliche Seite-Panning */
-    html, body {
-      touch-action: none !important;
-      overscroll-behavior: none !important;
-    }
-
-    /* Erlaube weiterhin Interaktion auf Formular-Elementen */
-    input, textarea, button {
-      touch-action: manipulation !important;
     }
 
     body.dark-mode {
@@ -719,46 +708,73 @@
         bottom: auto !important;
       }
       
+  /* Zoom controls for notation */
+  #zoomIn, #zoomOut {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    background: white;
+    border: 2px solid black;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 1.5em;
+    text-align: center;
+    line-height: 36px;
+    cursor: pointer;
+  }
+  #zoomIn { right: 80px; top: 20px; }
+  #zoomOut { right: 80px; top: 70px; }
   </style>
   <script>
-  // Prevent pinch-to-zoom gestures
-  document.addEventListener('gesturestart', e => e.preventDefault());
-  document.addEventListener('gesturechange', e => e.preventDefault());
-  document.addEventListener('gestureend', e => e.preventDefault());
-
-  // Prevent any finger-drag from panning the page
-  document.body.addEventListener('touchmove', function(e) {
-    e.preventDefault();
-  }, { passive: false });
-
-  // Prevent double-tap zoom
-  let lastTouch = 0;
-  document.addEventListener('touchend', e => {
-    const now = Date.now();
-    if (now - lastTouch <= 300) {
-      e.preventDefault();
-    }
-    lastTouch = now;
-  }, { passive: false });
-  // Prevent pinch-to-zoom gestures
-  document.addEventListener('gesturestart', e => e.preventDefault());
-  document.addEventListener('gesturechange', e => e.preventDefault());
-  document.addEventListener('gestureend', e => e.preventDefault());
-
-  
    
 // === Touch‐based positioning for the notation crosshair ===
 document.addEventListener('DOMContentLoaded', () => {
   const notation = document.getElementById('notation');
   if (!notation) return;
 
-  // Load or set default transform
-  let saved = localStorage.getItem('notationTransform');
-  if (!saved) {
-    saved = 'translate(-50%, -50%)';
-    localStorage.setItem('notationTransform', saved);
+  // Load or set default position and scale
+  let baseTransform = localStorage.getItem('notationTransform');
+  if (!baseTransform) {
+    baseTransform = 'translate(-50%, -50%)';
+    localStorage.setItem('notationTransform', baseTransform);
   }
-  notation.style.transform = saved;
+  let savedScale = parseFloat(localStorage.getItem('notationScale'));
+  let scale = !isNaN(savedScale) ? savedScale : 1;
+  notation.style.transform = `${baseTransform} scale(${scale})`;
+
+  // Create zoom controls
+  const zoomInBtn = document.createElement('button');
+  zoomInBtn.id = 'zoomIn';
+  zoomInBtn.textContent = '+';
+  const zoomOutBtn = document.createElement('button');
+  zoomOutBtn.id = 'zoomOut';
+  zoomOutBtn.textContent = '-';
+  document.body.appendChild(zoomInBtn);
+  document.body.appendChild(zoomOutBtn);
+  // Hide zoom controls by default; show only in Geodreieck-Modus
+  zoomInBtn.style.display = 'none';
+  zoomOutBtn.style.display = 'none';
+  zoomInBtn.addEventListener('click', () => {
+    scale *= 1.1;
+    notation.style.transform = `${baseTransform} scale(${scale})`;
+    localStorage.setItem('notationScale', scale);
+  });
+  zoomOutBtn.addEventListener('click', () => {
+    scale /= 1.1;
+    notation.style.transform = `${baseTransform} scale(${scale})`;
+    localStorage.setItem('notationScale', scale);
+  });
+
+  // Toggle zoom controls when geometry (Geodreieck) mode is activated
+  const geoToggle = document.getElementById('geometryToggle');
+  if (geoToggle) {
+    geoToggle.addEventListener('click', () => {
+      const active = geoToggle.classList.contains('active') || geoToggle.dataset.active === 'true';
+      zoomInBtn.style.display = active ? 'block' : 'none';
+      zoomOutBtn.style.display = active ? 'block' : 'none';
+    });
+  }
 
   // Prepare variables for touch dragging
   let startX = 0, startY = 0;
@@ -799,14 +815,16 @@ document.addEventListener('DOMContentLoaded', () => {
       newTop > 0 &&
       newTop < window.innerHeight
     ) {
-      notation.style.transform = `translate(${newX}px, ${newY}px)`;
+      baseTransform = `translate(${newX}px, ${newY}px)`;
+      notation.style.transform = `${baseTransform} scale(${scale})`;
     }
   }, { passive: false });
 
   notation.addEventListener('touchend', () => {
     if (!dragging) return;
     dragging = false;
-    localStorage.setItem('notationTransform', notation.style.transform);
+    localStorage.setItem('notationTransform', baseTransform);
+    localStorage.setItem('notationScale', scale);
   });
 });
     
@@ -1135,9 +1153,8 @@ document.addEventListener('DOMContentLoaded', () => {
           vk.querySelectorAll('.white-key, .white, .black-key, .black').forEach(key => {
             const noteAttr = key.getAttribute('data-note');
             if (noteAttr) {
-              // Remove octave number to get base note (e.g. "C4" -> "c", "F#3" -> "f#")
-              const noteName = noteAttr.replace(/\d+/g, '').toLowerCase();
-              if (!allowedNotes.includes(noteName)) {
+              const baseNote = noteAttr.split('/')[0];
+              if (!allowedNotes.includes(baseNote)) {
                 key.style.display = 'none';
               }
             }
