@@ -47,18 +47,30 @@
       pointer-events: none;
     }
     /* Einhand-Notation (normaler Modus) */
-    #notation {
-      display: none;
-      position: fixed;
-      top: 80%;
-      left: 65%;
-      transform: translate(-50%, -50%);
-      width: 100%;
-      max-width: calc(100% - 10px);
-      padding: 10px;
-      box-sizing: border-box;
-      z-index: 1;
-    }
+    /* Absolute Mitte mit minimalen Rändern */
+      #notation {
+        display: none;              /* bleibt durch JS gesteuert */
+        position: fixed;
+        top: 85%;
+        left: 70%;
+        transform: translate(-50%, -50%);
+        width: auto;
+        max-width: calc(100% - 10px); /* 5 px Rand links/rechts */
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+        z-index: 1;
+      }
+
+      @media screen and (max-width: 600px) {
+        #notation {
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          max-width: 90%;   /* 5 % Rand mobil */
+          padding: 0;
+        }
+      }
     #notation svg {
       width: 100%;
       height: auto;
@@ -488,7 +500,7 @@
         z-index: 50;
       }
       
-@media screen and (max-width: 600px) {
+    @media screen and (max-width: 600px) {
   
   /* Notensystem kürzen: Notation-Container anpassen */
   #notation {
@@ -891,6 +903,23 @@
     }
     
     document.addEventListener("DOMContentLoaded", () => {
+      // Toggle virtual keyboard and notation position on klaviaturButton click
+      const klaviaturButton = document.getElementById("klaviaturButton");
+      if (klaviaturButton) {
+        klaviaturButton.addEventListener("click", () => {
+          const notationElem = document.getElementById("notation");
+          const vk = document.getElementById("virtualKeyboard");
+          if (vk) {
+            // Toggle keyboard visibility
+            const isHidden = vk.style.display === "none";
+            vk.style.display = isHidden ? "block" : "none";
+            // Adjust notation position accordingly
+            if (notationElem) {
+              notationElem.style.top = isHidden ? "55%" : "85%";
+            }
+          }
+        });
+      }
       const settingsPanel = document.getElementById("settingsPanel");
       const pauseButton = document.createElement("span");
       pauseButton.id = "pauseButton";
@@ -900,6 +929,29 @@
       pauseButton.addEventListener("click", () => {
         openHelpWindow();
       });
+
+      // ---- Virtual Keyboard below notation ----
+      // Find the button container
+      const bc = document.getElementById("buttonContainer");
+      if (bc) {
+        // Create a virtual keyboard element (example)
+        const vk = document.createElement("div");
+        vk.id = "virtualKeyboard";
+        vk.textContent = "Virtuelles Keyboard";
+        // Keyboard initially hidden
+        vk.style.display = "none";
+        vk.style.position = "fixed";
+        // Position keyboard 5px above the button container
+        const bcRect = bc.getBoundingClientRect();
+        const vkHeight = vk.offsetHeight || 200;
+        vk.style.top = (bcRect.top - vkHeight - 5) + "px";
+        vk.style.left = "50%";
+        vk.style.transform = "translateX(-50%)";
+        vk.style.zIndex = "100";
+        vk.style.background = "#eee";
+        vk.style.padding = "10px";
+        document.body.appendChild(vk);
+      }
     });
       
     /************** Globale Variablen & Konstanten **************/
@@ -2984,6 +3036,13 @@ document.addEventListener("DOMContentLoaded", () => {
   animation: flyInLeft 0.5s forwards;
 }
 </style>
+<style>
+  /* Weniger Abstand des Notensystems nach oben */
+  #notation {
+    margin-top: 10px;
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qwerty-hancock/0.7.2/qwerty-hancock.min.js"></script>
 </head>
 <body>
     <div id="streakDisplay"></div>
@@ -3172,6 +3231,67 @@ document.addEventListener("DOMContentLoaded", () => {
             }, 3000);
         }
         
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // 1) Create hidden keyboard container
+      const vk = document.createElement("div");
+      vk.id = "virtualKeyboard";
+      vk.style.position = "fixed";
+      const bc = document.getElementById("buttonContainer");
+      const bottomOffset = bc.offsetHeight + 15;
+      vk.style.bottom = bottomOffset + "px";
+      vk.style.left = "20px";
+      vk.style.width = "calc(100% - 40px)";
+      vk.style.height = "200px";
+      vk.style.display = "none";
+      document.body.appendChild(vk);
+
+      // 2) Helper to convert note name to MIDI number
+      function noteToMidi(note) {
+        const semitones = { c:0, "c#":1, d:2, "d#":3, e:4, f:5, "f#":6, g:7, "g#":8, a:9, "a#":10, b:11 };
+        const m = note.match(/^([a-g]#?)(\d)$/i);
+        if (!m) return 60;
+        const pitch = m[1].toLowerCase();
+        const octave = parseInt(m[2], 10);
+        return (octave + 1) * 12 + semitones[pitch];
+      }
+
+      // 3) Initialize Qwerty Hancock keyboard
+      const keyboard = new QwertyHancock({
+        id: "virtualKeyboard",
+        width: window.innerWidth,
+        height: 200,
+        octaves: 1,
+        startNote: "C4",
+        whiteNotesColour: "#fff",
+        blackNotesColour: "#000",
+        hoverColour: "#f00"
+      });
+      keyboard.keyDown = (note, freq) => {
+        handleMIDIMessage(144, noteToMidi(note), 127);
+      };
+      keyboard.keyUp = (note, freq) => {
+        handleMIDIMessage(128, noteToMidi(note), 0);
+      };
+
+      // 4) Add toggle button to settings panel
+      const btn = document.createElement("span");
+      btn.id = "keyboardToggle";
+      btn.textContent = "🎹";
+      btn.style.cursor = "pointer";
+      const settingsPanel = document.getElementById("settingsPanel");
+      if (settingsPanel) settingsPanel.appendChild(btn);
+      btn.addEventListener("click", () => {
+        if (vk.style.display === "none") {
+          vk.style.display = "block";
+          document.getElementById("mainContent").style.marginBottom = vk.offsetHeight + "px";
+        } else {
+          vk.style.display = "none";
+          document.getElementById("mainContent").style.marginBottom = "0";
+        }
+      });
+    });
     </script>
     <script>
       
