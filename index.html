@@ -2736,7 +2736,7 @@ function scheduleReverseAnimation() {
       const greeting = savedName ? `Hallo, ${savedName}!` : "Hallo!";
       const steps = [
         [greeting, "Du scheinst das erste Mal hier zu sein ...", "...lass uns dir zeigen, wie die App funktioniert!"],
-        ["⚙️ Wir prüfen gerade alle technischen Vorraussetzungen", "❌ Kein MIDI Kabel. Bitte verbinde beide Geräte und starte die App neu", "✅ MIDI Kabel verbunden"],
+        ["⚙️ Test: Spiele das mittlere C", "Wenn das nicht klappt, dann prüfe die Kabelverbindungen und starte die App neu", "✅ Super, weiter geht's!"],
         ["Du kannst nun angezeigte Noten im Notensystem spielen.", "Hierzu gibt es folgende Einstellungsmöglichkeiten...", "✋ Auswahl der Hand", "🐇 Zufallsmodus oder 🖍️ Benutzerdefiniert", "🌙 Dark Mode", "⏲️ Metronom"],
         ["Soweit startklar?", "Viel Spaß beim Spielen!"]
       ];
@@ -2772,19 +2772,24 @@ function scheduleReverseAnimation() {
       let phase = 0;
       let index = 0;
 
-      // Wartet, bis ein MIDI-Input verbunden wird
-      function waitForMIDIDetection() {
-        return navigator.requestMIDIAccess({ sysex: false })
-          .then(midiAccess => {
-            if (midiAccess.inputs.size > 0) return Promise.resolve();
-            return new Promise(resolve => {
-              midiAccess.onstatechange = e => {
-                if (e.port.type === "input" && e.port.state === "connected") {
-                  resolve();
-                }
-              };
+      // Wartet, bis das mittlere C (MIDI-Note 60) gespielt wird
+      function waitForMiddleC() {
+        return navigator.requestMIDIAccess({ sysex: false }).then(midiAccess => {
+          return new Promise(resolve => {
+            const handler = (e) => {
+              const [status, data1, data2] = e.data;
+              if ((status & 0xf0) === 0x90 && data2 > 0 && data1 === 60) {
+                resolve();
+                midiAccess.inputs.forEach(input => {
+                  input.removeEventListener('midimessage', handler);
+                });
+              }
+            };
+            midiAccess.inputs.forEach(input => {
+              input.addEventListener('midimessage', handler);
             });
           });
+        });
       }
 
       function showNext() {
@@ -2830,9 +2835,9 @@ function scheduleReverseAnimation() {
           // Nachricht setzen und einblenden
           tutorialTextContainer.textContent = message;
           tutorialTextContainer.style.opacity = "1";
-          // Spezielle Phase 1, Nachricht 2: auf MIDI warten
+          // Spezielle Phase 1, Nachricht 2: auf das mittlere C warten
           if (phase === 1 && index === 1) {
-            waitForMIDIDetection().then(() => {
+            waitForMiddleC().then(() => {
               tutorialTextContainer.style.opacity = "0";
               setTimeout(() => {
                 index++;
