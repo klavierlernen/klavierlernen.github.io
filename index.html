@@ -54,6 +54,7 @@
         top: 85%;
         left: 65%;
         transform: translate(-50%, -50%);
+        transform-origin: center center;
         width: auto;
         max-width: calc(100% - 10px); /* 5 px Rand links/rechts */
         padding: 0;
@@ -960,7 +961,16 @@ document.addEventListener('DOMContentLoaded', () => {
           const isHidden = vk.style.visibility === "hidden";
           vk.style.visibility = isHidden ? "visible" : "hidden";
           if (notationElem) {
-            notationElem.style.top = isHidden ? "55%" : "85%";
+            if (isHidden) {
+              // Keyboard wird aktiviert: Notation etwas höher positionieren
+              notationElem.style.top = "55%";
+            } else {
+              // Keyboard wird deaktiviert: gespeicherte Position wiederherstellen
+              const saved = localStorage.getItem("notationTransform");
+              if (saved) notationElem.style.transform = saved;
+              // Entferne inline-top, damit CSS-Default (85%) greift
+              notationElem.style.top = "";
+            }
           }
         }
       });
@@ -1021,33 +1031,22 @@ document.addEventListener('DOMContentLoaded', () => {
           btn.style.border = "1px solid #aaa";
           btn.style.background = "#fff";
           btn.style.cursor = "pointer";
-          // Prevent multiple triggers: Only allow if not the last pressed or after release
-          btn.addEventListener("mousedown", (e) => {
-            if (vkLastPressedKey === note) return;
-            vkLastPressedKey = note;
-            // Call your key handling logic here, e.g. handleVirtualKey(note);
-            if (typeof handleVirtualKey === "function") handleVirtualKey(note);
-            btn.style.background = "#cce5ff";
-          });
-          btn.addEventListener("mouseup", (e) => {
-            vkLastPressedKey = null;
-            btn.style.background = "#fff";
-          });
-          btn.addEventListener("mouseleave", (e) => {
-            vkLastPressedKey = null;
-            btn.style.background = "#fff";
-          });
-          // Touch support
-          btn.addEventListener("touchstart", (e) => {
+          // Prevent default touch/mouse behavior and unify events
+          btn.style.touchAction = "none";
+          btn.addEventListener('pointerdown', e => {
             e.preventDefault();
             if (vkLastPressedKey === note) return;
             vkLastPressedKey = note;
-            if (typeof handleVirtualKey === "function") handleVirtualKey(note);
-            btn.style.background = "#cce5ff";
-          }, {passive: false});
-          btn.addEventListener("touchend", (e) => {
+            if (typeof handleVirtualKey === 'function') handleVirtualKey(note);
+            btn.style.background = '#cce5ff';
+          });
+          btn.addEventListener('pointerup', () => {
             vkLastPressedKey = null;
-            btn.style.background = "#fff";
+            btn.style.background = '#fff';
+          });
+          btn.addEventListener('pointerleave', () => {
+            vkLastPressedKey = null;
+            btn.style.background = '#fff';
           });
           vk.appendChild(btn);
         });
