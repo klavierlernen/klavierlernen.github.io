@@ -30,6 +30,17 @@
       overflow: hidden;
     }
 
+    /* Verhindere jegliche Seite-Panning */
+    html, body {
+      touch-action: none !important;
+      overscroll-behavior: none !important;
+    }
+
+    /* Erlaube weiterhin Interaktion auf Formular-Elementen */
+    input, textarea, button {
+      touch-action: manipulation !important;
+    }
+
     body.dark-mode {
       background-color: #0A0A0A;
       color: #e0e0e0;
@@ -710,6 +721,31 @@
       
   </style>
   <script>
+  // Prevent pinch-to-zoom gestures
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  document.addEventListener('gesturechange', e => e.preventDefault());
+  document.addEventListener('gestureend', e => e.preventDefault());
+
+  // Prevent any finger-drag from panning the page
+  document.body.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+  }, { passive: false });
+
+  // Prevent double-tap zoom
+  let lastTouch = 0;
+  document.addEventListener('touchend', e => {
+    const now = Date.now();
+    if (now - lastTouch <= 300) {
+      e.preventDefault();
+    }
+    lastTouch = now;
+  }, { passive: false });
+  // Prevent pinch-to-zoom gestures
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  document.addEventListener('gesturechange', e => e.preventDefault());
+  document.addEventListener('gestureend', e => e.preventDefault());
+
+  
    
 // === Touch‐based positioning for the notation crosshair ===
 document.addEventListener('DOMContentLoaded', () => {
