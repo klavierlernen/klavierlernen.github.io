@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
   <title>Klavier</title>
   <!-- VexFlow laden -->
   <link rel="manifest" href="https://raw.githubusercontent.com/JP0024/piano.github.io/main/manifest.json">
@@ -692,6 +692,22 @@
           margin: 0 20px; /* Abstand zu den Bildschirmrändern */
         }
       }
+      
+      /* Solange vk-active, behalten diese Elemente immer ihre Top-Position */
+      body.vk-active #timerContainer,
+      body.vk-active #streakDisplay,
+      body.vk-active #buttonContainer {
+        top: 30px !important;
+        bottom: auto !important;
+      }
+
+      /* Fehler-/Korrektur-Overlay ebenfalls immer von oben einblenden */
+      body.vk-active #pauseOverlay,
+      body.vk-active .correction {
+        top: 20px !important;
+        bottom: auto !important;
+      }
+      
   </style>
   <script>
    
@@ -1015,6 +1031,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (vk) {
           const isHidden = vk.style.visibility === "hidden";
           vk.style.visibility = isHidden ? "visible" : "hidden";
+          // Neu: Klasse setzen/removen
+          if (isHidden) {
+            document.body.classList.add("vk-active");
+          } else {
+            document.body.classList.remove("vk-active");
+          }
           if (notationElem) {
             if (isHidden) {
               // Keyboard wird aktiviert: Notation etwas höher positionieren
@@ -1041,7 +1063,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Keyboard initially hidden
         vk.style.visibility = "hidden";
         vk.style.position = "fixed";
-        vk.style.top = "150%";
+        vk.style.top = "10%";
         vk.style.transform = "translateY(210%) scale(0.5, 1.5)"; // Uniform Zoom: both axes the same scale
         vk.style.zIndex = "100";
         vk.style.background = "#eee";
@@ -1071,6 +1093,18 @@ document.addEventListener('DOMContentLoaded', () => {
             key.style.height = '80px';
             key.style.marginLeft = '-7px';
             key.style.marginRight = '-7px';
+          });
+          // Nur Tasten der aktuellen Lage anzeigen
+          const allowedNotes = rangeNotes[currentRange] || [];
+          vk.querySelectorAll('.white-key, .white, .black-key, .black').forEach(key => {
+            const noteAttr = key.getAttribute('data-note');
+            if (noteAttr) {
+              // Remove octave number to get base note (e.g. "C4" -> "c", "F#3" -> "f#")
+              const noteName = noteAttr.replace(/\d+/g, '').toLowerCase();
+              if (!allowedNotes.includes(noteName)) {
+                key.style.display = 'none';
+              }
+            }
           });
         }, 100);
         // Position after appending
