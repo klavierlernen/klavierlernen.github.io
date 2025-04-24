@@ -2190,24 +2190,69 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       hwToggle.style.cursor = "pointer";
       settingsPanel.appendChild(hwToggle);
       hwToggle.addEventListener("click", () => {
-        if (!homeworkData) {
+          showHomework();
+      });
+      
+      function showHomework() {
+        let modal = document.getElementById("homeworkModal");
+        if (!modal) {
+          modal = document.createElement("div");
+          modal.id = "homeworkModal";
+          Object.assign(modal.style, {
+            position: "fixed", top:"35%", right:"90px", width:"300px",
+            background:"white", border:"2px solid black", borderRadius:"10px",
+            padding:"20px", zIndex:"150"
+          });
+          document.body.appendChild(modal);
+        }
+        // Dynamisch Titel/Beschreibung wählen
+        const title = homeworkData?.HA || "Keine HA";
+        const desc  = homeworkData?.Beschreibung || "";
+        modal.innerHTML = `
+          <h2>Hausaufgabe</h2>
+          <p><strong>Titel:</strong> ${title}</p>
+          <p><strong>Beschreibung:</strong> ${desc}</p>
+          <button id="hwReceive">HA erhalten</button>
+          <button id="hwSend">HA senden</button>
+        `;
+        // Button-Listener
+        document.getElementById("hwReceive").addEventListener("click", () => {
           openCameraScan().then(code => {
             if (code && code.data) {
               try {
                 homeworkData = JSON.parse(code.data);
                 localStorage.setItem("homeworkData", JSON.stringify(homeworkData));
-                showHomework();
               } catch {
-                alert("Ungültiger QR-Code Inhalt");
+                alert("Ungültiger QR-Code");
               }
-            } else {
-              alert("Kein QR-Code erkannt");
             }
+            showHomework();
           });
-        } else {
-          showHomework();
-        }
-      });
+        });
+        document.getElementById("hwSend").addEventListener("click", () => {
+          modal.innerHTML = `
+            <h2>Hausaufgabe erstellen</h2>
+            <label>Titel:<br><input id="newHA" value="${homeworkData?.HA||""}"></label><br>
+            <label>Beschreibung:<br><textarea id="newDesc">${homeworkData?.Beschreibung||""}</textarea></label><br>
+            <button id="generateQR">QR-Code erstellen</button>
+          `;
+          // Prevent HA input from affecting the notation/game
+          const haInput = document.getElementById("newHA");
+          const descInput = document.getElementById("newDesc");
+          [haInput, descInput].forEach(el => {
+            el.addEventListener('keydown', e => e.stopPropagation());
+            el.addEventListener('keyup',   e => e.stopPropagation());
+            el.addEventListener('keypress',e => e.stopPropagation());
+            el.addEventListener('input',   e => e.stopPropagation());
+          });
+          document.getElementById("generateQR").addEventListener("click", () => {
+            const obj = { HA: document.getElementById("newHA").value, Beschreibung: document.getElementById("newDesc").value };
+            modal.innerHTML = `<div id="qrContainer"></div>`;
+            new QRCode(document.getElementById("qrContainer"), { text: JSON.stringify(obj), width:200, height:200 });
+            localStorage.setItem("homeworkData", JSON.stringify(obj));
+          });
+        });
+      }
 
       // 🧙🏼 Wizard-Modus Toggle im Karussell
       const wizardToggle = document.createElement("span");
