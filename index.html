@@ -2254,6 +2254,12 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
         });
       }
 
+      // Called by Swift after scanning QR code
+      function handleIncomingHomework() {
+        // homeworkData has been set by Swift
+        showHomework();
+      }
+
       // 🧙🏼 Wizard-Modus Toggle im Karussell
       const wizardToggle = document.createElement("span");
       wizardToggle.id = "wizardToggle";
