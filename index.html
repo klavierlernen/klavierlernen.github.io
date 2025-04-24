@@ -2193,6 +2193,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       hwToggle.id = "homeworkToggle";
       hwToggle.textContent = "📝";
       hwToggle.style.cursor = "pointer";
+      hwToggle.style.display = "none";
       settingsPanel.appendChild(hwToggle);
       hwToggle.addEventListener("click", () => {
         showHomework();
