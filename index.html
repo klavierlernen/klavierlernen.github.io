@@ -2190,7 +2190,11 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       hwToggle.style.cursor = "pointer";
       settingsPanel.appendChild(hwToggle);
       hwToggle.addEventListener("click", () => {
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.scanHomework) {
+          window.webkit.messageHandlers.scanHomework.postMessage(null);
+        } else {
           showHomework();
+        }
       });
       
       function showHomework() {
