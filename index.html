@@ -758,8 +758,13 @@
       
   </style>
   <script>
+
+        // Initialize global homeworkData from storage
+        window.homeworkData = JSON.parse(localStorage.getItem("homeworkData") || "null");
+        // … der restliche bisherige Script-Code …
       
       let homeworkData = JSON.parse(localStorage.getItem("homeworkData") || "null");
+      
       
       // (hwToggle click event listener will be added later in DOMContentLoaded after settingsPanel.appendChild(hwToggle))
 
@@ -2333,7 +2338,10 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
 
       // Called by Swift after scanning QR code
       function handleIncomingHomework() {
-        // homeworkData has been set by Swift
+        console.log("🏠 Received homeworkData from Swift:", window.homeworkData);
+        // Speichere es noch einmal ab – so verhält sich auch der Fallback-Mechanismus
+        localStorage.setItem("homeworkData", JSON.stringify(window.homeworkData));
+        // Öffne oder aktualisiere das Modal
         showHomework();
       }
 
