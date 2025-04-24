@@ -762,6 +762,47 @@
       let homeworkData = JSON.parse(localStorage.getItem("homeworkData") || "null");
       
       // (hwToggle click event listener will be added later in DOMContentLoaded after settingsPanel.appendChild(hwToggle))
+
+      // Camera-based QR scanning
+      async function openCameraScan() {
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        } catch (err) {
+          alert("Kamerazugriff fehlgeschlagen: " + err.message);
+          return null;
+        }
+        // Create modal overlay
+        const scanOverlay = document.createElement("div");
+        scanOverlay.id = "scanOverlay";
+        Object.assign(scanOverlay.style, {
+          position: "fixed", top:0, left:0, width:"100%", height:"100%",
+          background:"rgba(0,0,0,0.8)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:"2000"
+        });
+        const video = document.createElement("video");
+        video.style.maxWidth = "90%";
+        video.style.maxHeight = "80%";
+        video.autoplay = true;
+        video.srcObject = stream;
+        scanOverlay.appendChild(video);
+        const captureBtn = document.createElement("button");
+        captureBtn.textContent = "Scannen";
+        Object.assign(captureBtn.style, { position:"absolute", bottom:"20px", fontSize:"1.2em", padding:"10px" });
+        scanOverlay.appendChild(captureBtn);
+        document.body.appendChild(scanOverlay);
+        return new Promise(resolve => {
+          captureBtn.addEventListener("click", () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext("2d").drawImage(video, 0, 0);
+            const code = jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
+            stream.getTracks().forEach(t => t.stop());
+            document.body.removeChild(scanOverlay);
+            resolve(code);
+          });
+        });
+      }
       
     // Disable any scrolling
     window.addEventListener('scroll', function(e) {
@@ -2150,34 +2191,19 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       settingsPanel.appendChild(hwToggle);
       hwToggle.addEventListener("click", () => {
         if (!homeworkData) {
-          const input = document.createElement("input");
-          input.type = "file";
-          input.accept = "image/*";
-          input.capture = "environment";
-          input.onchange = async () => {
-            const file = input.files[0];
-            const img = new Image();
-            img.src = URL.createObjectURL(file);
-            img.onload = () => {
-              const c = document.createElement("canvas");
-              c.width = img.width; c.height = img.height;
-              const ctx = c.getContext("2d");
-              ctx.drawImage(img, 0, 0);
-              const code = jsQR(ctx.getImageData(0,0,c.width,c.height).data, c.width, c.height);
-              if (code) {
-                try {
-                  homeworkData = JSON.parse(code.data);
-                  localStorage.setItem("homeworkData", JSON.stringify(homeworkData));
-                  showHomework();
-                } catch {
-                  alert("Ungültige Daten im QR-Code");
-                }
-              } else {
-                alert("Kein QR-Code erkannt");
+          openCameraScan().then(code => {
+            if (code && code.data) {
+              try {
+                homeworkData = JSON.parse(code.data);
+                localStorage.setItem("homeworkData", JSON.stringify(homeworkData));
+                showHomework();
+              } catch {
+                alert("Ungültiger QR-Code Inhalt");
               }
-            };
-          };
-          input.click();
+            } else {
+              alert("Kein QR-Code erkannt");
+            }
+          });
         } else {
           showHomework();
         }
