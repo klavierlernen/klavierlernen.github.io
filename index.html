@@ -1940,6 +1940,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
             nameOverlay.style.justifyContent = "center";
             nameOverlay.style.alignItems = "center";
             nameOverlay.style.zIndex = "9999";
+            nameOverlay.style.pointerEvents = "auto";
 
             const modal = document.createElement("div");
             modal.style.background = "#fff";
@@ -1959,6 +1960,13 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
             input.style.margin = "15px auto";
             input.style.fontSize = "1.2em";
             input.style.padding = "5px";
+            input.style.pointerEvents = "auto";
+            input.tabIndex = 0;
+            // Prevent typing in name input from affecting the game
+            input.addEventListener('keydown', e => e.stopPropagation());
+            input.addEventListener('keyup',   e => e.stopPropagation());
+            input.addEventListener('keypress',e => e.stopPropagation());
+            input.addEventListener('input',   e => e.stopPropagation());
 
             const button = document.createElement("button");
             button.textContent = "Speichern";
@@ -2017,6 +2025,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
         nameOverlay.style.justifyContent = "center";
         nameOverlay.style.alignItems = "center";
         nameOverlay.style.zIndex = "9999";
+        nameOverlay.style.pointerEvents = "auto";
 
         const modal = document.createElement("div");
         modal.style.background = "#fff";
@@ -2035,6 +2044,13 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
         input.style.margin = "15px auto";
         input.style.fontSize = "1.2em";
         input.style.padding = "5px";
+        input.style.pointerEvents = "auto";
+        input.tabIndex = 0;
+        // Prevent typing in name input from affecting the game
+        input.addEventListener('keydown', e => e.stopPropagation());
+        input.addEventListener('keyup',   e => e.stopPropagation());
+        input.addEventListener('keypress',e => e.stopPropagation());
+        input.addEventListener('input',   e => e.stopPropagation());
 
         const button = document.createElement("button");
         button.textContent = "Weiter";
@@ -2165,6 +2181,8 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       
       
       
+      // Metronom-Ton (tick.mp3)
+      const metronomeSound = new Audio('tick.mp3');
       // Metronom-Toggle
       // Metronom-Setup: Zustandsvariablen und Steuerfunktionen
       let metronomeOn = false;
@@ -2173,12 +2191,15 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       let metronomeTimer;                    // Intervall-Timer für Metronom
       let metronomeTolerance = 0;            // Fehlertoleranz (wird noch gesetzt)
 
-      // Startet das Metronom: aktualisiert lastTickTime bei jedem Schlag
+      // Startet das Metronom: aktualisiert lastTickTime bei jedem Schlag und spielt Ton ab
       function startMetronome() {
         if (metronomeTimer) clearInterval(metronomeTimer);
         metronomeOn = true;
         lastTickTime = Date.now();
         metronomeTimer = setInterval(() => {
+          // Metronom-Ton abspielen
+          metronomeSound.currentTime = 0;
+          metronomeSound.play();
           lastTickTime = Date.now();
         }, metronomeInterval);
       }
@@ -2191,6 +2212,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
           metronomeTimer = null;
         }
       }
+
       // Metronom-Container mit Emoji und BPM-Anzeige
       const metronomeContainer = document.createElement("div");
       metronomeContainer.style.display = "inline-block";
