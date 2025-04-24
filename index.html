@@ -3111,7 +3111,16 @@ function scheduleReverseAnimation() {
                     }
                   }
                   setTimeout(() => {
-                    resetGame();
+                    // Close correction UI
+                    noteDisplay.innerHTML = '';
+                    correctionActive = false;
+                    // Advance to next note in the series
+                    seriesCounter++;
+                    if (seriesCounter < seriesLength) {
+                      queueRedraw();
+                    } else {
+                      generateSeries();
+                    }
                   }, 1000);
                 });
               });
