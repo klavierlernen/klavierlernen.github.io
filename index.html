@@ -3101,6 +3101,9 @@ function scheduleReverseAnimation() {
                   const selected = el.textContent;
                   if (selected === correctLetter) {
                     el.style.color = 'green';
+                    // Markiere die Note im Notensystem ebenfalls grün
+                    currentSeriesSingle[seriesCounter].color = 'green';
+                    drawSeries();
                   } else {
                     el.style.color = 'red';
                     const correctEl = Array.from(noteDisplay.querySelectorAll('.correction-letter'))
