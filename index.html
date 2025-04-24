@@ -711,6 +711,48 @@
         bottom: auto !important;
       }
       
+      #correctionBox {
+        position: fixed;
+        bottom: 20%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #fff;
+        border: 3px solid #000;
+        padding: 15px 30px;
+        border-radius: 15px;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+
+      #correctionChoices {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        font-size: 2em;
+      }
+
+      #correctionChoices button,
+      #confirmNoteBtn {
+        font-size: 1.5em;
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+      
+      
+        .correction-choice {
+          opacity: 0.5;
+          margin: 5px;
+          cursor: pointer;
+          display: inline-block;
+          padding: 5px;
+          border: 1px solid #000;
+          border-radius: 4px;
+        }
+    
+      
   </style>
   <script>
     // Disable any scrolling
@@ -721,6 +763,14 @@
   </script>
   <script>
    
+let wizardMode = true;
+   let correctionActive = false;
+   let availableNotes = [];
+   let selectedNoteIndex = 0;
+   let expectedNote = "";
+   
+   
+      
 // === Touch‐based positioning for the notation crosshair ===
 document.addEventListener('DOMContentLoaded', () => {
   const notation = document.getElementById('notation');
@@ -2068,6 +2118,19 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
         randomToggle.style.opacity = randomMode ? "1" : "0.5";
         generateSeries();
       });
+
+      // 🧙🏼 Wizard-Modus Toggle im Karussell
+      const wizardToggle = document.createElement("span");
+      wizardToggle.id = "wizardToggle";
+      wizardToggle.textContent = "🧙🏼";
+      wizardToggle.style.cursor = "pointer";
+      wizardToggle.style.opacity = "1";
+      settingsPanel.appendChild(wizardToggle);
+      let wizardMode = true;
+      wizardToggle.addEventListener("click", () => {
+        wizardMode = !wizardMode;
+        wizardToggle.style.opacity = wizardMode ? "1" : "0.5";
+      });
       
       const blobToggle = document.createElement("span");
       blobToggle.id = "blobToggle";
@@ -2510,7 +2573,7 @@ document.getElementById("timerContainer").addEventListener("click", () => {
         localStorage.setItem('notationZoom', notationZoom);
         drawSeries();
       });
-      const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle, moveNotationToggle];
+      const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle, moveNotationToggle, wizardToggle];
       carouselButtons.forEach(btn => {
         const item = document.createElement('div');
         item.className = 'carouselItem';
@@ -2816,11 +2879,12 @@ const drawSeries = () => {
     }
   }
 
-  if (noteDuration === "8") {
-    // Entferne Fähnchen bei Achtelnoten, füge stattdessen Balken hinzu
+  if (["8", "16", "32"].includes(noteDuration)) {
+    // Erzwinge Balken ohne Fähnchen für alle schnellen Notenwerte
     staveNotes.forEach(note => {
-      note.setStemDirection(1); // Einheitliche Richtung
-      note.setFlag(null); // Entfernt eventuelle Fähnchen
+      note.setStemDirection(1);
+      // Entferne Flag-Modifikatoren (Fähnchen) aus allen schnellen Noten
+      note.modifiers = note.modifiers.filter(mod => mod.getCategory() !== 'flag');
     });
     const beams = Vex.Flow.Beam.generateBeams(staveNotes);
     beams.forEach(beam => beam.setContext(context).draw());
@@ -3011,6 +3075,48 @@ function scheduleReverseAnimation() {
             noteDisplay.innerHTML = '<span style="color:red;">' + playedEmoji + ' hätte ' + correctEmoji + ' sein müssen</span>';
           } else {
             noteDisplay.innerHTML = '<span style="color:red;">' + playedNoteDisplay + '</span> <span style="color:black; font-size:1em; margin:0 5px;">&#8594;</span> <span style="color:green;">' + correctDisplay + '</span>';
+            // Wizard-Modus: Inline-Auswahl der Buchstaben anzeigen
+            if (wizardMode) {
+              // Dynamische Auswahl basierend auf Custom Mode Settings für die aktuelle Hand
+              const correctRaw = currentSeriesSingle[seriesCounter].note;
+              const correctLetter = (correctRaw.toUpperCase() === "B" ? "H" : correctRaw.toUpperCase());
+              // Determine available notes for current hand
+              const handNotes = (selectedMode === "left"
+                ? window.customModeSettings?.leftNotes
+                : window.customModeSettings?.rightNotes) || [];
+              const defaultNotes = ["C","D","E","F","G","A","H","C"];
+              const choices = handNotes.length > 0
+                ? handNotes.map(n => n.toUpperCase().replace("B", "H"))
+                : defaultNotes;
+              let html = `<span style="color:red;">${playedNoteDisplay}</span> <span style="color:black;">→</span> <span style="color:black; margin:0 5px;">?</span> <span style="color:black; margin:0 5px;"></span> `;
+              choices.forEach(letter => {
+                html += `<span class="correction-letter" style="opacity:0.5; margin:0 5px; cursor:pointer;">${letter}</span>`;
+              });
+              html += ` <span style="color:black; margin:0 5px;"></span>`;
+              noteDisplay.innerHTML = html;
+              // Klick-Handler für jeden Buchstaben
+              Array.from(noteDisplay.querySelectorAll('.correction-letter')).forEach(el => {
+                el.addEventListener('click', () => {
+                  el.style.opacity = '1';
+                  const selected = el.textContent;
+                  if (selected === correctLetter) {
+                    el.style.color = 'green';
+                  } else {
+                    el.style.color = 'red';
+                    const correctEl = Array.from(noteDisplay.querySelectorAll('.correction-letter'))
+                      .find(e => e.textContent === correctLetter);
+                    if (correctEl) {
+                      correctEl.style.color = 'orange';
+                      correctEl.style.opacity = '1';
+                    }
+                  }
+                  setTimeout(() => {
+                    resetGame();
+                  }, 1000);
+                });
+              });
+              return;
+            }
           }
         }
           if (!unlimitedLives) {
@@ -3477,7 +3583,15 @@ document.addEventListener("DOMContentLoaded", () => {
     <div id="mainContent">
        
         <div id="notation"></div>
-        <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase;"></div>
+        <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase; z-index: 1000; pointer-events: auto;"></div>
+        <div id="correctionBox" class="hidden">
+          <div id="correctionChoices">
+            <button id="prevNoteBtn">&lt;</button>
+            <span id="correctionNoteDisplay">&lt; ? &gt;</span>
+            <button id="nextNoteBtn">&gt;</button>
+          </div>
+          <button id="confirmNoteBtn">OK</button>
+        </div>
         <div id="buttonContainer">
             <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
             <div id="heartsContainer" style="margin-left:10px;"></div>
@@ -3681,10 +3795,15 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.addEventListener("click", () => {
         if (vk.style.display === "none") {
           vk.style.display = "block";
-          document.getElementById("mainContent").style.marginBottom = vk.offsetHeight + "px";
+          const kbHeight = vk.offsetHeight;
+          document.getElementById("mainContent").style.marginBottom = kbHeight + "px";
+          const noteDisplay = document.getElementById("noteNameDisplay");
+          if (noteDisplay) noteDisplay.style.bottom = (kbHeight + 110) + "px";
         } else {
           vk.style.display = "none";
           document.getElementById("mainContent").style.marginBottom = "0";
+          const noteDisplay = document.getElementById("noteNameDisplay");
+          if (noteDisplay) noteDisplay.style.bottom = "110px";
         }
       });
     });
@@ -3944,6 +4063,114 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
         
+        function showCorrection(note, choices) {
+          correctionActive = true;
+          expectedNote = note;
+          availableNotes = choices;
+          selectedNoteIndex = 0;
+          updateCorrectionDisplay();
+          document.getElementById("correctionBox").classList.remove("hidden");
+        }
+
+        function updateCorrectionDisplay(result) {
+          const display = document.getElementById("correctionNoteDisplay");
+          const confirm = document.getElementById("confirmNoteBtn");
+          if (result === "correct") {
+            confirm.textContent = "🥳";
+          } else if (result === "wrong") {
+            confirm.textContent = "❌";
+          } else {
+            confirm.textContent = "OK";
+          }
+          display.textContent = `< ${availableNotes[selectedNoteIndex] || "?"} >`;
+        }
+
+        document.getElementById("prevNoteBtn").addEventListener("click", () => {
+          selectedNoteIndex = (selectedNoteIndex - 1 + availableNotes.length) % availableNotes.length;
+          updateCorrectionDisplay();
+        });
+
+        document.getElementById("nextNoteBtn").addEventListener("click", () => {
+          selectedNoteIndex = (selectedNoteIndex + 1) % availableNotes.length;
+          updateCorrectionDisplay();
+        });
+
+        document.getElementById("confirmNoteBtn").addEventListener("click", () => {
+          const selected = availableNotes[selectedNoteIndex];
+          if (selected === expectedNote) {
+            updateCorrectionDisplay("correct");
+            setTimeout(() => {
+              document.getElementById("correctionBox").classList.add("hidden");
+              correctionActive = false;
+              resetGame(); // oder nächster Schritt
+            }, 1000);
+          } else {
+            updateCorrectionDisplay("wrong");
+          }
+        });
+
+        function handleCorrectionInput(notePlayed) {
+          if (!correctionActive) return;
+          if (notePlayed === expectedNote) {
+            updateCorrectionDisplay("correct");
+            setTimeout(() => {
+              document.getElementById("correctionBox").classList.add("hidden");
+              correctionActive = false;
+              resetGame();
+            }, 1000);
+          } else {
+            updateCorrectionDisplay("wrong");
+          }
+        }
+        
+          function showCorrection(note, choices) {
+            correctionActive = true;
+            expectedNote = note;
+            availableNotes = choices;
+
+            let container = document.getElementById('correctionContainer');
+            if (!container) {
+              container = document.createElement('div');
+              container.id = 'correctionContainer';
+              Object.assign(container.style, {
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                background: '#fff',
+                padding: '20px',
+                border: '2px solid #000',
+                zIndex: '1000'
+              });
+              document.body.appendChild(container);
+            }
+            container.innerHTML = '';
+
+            choices.forEach(choice => {
+              const btn = document.createElement('div');
+              btn.textContent = choice.toUpperCase();
+              btn.className = 'correction-choice';
+              btn.addEventListener('click', () => {
+                if (btn.textContent === expectedNote.toUpperCase()) {
+                  btn.style.opacity = '1';
+                  btn.style.backgroundColor = 'green';
+                } else {
+                  btn.style.opacity = '1';
+                  btn.style.backgroundColor = 'red';
+                  const correctBtn = Array.from(container.children)
+                    .find(child => child.textContent === expectedNote.toUpperCase());
+                  if (correctBtn) correctBtn.style.backgroundColor = 'yellow';
+                }
+                setTimeout(() => {
+                  container.remove();
+                  correctionActive = false;
+                  resetGame();
+                }, 1000);
+              });
+              container.appendChild(btn);
+            });
+          }
+    
     </script>
     
 </body>
