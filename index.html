@@ -2340,6 +2340,8 @@ metronomeToggle.addEventListener("click", () => {
 
       moveNotationToggle.addEventListener("click", () => {
         const notation = document.getElementById("notation");
+        // Drag-Cursor für Notation
+        notation.style.cursor = "grab";
         // Ensure startX, startY are declared only once at top-level
         if (!moveModeActive) {
           moveModeActive = true;
@@ -2421,6 +2423,7 @@ metronomeToggle.addEventListener("click", () => {
           // Drag logic
           const startDrag = (e) => {
             isDragging = true;
+            notation.style.cursor = "grabbing";
             const evt = e.touches ? e.touches[0] : e;
             startX = evt.clientX;
             startY = evt.clientY;
@@ -2450,6 +2453,7 @@ metronomeToggle.addEventListener("click", () => {
           };
           endDrag = () => {
             isDragging = false;
+            notation.style.cursor = "grab";
           };
 
           [xGuide, yGuide, xLabel, yLabel].forEach(el => {
@@ -2457,6 +2461,9 @@ metronomeToggle.addEventListener("click", () => {
             el.addEventListener("mousedown", startDrag);
             el.addEventListener("touchstart", startDrag);
           });
+          // Erlaube Ziehen direkt am Notations-DIV
+          notation.addEventListener("mousedown", startDrag);
+          notation.addEventListener("touchstart", startDrag, { passive: false });
           window.addEventListener("mousemove", duringDrag);
           window.addEventListener("touchmove", duringDrag);
           window.addEventListener("mouseup", endDrag);
