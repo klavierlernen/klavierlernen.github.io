@@ -2190,11 +2190,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       hwToggle.style.cursor = "pointer";
       settingsPanel.appendChild(hwToggle);
       hwToggle.addEventListener("click", () => {
-        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.scanHomework) {
-          window.webkit.messageHandlers.scanHomework.postMessage(null);
-        } else {
-          showHomework();
-        }
+        showHomework();
       });
       
       function showHomework() {
@@ -2233,6 +2229,65 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
             showHomework();
           });
         });
+      // Overlay Camera Scan: openCameraScan implementation
+      function openCameraScan() {
+        return new Promise((resolve, reject) => {
+          // Create overlay
+          let scanOverlay = document.createElement("div");
+          Object.assign(scanOverlay.style, {
+            position: "fixed", top:"20%", left:"10%", width:"80%", height:"60%",
+            background:"rgba(0,0,0,0.8)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:"2000"
+          });
+          scanOverlay.id = "scanOverlay";
+          // Create video element
+          let video = document.createElement("video");
+          video.setAttribute("autoplay", true);
+          video.setAttribute("playsinline", true);
+          video.style.width = "100%";
+          video.style.height = "100%";
+          video.style.objectFit = "cover";
+          // Add close button
+          let closeBtn = document.createElement("button");
+          closeBtn.textContent = "Abbrechen";
+          closeBtn.style.position = "absolute";
+          closeBtn.style.top = "10px";
+          closeBtn.style.right = "10px";
+          closeBtn.style.zIndex = "2100";
+          closeBtn.style.padding = "8px 16px";
+          closeBtn.style.background = "white";
+          closeBtn.style.border = "1px solid #000";
+          closeBtn.style.borderRadius = "6px";
+          closeBtn.style.cursor = "pointer";
+          closeBtn.addEventListener("click", () => {
+            if (video.srcObject) {
+              video.srcObject.getTracks().forEach(track => track.stop());
+            }
+            document.body.removeChild(scanOverlay);
+            reject(new Error("Scan cancelled"));
+          });
+          scanOverlay.appendChild(video);
+          scanOverlay.appendChild(closeBtn);
+          document.body.appendChild(scanOverlay);
+          // Access camera
+          navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(stream => {
+            video.srcObject = stream;
+            // Use a QR scanner library or implement simple scanning
+            // For now, simulate scan after 3 seconds
+            // In real code, integrate a QR code library such as jsQR or html5-qrcode
+            setTimeout(() => {
+              // Stop camera
+              stream.getTracks().forEach(track => track.stop());
+              document.body.removeChild(scanOverlay);
+              // Simulate a QR result object
+              resolve({ data: '{"HA":"Beispiel","Beschreibung":"Test"}' });
+            }, 3000);
+          }).catch(err => {
+            document.body.removeChild(scanOverlay);
+            alert("Kamera konnte nicht geöffnet werden: " + err);
+            reject(err);
+          });
+        });
+      }
         document.getElementById("hwSend").addEventListener("click", () => {
           modal.innerHTML = `
             <h2>Hausaufgabe erstellen</h2>
