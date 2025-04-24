@@ -17,6 +17,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
       
+      <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+      
   <style>
     /* Grundlayout */
     html, body {
@@ -755,6 +758,11 @@
       
   </style>
   <script>
+      
+      let homeworkData = JSON.parse(localStorage.getItem("homeworkData") || "null");
+      
+      // (hwToggle click event listener will be added later in DOMContentLoaded after settingsPanel.appendChild(hwToggle))
+      
     // Disable any scrolling
     window.addEventListener('scroll', function(e) {
       e.preventDefault();
@@ -2133,6 +2141,46 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
         randomMode = !randomMode;
         randomToggle.style.opacity = randomMode ? "1" : "0.5";
         generateSeries();
+      });
+      
+      const hwToggle = document.createElement("span");
+      hwToggle.id = "homeworkToggle";
+      hwToggle.textContent = "📝";
+      hwToggle.style.cursor = "pointer";
+      settingsPanel.appendChild(hwToggle);
+      hwToggle.addEventListener("click", () => {
+        if (!homeworkData) {
+          const input = document.createElement("input");
+          input.type = "file";
+          input.accept = "image/*";
+          input.capture = "environment";
+          input.onchange = async () => {
+            const file = input.files[0];
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            img.onload = () => {
+              const c = document.createElement("canvas");
+              c.width = img.width; c.height = img.height;
+              const ctx = c.getContext("2d");
+              ctx.drawImage(img, 0, 0);
+              const code = jsQR(ctx.getImageData(0,0,c.width,c.height).data, c.width, c.height);
+              if (code) {
+                try {
+                  homeworkData = JSON.parse(code.data);
+                  localStorage.setItem("homeworkData", JSON.stringify(homeworkData));
+                  showHomework();
+                } catch {
+                  alert("Ungültige Daten im QR-Code");
+                }
+              } else {
+                alert("Kein QR-Code erkannt");
+              }
+            };
+          };
+          input.click();
+        } else {
+          showHomework();
+        }
       });
 
       // 🧙🏼 Wizard-Modus Toggle im Karussell
