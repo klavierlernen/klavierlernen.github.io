@@ -4423,6 +4423,27 @@ document.addEventListener("DOMContentLoaded", () => {
               container.appendChild(btn);
             });
           }
+        
+        // 🧪 Testknopf zum manuellen Setzen der Hausaufgaben
+        const testButton = document.createElement("button");
+        testButton.textContent = "Test-HA setzen";
+        testButton.style.position = "fixed";
+        testButton.style.bottom = "10px";
+        testButton.style.left = "10px";
+        testButton.style.zIndex = "9999";
+        document.body.appendChild(testButton);
+
+        testButton.addEventListener("click", () => {
+          const testData = {
+            HA: "Tonleiter C-Dur",
+            Beschreibung: "Spiele die C-Dur Tonleiter aufwärts und abwärts.",
+            Noten: ["c", "d", "e", "f", "g", "a", "b", "c'"]
+          };
+          localStorage.setItem("homeworkData", JSON.stringify(testData));
+          window.homeworkData = testData;
+          console.log("🧪 Test-Hausaufgabe gesetzt:", testData);
+          if (typeof showHomework === "function") showHomework();
+        });
     
     </script>
     
