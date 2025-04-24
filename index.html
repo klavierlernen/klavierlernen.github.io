@@ -2189,14 +2189,6 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
         generateSeries();
       });
       
-      const hwToggle = document.createElement("span");
-      hwToggle.id = "homeworkToggle";
-      hwToggle.textContent = "📝";
-      hwToggle.style.cursor = "pointer";
-      settingsPanel.appendChild(hwToggle);
-      hwToggle.addEventListener("click", () => {
-        showHomework();
-      });
       
       function showHomework() {
         let modal = document.getElementById("homeworkModal");
