@@ -2280,6 +2280,9 @@ metronomeToggle.addEventListener("click", () => {
         // Ensure startX, startY are declared only once at top-level
         if (!moveModeActive) {
           moveModeActive = true;
+          // Show notation zoom controls in move mode
+          zoomInBtn.style.display = 'inline';
+          zoomOutBtn.style.display = 'inline';
 
           // --- Add dynamic guide lines with percentage labels ---
           xGuide = document.createElement("div");
@@ -2398,6 +2401,9 @@ metronomeToggle.addEventListener("click", () => {
 
         } else {
           moveModeActive = false;
+          // Hide notation zoom controls when exiting move mode
+          zoomInBtn.style.display = 'none';
+          zoomOutBtn.style.display = 'none';
           // Persist the final position when move mode is disabled
           localStorage.setItem("notationTransform", `translate(-50%, -50%) translate(${currentX}px, ${currentY}px)`);
           // Store the final position and clean up listeners and guides
@@ -2477,6 +2483,33 @@ document.getElementById("timerContainer").addEventListener("click", () => {
       carouselTrack.id = 'carouselTrack';
       carouselContainer.appendChild(carouselTrack);
       settingsPanel.appendChild(carouselContainer);
+      // Notation zoom controls
+      let notationZoom = parseFloat(localStorage.getItem('notationZoom')) || 1;
+      const zoomInBtn = document.createElement('span');
+      zoomInBtn.id = 'notationZoomIn';
+      zoomInBtn.textContent = '➕';
+      zoomInBtn.style.cursor = 'pointer';
+      settingsPanel.appendChild(zoomInBtn);
+      const zoomOutBtn = document.createElement('span');
+      zoomOutBtn.id = 'notationZoomOut';
+      zoomOutBtn.textContent = '➖';
+      zoomOutBtn.style.cursor = 'pointer';
+      settingsPanel.appendChild(zoomOutBtn);
+      // Hide zoom buttons by default
+      zoomInBtn.style.display = 'none';
+      zoomOutBtn.style.display = 'none';
+
+      // Zoom factor handlers
+      zoomInBtn.addEventListener('click', () => {
+        notationZoom *= 1.1;
+        localStorage.setItem('notationZoom', notationZoom);
+        drawSeries();
+      });
+      zoomOutBtn.addEventListener('click', () => {
+        notationZoom /= 1.1;
+        localStorage.setItem('notationZoom', notationZoom);
+        drawSeries();
+      });
       const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle, moveNotationToggle];
       carouselButtons.forEach(btn => {
         const item = document.createElement('div');
@@ -2683,7 +2716,9 @@ const drawSeries = () => {
   notationDiv.innerHTML = "";
 
   const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
-  const zoomFactor = 1.4;
+  const baseZoom = 1.4;
+  const userZoom = parseFloat(localStorage.getItem('notationZoom')) || 1;
+  const zoomFactor = baseZoom * userZoom;
   renderer.resize(baseWidth * ratio * zoomFactor, height * zoomFactor);
 
   const svg = notationDiv.querySelector("svg");
@@ -2706,7 +2741,7 @@ const drawSeries = () => {
 
   stave.setContext(context).draw();
 
-  const noteDuration = (window.customModeSettings && window.customModeSettings.noteValue) || "q";
+  const noteDuration = (window.customModeSettings && window.customModeSettings.noteValue === "8") ? "8" : "q";
   const noteOrder = ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"];
 
   const staveNotes = currentSeriesSingle.map(item => {
@@ -2782,6 +2817,11 @@ const drawSeries = () => {
   }
 
   if (noteDuration === "8") {
+    // Entferne Fähnchen bei Achtelnoten, füge stattdessen Balken hinzu
+    staveNotes.forEach(note => {
+      note.setStemDirection(1); // Einheitliche Richtung
+      note.setFlag(null); // Entfernt eventuelle Fähnchen
+    });
     const beams = Vex.Flow.Beam.generateBeams(staveNotes);
     beams.forEach(beam => beam.setContext(context).draw());
   }
