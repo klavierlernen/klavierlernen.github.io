@@ -4444,6 +4444,17 @@ document.addEventListener("DOMContentLoaded", () => {
           console.log("🧪 Test-Hausaufgabe gesetzt:", testData);
           if (typeof showHomework === "function") showHomework();
         });
+
+        // --- Globale Funktion showHomework verfügbar machen ---
+        function showHomework() {
+          const data = window.homeworkData || JSON.parse(localStorage.getItem("homeworkData") || "{}");
+          console.log("📚 showHomework() aufgerufen mit Daten:", data);
+
+          const noteDisplay = document.getElementById("noteNameDisplay");
+          if (noteDisplay && data.HA) {
+            noteDisplay.innerHTML = `<span style="font-size:0.5em;">${data.HA}</span><br><span style="font-size:0.3em;">${data.Beschreibung || ''}</span>`;
+          }
+        }
     
     </script>
     
