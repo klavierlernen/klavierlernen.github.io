@@ -2206,6 +2206,24 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
           document.body.appendChild(modal);
         }
         // Dynamisch Titel/Beschreibung wählen
+        // Automatischer Scan bei leerer Hausaufgabe
+        if (!homeworkData) {
+          openCameraScan().then(code => {
+            if (code && code.data) {
+              try {
+                homeworkData = JSON.parse(code.data);
+                localStorage.setItem("homeworkData", JSON.stringify(homeworkData));
+              } catch {
+                alert("Ungültiger QR-Code");
+              }
+            }
+            showHomework();
+          }).catch(() => {
+            // Scan abgebrochen oder Fehler – trotzdem das Modal anzeigen
+            showHomework();
+          });
+          return;
+        }
         const title = homeworkData?.HA || "Keine HA";
         const desc  = homeworkData?.Beschreibung || "";
         modal.innerHTML = `
