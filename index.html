@@ -2918,6 +2918,10 @@ const generateSeries = () => {
       const randomIndex = Math.floor(Math.random() * customNotes.length);
       const chosenNote = customNotes[randomIndex];
       let noteOctave = seriesClef === "bass" ? 3 : 4;
+      // F-Lage: ensure C is one octave higher in treble clef
+      if (currentRange === "F" && seriesClef === "treble" && chosenNote.toLowerCase() === "c") {
+        noteOctave = 5;
+      }
       let accidental = undefined;
       if (["F", "G"].includes(currentRange)) {
         if (currentRange === "F" && chosenNote.toLowerCase() === "bb") {
@@ -2983,6 +2987,10 @@ const generateSeries = () => {
       const randomIndex = Math.floor(Math.random() * defaultNotes.length);
       const chosenNote = defaultNotes[randomIndex];
       let noteOctave = seriesClef === "bass" ? 3 : 4;
+      // F-Lage: ensure C is one octave higher in treble clef
+      if (currentRange === "F" && seriesClef === "treble" && chosenNote.toLowerCase() === "c") {
+        noteOctave = 5;
+      }
       let accidental = undefined;
       if (["F", "G"].includes(currentRange)) {
         if (currentRange === "F" && chosenNote.toLowerCase() === "bb") {
