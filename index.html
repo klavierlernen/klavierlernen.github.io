@@ -3349,9 +3349,26 @@ function scheduleReverseAnimation() {
                   const selected = el.textContent;
                   if (selected === correctLetter) {
                     el.style.color = 'green';
-                    // Markiere die Note im Notensystem ebenfalls grün
+                    // Markiere die Note im Notensystem
                     currentSeriesSingle[seriesCounter].color = 'green';
                     drawSeries();
+                    // Als korrekte Note zählen
+                    correctAnswers++;
+                    correctNoteCount++;
+                    removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
+                    addCircle("positive");
+                    // Counter reduzieren und Timer aktualisieren
+                    sessionCounter--;
+                    updateTimer();
+                    // UI schließen und Fortschritt
+                    noteDisplay.innerHTML = '';
+                    correctionActive = false;
+                    seriesCounter++;
+                    if (seriesCounter < seriesLength) {
+                      queueRedraw();
+                    } else {
+                      generateSeries();
+                    }
                   } else {
                     el.style.color = 'red';
                     const correctEl = Array.from(noteDisplay.querySelectorAll('.correction-letter'))
@@ -3361,12 +3378,6 @@ function scheduleReverseAnimation() {
                       correctEl.style.opacity = '1';
                     }
                   }
-                  setTimeout(() => {
-                    // Close correction UI without advancing the counter;
-                    // user will play the correct note to proceed.
-                    noteDisplay.innerHTML = '';
-                    correctionActive = false;
-                  }, 1000);
                 });
               });
               return;
