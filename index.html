@@ -2896,9 +2896,13 @@ const generateSeries = () => {
     // Fallback, falls keine Noten ausgewählt wurden
     if (!customNotes || customNotes.length === 0) {
       if (currentRange === "MC") {
-        customNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
+        customNotes = seriesClef === "bass"
+          ? ["f", "g", "a", "b", "c"]
+          : ["c", "d", "e", "f", "g"];
       } else if (currentRange === "D") {
         customNotes = ["d", "e", "f#", "g", "a"];
+      } else if (currentRange === "F") {
+        customNotes = ["f", "g", "a", "bb", "c"];
       } else {
         customNotes = rangeNotes[currentRange];
       }
@@ -2966,9 +2970,13 @@ const generateSeries = () => {
       }
       let defaultNotes;
       if (currentRange === "MC") {
-        defaultNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
+        defaultNotes = seriesClef === "bass"
+          ? ["f", "g", "a", "b", "c"]
+          : ["c", "d", "e", "f", "g"];
       } else if (currentRange === "D") {
         defaultNotes = ["d", "e", "f#", "g", "a"];
+      } else if (currentRange === "F") {
+        defaultNotes = ["f", "g", "a", "bb", "c"];
       } else {
         defaultNotes = rangeNotes[currentRange];
       }
