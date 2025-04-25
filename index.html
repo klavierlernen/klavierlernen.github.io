@@ -3362,16 +3362,10 @@ function scheduleReverseAnimation() {
                     }
                   }
                   setTimeout(() => {
-                    // Close correction UI
+                    // Close correction UI without advancing the counter;
+                    // user will play the correct note to proceed.
                     noteDisplay.innerHTML = '';
                     correctionActive = false;
-                    // Advance to next note in the series
-                    seriesCounter++;
-                    if (seriesCounter < seriesLength) {
-                      queueRedraw();
-                    } else {
-                      generateSeries();
-                    }
                   }, 1000);
                 });
               });
