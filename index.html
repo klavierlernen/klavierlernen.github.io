@@ -533,9 +533,9 @@
      /* Custom Mode Modal Styles */
      #customModeModal {
          position: fixed;
-         top: 35%;
+         top: 15%;
          right: 90px; /* ca. 10px links vom Menü */
-         width: 300px;
+         width: 400px;
          background: white;
          border: 2px solid black;
          border-radius: 10px;
@@ -758,8 +758,7 @@
       
   </style>
   <script>
-      // Custom-Settings für Open-Mode (🖖)
-      let customOpenSettings = null;
+      
       let twoHandMode = false;
       let seriesCounterLeft = 0;
       let seriesCounterRight = 0;
@@ -821,9 +820,16 @@
       e.preventDefault();
       window.scrollTo(0, 0);
     }, { passive: false });
-  </script>
-  <script>
-   
+  
+  // Oben im Skript
+  let customModeSettings = null;
+  const octaveDefinitions = {
+    grosse:   { notes: ["c","d","e","f","g","a","b"], baseOctave: 3 },
+    kleine:   { notes: ["c","d","e","f","g","a","b"], baseOctave: 4 },
+    eingestr: { notes: ["c","d","e","f","g","a","b"], baseOctave: 5 },
+    zweigestr:{ notes: ["c","d","e","f","g","a","b"], baseOctave: 6 },
+  };
+  
 let wizardMode = true;
    let correctionActive = false;
    let availableNotes = [];
@@ -1230,8 +1236,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handoptionen
     const handOptions = [
       { mode: "left", symbol: "✋" },
-      { mode: "right", symbol: "✋", flip: true },
-      { mode: "open", symbol: "🖖" }
+      { mode: "right", symbol: "✋", flip: true }
     ];
     let currentHandIndex = 0;
     let selectedMode = handOptions[currentHandIndex].mode;
@@ -2182,13 +2187,8 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
           selectedMode = handOptions[currentHandIndex].mode;
           handToggle.textContent = handOptions[currentHandIndex].symbol;
           handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
-
-          if (selectedMode === "open") {
-            showOpenModeSettings();
-          } else {
-            customOpenSettings = null;
-            generateSeries();
-          }
+          window.customModeSettings = null;
+          generateSeries();
         }
       });
       // Randomtoggle
@@ -2561,7 +2561,75 @@ metronomeToggle.addEventListener("click", () => {
       customModeToggle.addEventListener("click", () => {
         const modal = document.getElementById("customModeModal");
         modal.classList.toggle("hidden");
+        // Erweiterung: Checkboxen für Custom-Notenauswahl
+        if (!modal.querySelector("#customModeContent")) {
+          const container = document.createElement("div");
+          container.id = "customModeContent";
+          container.style.marginTop = "10px";
+
+          const octaves = {
+            "große Oktave": ["C", "D", "E", "F", "G", "A", "H"],
+            "kleine Oktave": ["c", "d", "e", "f", "g", "a", "h"],
+            "eingestrichene Oktave": ["c'", "d'", "e'", "f'", "g'", "a'", "h'"],
+            "zweigestrichene Oktave": ["c''", "d''", "e''", "f''", "g''", "a''", "h''"],
+          };
+
+          Object.entries(octaves).forEach(([octaveName, notes]) => {
+            // 1. Oktaven-Label als Button statt div
+            const octaveLabel = document.createElement("button");
+            octaveLabel.textContent = octaveName;
+            octaveLabel.style.marginTop = "10px";
+            octaveLabel.style.fontWeight = "bold";
+            octaveLabel.style.cursor = "pointer";
+            container.appendChild(octaveLabel);
+
+            notes.forEach(note => {
+              const label = document.createElement("label");
+              label.style.marginRight = "8px";
+              const checkbox = document.createElement("input");
+              checkbox.type = "checkbox";
+              checkbox.value = note;
+              checkbox.disabled = true;
+              label.appendChild(checkbox);
+              label.appendChild(document.createTextNode(note));
+              container.appendChild(label);
+            });
+
+            // 2. Klick auf Oktaven-Button aktiviert zugehörige Checkboxen
+            octaveLabel.addEventListener("click", () => {
+              notes.forEach(note => {
+                const checkbox = container.querySelector(`input[value="${note}"]`);
+                if (checkbox) {
+                  checkbox.disabled = false;
+                  checkbox.checked = true;
+                }
+              });
+            });
+          });
+
+          // Verwende existierenden Save-Button im .custom-mode-save Bereich
+          modal.appendChild(container);
+          // Suche den Speichern-Button im Custom-Mode-Bereich und setze Listener
+          const saveBtn = document.querySelector(".custom-mode-save button");
+          if (saveBtn) {
+            // 3. Nur noch eine Auswahl, keine Unterscheidung mehr zwischen linker und rechter Hand
+            saveBtn.addEventListener("click", () => {
+              const selectedNotes = Array.from(container.querySelectorAll("input[type=checkbox]"))
+                .filter(cb => cb.checked && !cb.disabled)
+                .map(cb => cb.value);
+
+              window.customModeSettings = {
+                clef: "bass",
+                range: "MC",
+                selectedNotes: selectedNotes.map(n => n.replace(/'/g, "").toLowerCase())
+              };
+              generateSeries();
+            });
+          }
+        }
       });
+      
+      
 
       // Move Notation Toggle
       const moveNotationToggle = document.createElement("span");
@@ -2890,8 +2958,6 @@ let melodyContext = {
 };
 // Füge am Anfang des Skripts (z. B. direkt vor der Funktion generateSeries) hinzu:
 let notesInCurrentPhase = 0;
-// Events für Handwechsel-Pfeile
-let shiftEvents = [];
                                             
 const generateSeries = () => {
   seriesCounter = 0;
@@ -2901,21 +2967,6 @@ const generateSeries = () => {
 
   let seriesClef, chooseNote;
 
-  let notes = rangeNotes[currentRange];
-  if (customOpenSettings) {
-    const allNotes = ["c","d","e","f","g","a","b"];
-    const firstIndex = allNotes.indexOf(notes[0]);
-    const lastIndex  = allNotes.indexOf(notes[notes.length - 1]);
-    const totalRange = lastIndex - firstIndex + 1;
-    const extendedNotes = [];
-    // Build extended notes circularly: from -before up to range length+after-1
-    for (let offset = -customOpenSettings.before; offset < totalRange + customOpenSettings.after; offset++) {
-      const idx = (firstIndex + offset + allNotes.length) % allNotes.length;
-      extendedNotes.push(allNotes[idx]);
-    }
-    notes = extendedNotes;
-  }
-    
   // Prüfe, ob benutzerdefinierte Einstellungen aktiv sind
   if (window.customModeSettings && window.customModeSettings.clef && window.customModeSettings.range) {
     // Verwende die benutzerdefinierten Einstellungen
@@ -3002,16 +3053,25 @@ const generateSeries = () => {
           return errorNotes.splice(idx, 1)[0];
         }
       }
-      // Verwende erweiterte 'notes', ggf. gesliced durch customOpenSettings
-      const availableNotes = notes;
-      const randomIndex = Math.floor(Math.random() * availableNotes.length);
-      const chosenNote = availableNotes[randomIndex];
+      let defaultNotes;
+      if (currentRange === "MC") {
+        defaultNotes = seriesClef === "bass"
+          ? ["f", "g", "a", "b", "c"]
+          : ["c", "d", "e", "f", "g"];
+      } else if (currentRange === "D") {
+        defaultNotes = ["d", "e", "f#", "g", "a"];
+      } else if (currentRange === "F") {
+        defaultNotes = ["f", "g", "a", "bb", "c"];
+      } else {
+        defaultNotes = rangeNotes[currentRange];
+      }
+      const randomIndex = Math.floor(Math.random() * defaultNotes.length);
+      const chosenNote = defaultNotes[randomIndex];
       let noteOctave = seriesClef === "bass" ? 3 : 4;
       // F-Lage: ensure C is one octave higher in treble clef
       if (currentRange === "F" && seriesClef === "treble" && chosenNote.toLowerCase() === "c") {
         noteOctave = 5;
       }
-      // Accidentals handling for F- and G-ranges
       let accidental = undefined;
       if (["F", "G"].includes(currentRange)) {
         if (currentRange === "F" && chosenNote.toLowerCase() === "bb") {
@@ -3022,7 +3082,7 @@ const generateSeries = () => {
           accidental = chosenNote;
         }
       }
-      return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental };
+      return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
     };
   }
 
@@ -3030,69 +3090,8 @@ const generateSeries = () => {
   for (let i = 0; i < seriesLength; i++) {
     currentSeriesSingle.push(chooseNote());
   }
-  // Berechne Handwechsel-Ereignisse für Pfeile (zwei Noten vorher)
-  shiftEvents = [];
-  if (customOpenSettings && customOpenSettings.helperFlag) {
-    const baseNotes = rangeNotes[currentRange];
-    const allNotes = ["c","d","e","f","g","a","b"];
-    const firstIdx = allNotes.indexOf(baseNotes[0]);
-    const lastIdx = allNotes.indexOf(baseNotes[baseNotes.length - 1]);
-    currentSeriesSingle.forEach((item, idx) => {
-      const noteIdx = allNotes.indexOf(item.note);
-      if (noteIdx < firstIdx || noteIdx > lastIdx) {
-        const arrowIdx = idx - 2;
-        if (arrowIdx >= 0) {
-          shiftEvents.push({
-            arrowIdx,
-            direction: noteIdx > lastIdx ? "→" : "←"
-          });
-        }
-      }
-    });
-  }
   drawSeries();
 };
-      
-      /**
-       * Zeigt ein kleines Modal, in dem man einstellen kann,
-       * wie viele Noten vor und nach der aktuellen Lage mit abgefragt werden.
-       */
-      function showOpenModeSettings() {
-        const existing = document.getElementById("openModeSettings");
-        if (existing) {
-          existing.remove();
-          return;
-        }
-        const modal = document.createElement("div");
-        modal.id = "openModeSettings";
-        Object.assign(modal.style, {
-          position: "fixed",
-          top: "30%",
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: "white",
-          border: "2px solid black",
-          borderRadius: "10px",
-          padding: "20px",
-          zIndex: 2000,
-        });
-        modal.innerHTML = `
-          <h3>Open-Mode Einstellungen</h3>
-          <label>Davor: <input id="beforeNotes" type="number" value="2" min="0" max="5" style="width:50px;"></label><br><br>
-          <label>Danach: <input id="afterNotes" type="number" value="2" min="0" max="5" style="width:50px;"></label><br><br>
-          <label><input id="helperFlag" type="checkbox"> Hilfsflagge</label><br><br>
-          <button id="confirmOpenSettings">Bestätigen</button>
-        `;
-        document.body.appendChild(modal);
-        document.getElementById("confirmOpenSettings").addEventListener("click", () => {
-          const before = parseInt(document.getElementById("beforeNotes").value, 10);
-          const after  = parseInt(document.getElementById("afterNotes").value, 10);
-          const helperFlag = document.getElementById("helperFlag").checked;
-          customOpenSettings = { before, after, helperFlag };
-          modal.remove();
-          generateSeries();
-        });
-      }
                                             
 const drawSeries = () => {
   const noteAnimals = {
@@ -3163,55 +3162,6 @@ const drawSeries = () => {
   new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
   voice.draw(context, stave);
 
-  // Hilfsflaggen für alle zusätzlichen Noten (außerhalb der Basis-Lage)
-  if (customOpenSettings && customOpenSettings.helperFlag) {
-    const baseNotes = rangeNotes[currentRange];
-    const triangleHeight = 5;
-    const triangleTopY = stave.getY() - 1 - triangleHeight;
-    const flagY = triangleTopY - 5; // 5px höher als die Dreiecksspitze
-    staveNotes.forEach((noteElem, idx) => {
-      const noteName = currentSeriesSingle[idx].note;
-      if (!baseNotes.includes(noteName)) {
-        const bbox = noteElem.getBoundingBox();
-        if (bbox) {
-          const noteX = bbox.getX() + bbox.getW() / 2;
-          const flagText = document.createElementNS("http://www.w3.org/2000/svg","text");
-          flagText.setAttribute("x", noteX);
-          flagText.setAttribute("y", flagY);
-          flagText.setAttribute("text-anchor","middle");
-          flagText.setAttribute("dominant-baseline","middle");
-          flagText.setAttribute("font-size","16");
-          flagText.textContent = "🚩";
-          svg.appendChild(flagText);
-        }
-      }
-    });
-  }
-
-  // Zeichne Handwechsel-Pfeile basierend auf shiftEvents
-  if (shiftEvents.length) {
-    shiftEvents.forEach(ev => {
-      const noteElem = staveNotes[ev.arrowIdx];
-      if (noteElem && typeof noteElem.getBoundingBox === 'function') {
-        const bbox = noteElem.getBoundingBox();
-        if (bbox) {
-          const noteX = bbox.getX() + bbox.getW() / 2;
-          const triangleHeight = 5;
-          const triangleTopY = stave.getY() - 1 - triangleHeight;
-          const arrowY = triangleTopY - 5; // 5px oberhalb
-          const arrowText = document.createElementNS("http://www.w3.org/2000/svg","text");
-          arrowText.setAttribute("x", noteX);
-          arrowText.setAttribute("y", arrowY);
-          arrowText.setAttribute("text-anchor","middle");
-          arrowText.setAttribute("dominant-baseline","middle");
-          arrowText.setAttribute("font-size","16");
-          arrowText.textContent = ev.direction;
-          svg.appendChild(arrowText);
-        }
-      }
-    });
-  }
-
   // 🐝 Kinder-Modus: Emojis auf die Notenköpfe setzen
   if (kidsMode) {
     const svg = notationDiv.querySelector("svg");
@@ -3254,21 +3204,6 @@ const drawSeries = () => {
         triangle.setAttribute('points', `${p1} ${p2} ${p3}`);
         triangle.setAttribute('fill', 'black');
         svg.appendChild(triangle);
-        // Hilfsflagge einblenden, falls aktiviert und Note nicht im Basissatz
-        if (customOpenSettings && customOpenSettings.helperFlag) {
-          const baseNotes = rangeNotes[currentRange];
-          const currentNote = currentSeriesSingle[seriesCounter].note;
-          if (!baseNotes.includes(currentNote)) {
-            const flagText = document.createElementNS("http://www.w3.org/2000/svg","text");
-            flagText.setAttribute("x", noteX);
-            flagText.setAttribute("y", noteY - 5);
-            flagText.setAttribute("text-anchor","middle");
-            flagText.setAttribute("dominant-baseline","middle");
-            flagText.setAttribute("font-size","16");
-            flagText.textContent = "🚩";
-            svg.appendChild(flagText);
-          }
-        }
       }
     }
   }
@@ -4224,102 +4159,120 @@ document.addEventListener("DOMContentLoaded", () => {
     <script>
       
         
+        // Neuer Custom Mode JS (vereinfachte Version)
         document.addEventListener('DOMContentLoaded', function() {
-            const modal = document.getElementById('customModeModal');
-            if (!modal) return;
-            
-            let selectedCustomClef = null;
-            let selectedCustomRange = null;
-            
-            // Eventlistener für Schlüsselauswahl
-            document.querySelectorAll('.custom-mode-clef-option').forEach(el => {
-                el.addEventListener('click', () => {
-                    document.querySelectorAll('.custom-mode-clef-option').forEach(opt => opt.classList.remove('active'));
-                    el.classList.add('active');
-                    selectedCustomClef = el.getAttribute('data-clef');
-                    populateCustomNotes();
-                });
-            });
-            
-            // Eventlistener für Lagen-Auswahl
-            document.querySelectorAll('.custom-mode-range-option').forEach(el => {
-                el.addEventListener('click', () => {
-                    document.querySelectorAll('.custom-mode-range-option').forEach(opt => opt.classList.remove('active'));
-                    el.classList.add('active');
-                    selectedCustomRange = el.getAttribute('data-range');
-                    populateCustomNotes();
-                });
-            });
-            
-            // Definition der Notenzuordnungen für linke und rechte Hand
-            const customLeftNotesMapping = {
-                "C": ["C", "D", "E", "F", "G", "A"],
-                "D": ["D", "E", "F#", "G", "A", "B"],
-                "F": ["F", "G", "A", "Bb", "C"],
-                "G": ["G", "A", "B", "C", "D", "E"],
-                "MC": ["F", "G", "A", "H", "C"]
-            };
-            const customRightNotesMapping = {
-                "C": ["C", "D", "E", "F", "G", "A"],
-                "D": ["D", "E", "F#", "G", "A", "B"],
-                "F": ["F", "G", "A", "Bb", "C"],
-                "G": ["G", "A", "B", "C", "D", "E"],
-                "MC": ["F", "G", "A", "H", "C"]
-            };
-            
-            // Funktion, die basierend auf der gewählten Lage die Noten für linke und rechte Hand befüllt
-            function populateCustomNotes() {
-                if (!selectedCustomRange) return;
-                const leftContainer = document.getElementById('left-hand-notes');
-                const rightContainer = document.getElementById('right-hand-notes');
-                leftContainer.innerHTML = '';
-                rightContainer.innerHTML = '';
-                
-                customLeftNotesMapping[selectedCustomRange].forEach(note => {
-                    const noteEl = document.createElement('div');
-                    noteEl.className = 'custom-mode-note-option';
-                    noteEl.textContent = note;
-                    noteEl.setAttribute('data-note', note);
-                    noteEl.addEventListener('click', () => {
-                        noteEl.classList.toggle('active');
-                    });
-                    leftContainer.appendChild(noteEl);
-                });
-                
-                customRightNotesMapping[selectedCustomRange].forEach(note => {
-                    const noteEl = document.createElement('div');
-                    noteEl.className = 'custom-mode-note-option';
-                    noteEl.textContent = note;
-                    noteEl.setAttribute('data-note', note);
-                    noteEl.addEventListener('click', () => {
-                        noteEl.classList.toggle('active');
-                    });
-                    rightContainer.appendChild(noteEl);
-                });
+          const modal = document.getElementById('customModeModal');
+          if (!modal) return;
+
+          // 1. Neue Mapping-Struktur für Kombination von Schlüssel + Lage
+          const clefRangeMapping = {
+            bass: {
+              C: ["C", "D", "E", "F", "G", "A", "H"],
+              D: ["d", "e", "f#", "g", "a"],
+              F: ["f", "g", "a", "bb", "c"],
+              G: ["g", "a", "h", "c", "d"],
+              MC: ["c", "d", "e", "f", "g"]
+            },
+            treble: {
+              C: ["c'", "d'", "e'", "f'", "g'", "a'", "h'"],
+              D: ["d'", "e'", "f#'", "g'", "a'"],
+              F: ["f'", "g'", "a'", "bb'", "c''"],
+              G: ["g'", "a'", "h'", "c''", "d''"],
+              MC: ["c'", "d'", "e'", "f'", "g'"]
             }
-            
-            // Eventlistener für den Speichern-Button
-            const saveButton = document.querySelector('.custom-mode-save button');
-            if (saveButton) {
-                saveButton.addEventListener('click', () => {
-                    const activeClef = document.querySelector('.custom-mode-clef-option.active');
-                    const activeRange = document.querySelector('.custom-mode-range-option.active');
-                    const activeLeftNotes = document.querySelectorAll('#left-hand-notes .custom-mode-note-option.active');
-                    const activeRightNotes = document.querySelectorAll('#right-hand-notes .custom-mode-note-option.active');
-                    
-                    const settings = {
-                        clef: activeClef ? activeClef.getAttribute('data-clef') : null,
-                        range: activeRange ? activeRange.getAttribute('data-range') : null,
-                        leftNotes: Array.from(activeLeftNotes).map(el => el.getAttribute('data-note')),
-                        rightNotes: Array.from(activeRightNotes).map(el => el.getAttribute('data-note'))
-                    };
-                    
-                    console.log("Benutzerdefinierte Einstellungen:", settings);
-                    window.customModeSettings = settings;
-                    // Schließe das Modal
-                    modal.classList.add('hidden');
-                });
-            }
+          };
+
+          // 2. Neue globale Variablen
+          let selectedClef = null;
+          let selectedRange = null;
+
+          // 3. Statische Oktaven und Noten-Checkboxen beim Laden/erstmaligem Öffnen
+          const content = document.getElementById('customModeContent');
+          if (content) {
+            content.innerHTML = '';
+            const octaves = {
+              "große Oktave": ["C", "D", "E", "F", "G", "A", "H"],
+              "kleine Oktave": ["c", "d", "e", "f", "g", "a", "h"],
+              "eingestrichene Oktave": ["c'", "d'", "e'", "f'", "g'", "a'", "h'"],
+              "zweigestrichene Oktave": ["c''", "d''", "e''", "f''", "g''", "a''", "h''"],
+            };
+            Object.entries(octaves).forEach(([octaveName, notes]) => {
+              const headline = document.createElement('div');
+              headline.textContent = octaveName;
+              headline.style.fontWeight = "bold";
+              headline.style.marginTop = "10px";
+              content.appendChild(headline);
+              notes.forEach(note => {
+                const label = document.createElement('label');
+                label.style.marginRight = "8px";
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = note;
+                checkbox.checked = false;
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(note));
+                content.appendChild(label);
+              });
+            });
+          }
+
+          // 4. Zentrale Aktualisierungsfunktion für Checkboxen
+          function updateCustomModeCheckboxes() {
+            if (!selectedClef || !selectedRange) return;
+            const notesToActivate = clefRangeMapping[selectedClef][selectedRange] || [];
+            const checkboxes = document.querySelectorAll('#customModeContent input[type=checkbox]');
+            checkboxes.forEach(cb => {
+              cb.checked = notesToActivate.includes(cb.value);
+            });
+          }
+
+          // 5. Eventlistener für Lagen-Auswahl (Range)
+          document.querySelectorAll('.custom-mode-range-option').forEach(el => {
+            el.addEventListener('click', () => {
+              document.querySelectorAll('.custom-mode-range-option').forEach(opt => opt.classList.remove('active'));
+              el.classList.add('active');
+              selectedRange = el.getAttribute('data-range');
+              updateCustomModeCheckboxes();
+            });
+          });
+
+          // 6. Eventlistener für Schlüsselauswahl (Clef)
+          document.querySelectorAll('.custom-mode-clef-option').forEach(el => {
+            el.addEventListener('click', () => {
+              document.querySelectorAll('.custom-mode-clef-option').forEach(opt => opt.classList.remove('active'));
+              el.classList.add('active');
+              selectedClef = el.getAttribute('data-clef');
+              updateCustomModeCheckboxes();
+            });
+          });
+
+          // 7. Speichern-Button
+          const saveBtn = document.getElementById('custom-mode-save-button');
+          if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+              const content = document.getElementById('customModeContent');
+              if (!selectedClef || !selectedRange || !content) return;
+              const selected = Array.from(content.querySelectorAll('input[type=checkbox]'))
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+              // Notenwert-Checkbox
+              const noteValueCheckbox = document.getElementById('noteValueCheckbox');
+              const noteValue = noteValueCheckbox && noteValueCheckbox.checked ? "8" : "q";
+              window.customModeSettings = {
+                clef: selectedClef,
+                range: selectedRange,
+                selectedNotes: selected.map(n => n.replace(/'/g, "").toLowerCase()),
+                noteValue: noteValue
+              };
+              // clefTitle aktualisieren
+              const clefTitle = document.getElementById("clefTitle");
+              if (clefTitle && selectedRange) {
+                clefTitle.textContent = selectedRange + "-Lage";
+              }
+              generateSeries();
+              modal.classList.add('hidden');
+            });
+          }
         });
     </script>
     
@@ -4339,15 +4292,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div class="custom-mode-range-option" data-range="MC">MC</div>
             </div>
         </div>
-        <div class="custom-mode-row">
-            <div class="custom-mode-hand-label">Linke Hand</div>
-            <div class="custom-mode-note-set" id="left-hand-notes">
-                <!-- Noten werden dynamisch basierend auf der gewählten Lage eingefügt -->\n    </div>
-        </div>
-        <div class="custom-mode-row">
-            <div class="custom-mode-hand-label">Rechte Hand</div>
-            <div class="custom-mode-note-set" id="right-hand-notes">
-                <!-- Noten werden dynamisch basierend auf der gewählten Lage eingefügt -->\n    </div>
+        <div id="customModeContent" style="margin-top: 10px;">
+          <!-- Hier werden dynamisch Oktavennamen und Checkboxen eingefügt -->
         </div>
         <div class="custom-mode-row">
             <label for="noteValueCheckbox" style="font-weight: bold;">Wertvariation</label>
