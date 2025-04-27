@@ -2970,7 +2970,9 @@ const generateSeries = () => {
 
   } else {
     // Bestehendes Verhalten, wenn kein Custom Mode aktiv ist
-    if (randomMode) {
+    if (customOpenSettings && customOpenSettings.clef) {
+      seriesClef = customOpenSettings.clef;
+    } else if (randomMode) {
       seriesClef = Math.random() < 0.5 ? "bass" : "treble";
       notesInCurrentPhase += seriesLength;
       if (notesInCurrentPhase >= 20) {
