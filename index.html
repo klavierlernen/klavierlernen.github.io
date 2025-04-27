@@ -2907,11 +2907,16 @@ const generateSeries = () => {
     const firstIndex = allNotes.indexOf(notes[0]);
     const lastIndex  = allNotes.indexOf(notes[notes.length - 1]);
     const totalRange = lastIndex - firstIndex + 1;
+    const baseOctave = (selectedMode === "left" ? 3 : 4); // bass:3, treble:4
     const extendedNotes = [];
-    // Build extended notes circularly: from -before up to range length+after-1
     for (let offset = -customOpenSettings.before; offset < totalRange + customOpenSettings.after; offset++) {
       const idx = (firstIndex + offset + allNotes.length) % allNotes.length;
-      extendedNotes.push(allNotes[idx]);
+      const noteName = allNotes[idx];
+      // Determine octave shift: notes before wrap go one octave down, after go one up
+      let octaveOffset = 0;
+      if (offset < 0) octaveOffset = -1;
+      else if (offset >= totalRange) octaveOffset = 1;
+      extendedNotes.push({ note: noteName, octaveOffset });
     }
     notes = extendedNotes;
   }
@@ -3005,11 +3010,18 @@ const generateSeries = () => {
       // Verwende erweiterte 'notes', ggf. gesliced durch customOpenSettings
       const availableNotes = notes;
       const randomIndex = Math.floor(Math.random() * availableNotes.length);
-      const chosenNote = availableNotes[randomIndex];
-      let noteOctave = seriesClef === "bass" ? 3 : 4;
+      // Destructure for new note object structure
+      let chosenNote, octaveOffset;
+      if (availableNotes[randomIndex] && typeof availableNotes[randomIndex] === "object" && availableNotes[randomIndex].note) {
+        ({ note: chosenNote, octaveOffset } = availableNotes[randomIndex]);
+      } else {
+        chosenNote = availableNotes[randomIndex];
+        octaveOffset = 0;
+      }
+      let noteOctave = (seriesClef === "bass" ? 3 : 4) + (octaveOffset || 0);
       // F-Lage: ensure C is one octave higher in treble clef
       if (currentRange === "F" && seriesClef === "treble" && chosenNote.toLowerCase() === "c") {
-        noteOctave = 5;
+        noteOctave = 5 + (octaveOffset || 0);
       }
       // Accidentals handling for F- and G-ranges
       let accidental = undefined;
