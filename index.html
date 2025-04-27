@@ -758,7 +758,8 @@
       
   </style>
   <script>
-      
+      // Custom-Settings für Open-Mode (🖖)
+      let customOpenSettings = null;
       let twoHandMode = false;
       let seriesCounterLeft = 0;
       let seriesCounterRight = 0;
@@ -1229,7 +1230,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handoptionen
     const handOptions = [
       { mode: "left", symbol: "✋" },
-      { mode: "right", symbol: "✋", flip: true }
+      { mode: "right", symbol: "✋", flip: true },
+      { mode: "open", symbol: "🖖" }
     ];
     let currentHandIndex = 0;
     let selectedMode = handOptions[currentHandIndex].mode;
@@ -2180,8 +2182,13 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
           selectedMode = handOptions[currentHandIndex].mode;
           handToggle.textContent = handOptions[currentHandIndex].symbol;
           handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
-          window.customModeSettings = null;
-          generateSeries();
+
+          if (selectedMode === "open") {
+            showOpenModeSettings();
+          } else {
+            customOpenSettings = null;
+            generateSeries();
+          }
         }
       });
       // Randomtoggle
@@ -2892,6 +2899,17 @@ const generateSeries = () => {
 
   let seriesClef, chooseNote;
 
+  let notes = rangeNotes[currentRange];
+    if (customOpenSettings) {
+      const allNotes = ["c","d","e","f","g","a","b"];
+      const firstIndex = allNotes.indexOf(notes[0]);
+      const lastIndex  = allNotes.indexOf(notes[notes.length - 1]);
+      notes = allNotes.slice(
+        Math.max(0, firstIndex - customOpenSettings.before),
+        Math.min(allNotes.length, lastIndex + 1 + customOpenSettings.after)
+      );
+    }
+    
   // Prüfe, ob benutzerdefinierte Einstellungen aktiv sind
   if (window.customModeSettings && window.customModeSettings.clef && window.customModeSettings.range) {
     // Verwende die benutzerdefinierten Einstellungen
@@ -3017,6 +3035,45 @@ const generateSeries = () => {
   }
   drawSeries();
 };
+      
+      /**
+       * Zeigt ein kleines Modal, in dem man einstellen kann,
+       * wie viele Noten vor und nach der aktuellen Lage mit abgefragt werden.
+       */
+      function showOpenModeSettings() {
+        const existing = document.getElementById("openModeSettings");
+        if (existing) {
+          existing.remove();
+          return;
+        }
+        const modal = document.createElement("div");
+        modal.id = "openModeSettings";
+        Object.assign(modal.style, {
+          position: "fixed",
+          top: "30%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "white",
+          border: "2px solid black",
+          borderRadius: "10px",
+          padding: "20px",
+          zIndex: 2000,
+        });
+        modal.innerHTML = `
+          <h3>Open-Mode Einstellungen</h3>
+          <label>Davor: <input id="beforeNotes" type="number" value="2" min="0" max="5" style="width:50px;"></label><br><br>
+          <label>Danach: <input id="afterNotes" type="number" value="2" min="0" max="5" style="width:50px;"></label><br><br>
+          <button id="confirmOpenSettings">Bestätigen</button>
+        `;
+        document.body.appendChild(modal);
+        document.getElementById("confirmOpenSettings").addEventListener("click", () => {
+          const before = parseInt(document.getElementById("beforeNotes").value, 10);
+          const after  = parseInt(document.getElementById("afterNotes").value, 10);
+          customOpenSettings = { before, after };
+          modal.remove();
+          generateSeries();
+        });
+      }
                                             
 const drawSeries = () => {
   const noteAnimals = {
