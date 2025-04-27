@@ -2996,25 +2996,16 @@ const generateSeries = () => {
           return errorNotes.splice(idx, 1)[0];
         }
       }
-      let defaultNotes;
-      if (currentRange === "MC") {
-        defaultNotes = seriesClef === "bass"
-          ? ["f", "g", "a", "b", "c"]
-          : ["c", "d", "e", "f", "g"];
-      } else if (currentRange === "D") {
-        defaultNotes = ["d", "e", "f#", "g", "a"];
-      } else if (currentRange === "F") {
-        defaultNotes = ["f", "g", "a", "bb", "c"];
-      } else {
-        defaultNotes = rangeNotes[currentRange];
-      }
-      const randomIndex = Math.floor(Math.random() * defaultNotes.length);
-      const chosenNote = defaultNotes[randomIndex];
+      // Verwende erweiterte 'notes', ggf. gesliced durch customOpenSettings
+      const availableNotes = notes;
+      const randomIndex = Math.floor(Math.random() * availableNotes.length);
+      const chosenNote = availableNotes[randomIndex];
       let noteOctave = seriesClef === "bass" ? 3 : 4;
       // F-Lage: ensure C is one octave higher in treble clef
       if (currentRange === "F" && seriesClef === "treble" && chosenNote.toLowerCase() === "c") {
         noteOctave = 5;
       }
+      // Accidentals handling for F- and G-ranges
       let accidental = undefined;
       if (["F", "G"].includes(currentRange)) {
         if (currentRange === "F" && chosenNote.toLowerCase() === "bb") {
@@ -3025,7 +3016,7 @@ const generateSeries = () => {
           accidental = chosenNote;
         }
       }
-      return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
+      return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental };
     };
   }
 
