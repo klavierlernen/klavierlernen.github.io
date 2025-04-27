@@ -2902,15 +2902,19 @@ const generateSeries = () => {
   let seriesClef, chooseNote;
 
   let notes = rangeNotes[currentRange];
-    if (customOpenSettings) {
-      const allNotes = ["c","d","e","f","g","a","b"];
-      const firstIndex = allNotes.indexOf(notes[0]);
-      const lastIndex  = allNotes.indexOf(notes[notes.length - 1]);
-      notes = allNotes.slice(
-        Math.max(0, firstIndex - customOpenSettings.before),
-        Math.min(allNotes.length, lastIndex + 1 + customOpenSettings.after)
-      );
+  if (customOpenSettings) {
+    const allNotes = ["c","d","e","f","g","a","b"];
+    const firstIndex = allNotes.indexOf(notes[0]);
+    const lastIndex  = allNotes.indexOf(notes[notes.length - 1]);
+    const totalRange = lastIndex - firstIndex + 1;
+    const extendedNotes = [];
+    // Build extended notes circularly: from -before up to range length+after-1
+    for (let offset = -customOpenSettings.before; offset < totalRange + customOpenSettings.after; offset++) {
+      const idx = (firstIndex + offset + allNotes.length) % allNotes.length;
+      extendedNotes.push(allNotes[idx]);
     }
+    notes = extendedNotes;
+  }
     
   // Prüfe, ob benutzerdefinierte Einstellungen aktiv sind
   if (window.customModeSettings && window.customModeSettings.clef && window.customModeSettings.range) {
