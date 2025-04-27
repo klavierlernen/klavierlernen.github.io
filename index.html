@@ -2890,6 +2890,8 @@ let melodyContext = {
 };
 // Füge am Anfang des Skripts (z. B. direkt vor der Funktion generateSeries) hinzu:
 let notesInCurrentPhase = 0;
+// Events für Handwechsel-Pfeile
+let shiftEvents = [];
                                             
 const generateSeries = () => {
   seriesCounter = 0;
@@ -3023,6 +3025,26 @@ const generateSeries = () => {
   currentSeriesSingle = [];
   for (let i = 0; i < seriesLength; i++) {
     currentSeriesSingle.push(chooseNote());
+  }
+  // Berechne Handwechsel-Ereignisse für Pfeile (zwei Noten vorher)
+  shiftEvents = [];
+  if (customOpenSettings && customOpenSettings.helperFlag) {
+    const baseNotes = rangeNotes[currentRange];
+    const allNotes = ["c","d","e","f","g","a","b"];
+    const firstIdx = allNotes.indexOf(baseNotes[0]);
+    const lastIdx = allNotes.indexOf(baseNotes[baseNotes.length - 1]);
+    currentSeriesSingle.forEach((item, idx) => {
+      const noteIdx = allNotes.indexOf(item.note);
+      if (noteIdx < firstIdx || noteIdx > lastIdx) {
+        const arrowIdx = idx - 2;
+        if (arrowIdx >= 0) {
+          shiftEvents.push({
+            arrowIdx,
+            direction: noteIdx > lastIdx ? "→" : "←"
+          });
+        }
+      }
+    });
   }
   drawSeries();
 };
@@ -3162,35 +3184,25 @@ const drawSeries = () => {
     });
   }
 
-  // Pfeile für Handwechsel: 2 Noten vorher anzeigen
-  if (customOpenSettings && customOpenSettings.helperFlag) {
-    const baseNotes = rangeNotes[currentRange];
-    const allNotes = ["c","d","e","f","g","a","b"];
-    const firstIdx = allNotes.indexOf(baseNotes[0]);
-    const lastIdx = allNotes.indexOf(baseNotes[baseNotes.length - 1]);
-    const triangleHeight = 5;
-    const triangleTopY = stave.getY() - 1 - triangleHeight;
-    const arrowY = triangleTopY - 5;
-    currentSeriesSingle.forEach((item, idx) => {
-      const noteName = item.note;
-      const noteIdx = allNotes.indexOf(noteName);
-      // Wenn Note außerhalb der Basis-Lage liegt
-      if (noteIdx < firstIdx || noteIdx > lastIdx) {
-        const arrowIdx = idx - 2;
-        if (arrowIdx >= 0) {
-          const noteElem = staveNotes[arrowIdx];
-          const bbox = noteElem.getBoundingBox();
-          if (bbox) {
-            const noteX = bbox.getX() + bbox.getW() / 2;
-            const arrowText = document.createElementNS("http://www.w3.org/2000/svg","text");
-            arrowText.setAttribute("x", noteX);
-            arrowText.setAttribute("y", arrowY);
-            arrowText.setAttribute("text-anchor","middle");
-            arrowText.setAttribute("dominant-baseline","middle");
-            arrowText.setAttribute("font-size","16");
-            arrowText.textContent = noteIdx > lastIdx ? "→" : "←";
-            svg.appendChild(arrowText);
-          }
+  // Zeichne Handwechsel-Pfeile basierend auf shiftEvents
+  if (shiftEvents.length) {
+    shiftEvents.forEach(ev => {
+      const noteElem = staveNotes[ev.arrowIdx];
+      if (noteElem && typeof noteElem.getBoundingBox === 'function') {
+        const bbox = noteElem.getBoundingBox();
+        if (bbox) {
+          const noteX = bbox.getX() + bbox.getW() / 2;
+          const triangleHeight = 5;
+          const triangleTopY = stave.getY() - 1 - triangleHeight;
+          const arrowY = triangleTopY - 5; // 5px oberhalb
+          const arrowText = document.createElementNS("http://www.w3.org/2000/svg","text");
+          arrowText.setAttribute("x", noteX);
+          arrowText.setAttribute("y", arrowY);
+          arrowText.setAttribute("text-anchor","middle");
+          arrowText.setAttribute("dominant-baseline","middle");
+          arrowText.setAttribute("font-size","16");
+          arrowText.textContent = ev.direction;
+          svg.appendChild(arrowText);
         }
       }
     });
