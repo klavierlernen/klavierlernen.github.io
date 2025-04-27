@@ -3054,13 +3054,15 @@ const generateSeries = () => {
           <h3>Open-Mode Einstellungen</h3>
           <label>Davor: <input id="beforeNotes" type="number" value="2" min="0" max="5" style="width:50px;"></label><br><br>
           <label>Danach: <input id="afterNotes" type="number" value="2" min="0" max="5" style="width:50px;"></label><br><br>
+          <label><input id="helperFlag" type="checkbox"> Hilfsflagge</label><br><br>
           <button id="confirmOpenSettings">Bestätigen</button>
         `;
         document.body.appendChild(modal);
         document.getElementById("confirmOpenSettings").addEventListener("click", () => {
           const before = parseInt(document.getElementById("beforeNotes").value, 10);
           const after  = parseInt(document.getElementById("afterNotes").value, 10);
-          customOpenSettings = { before, after };
+          const helperFlag = document.getElementById("helperFlag").checked;
+          customOpenSettings = { before, after, helperFlag };
           modal.remove();
           generateSeries();
         });
@@ -3135,6 +3137,31 @@ const drawSeries = () => {
   new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
   voice.draw(context, stave);
 
+  // Hilfsflaggen für alle zusätzlichen Noten (außerhalb der Basis-Lage)
+  if (customOpenSettings && customOpenSettings.helperFlag) {
+    const baseNotes = rangeNotes[currentRange];
+    const triangleHeight = 5;
+    const triangleTopY = stave.getY() - 1 - triangleHeight;
+    const flagY = triangleTopY - 5; // 5px höher als die Dreiecksspitze
+    staveNotes.forEach((noteElem, idx) => {
+      const noteName = currentSeriesSingle[idx].note;
+      if (!baseNotes.includes(noteName)) {
+        const bbox = noteElem.getBoundingBox();
+        if (bbox) {
+          const noteX = bbox.getX() + bbox.getW() / 2;
+          const flagText = document.createElementNS("http://www.w3.org/2000/svg","text");
+          flagText.setAttribute("x", noteX);
+          flagText.setAttribute("y", flagY);
+          flagText.setAttribute("text-anchor","middle");
+          flagText.setAttribute("dominant-baseline","middle");
+          flagText.setAttribute("font-size","16");
+          flagText.textContent = "🚩";
+          svg.appendChild(flagText);
+        }
+      }
+    });
+  }
+
   // 🐝 Kinder-Modus: Emojis auf die Notenköpfe setzen
   if (kidsMode) {
     const svg = notationDiv.querySelector("svg");
@@ -3177,6 +3204,21 @@ const drawSeries = () => {
         triangle.setAttribute('points', `${p1} ${p2} ${p3}`);
         triangle.setAttribute('fill', 'black');
         svg.appendChild(triangle);
+        // Hilfsflagge einblenden, falls aktiviert und Note nicht im Basissatz
+        if (customOpenSettings && customOpenSettings.helperFlag) {
+          const baseNotes = rangeNotes[currentRange];
+          const currentNote = currentSeriesSingle[seriesCounter].note;
+          if (!baseNotes.includes(currentNote)) {
+            const flagText = document.createElementNS("http://www.w3.org/2000/svg","text");
+            flagText.setAttribute("x", noteX);
+            flagText.setAttribute("y", noteY - 5);
+            flagText.setAttribute("text-anchor","middle");
+            flagText.setAttribute("dominant-baseline","middle");
+            flagText.setAttribute("font-size","16");
+            flagText.textContent = "🚩";
+            svg.appendChild(flagText);
+          }
+        }
       }
     }
   }
