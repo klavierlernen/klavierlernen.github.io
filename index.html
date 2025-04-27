@@ -758,6 +758,12 @@
       
   </style>
   <script>
+      
+      let twoHandMode = false;
+      let seriesCounterLeft = 0;
+      let seriesCounterRight = 0;
+      let currentSeriesLeft = [];
+      let currentSeriesRight = [];
 
         // Initialize global homeworkData from storage
         window.homeworkData = JSON.parse(localStorage.getItem("homeworkData") || "null");
@@ -2537,8 +2543,8 @@ metronomeToggle.addEventListener("click", () => {
         kidsModeToggle.style.opacity = kidsMode ? "1" : "0.5";
         drawSeries();
       });
-
-
+      
+      
       const customModeToggle = document.createElement("span");
       customModeToggle.id = "customModeToggle";
       customModeToggle.textContent = "🖍️";
