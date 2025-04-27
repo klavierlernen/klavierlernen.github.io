@@ -2890,8 +2890,6 @@ let melodyContext = {
 };
 // Füge am Anfang des Skripts (z. B. direkt vor der Funktion generateSeries) hinzu:
 let notesInCurrentPhase = 0;
-// Events für Handwechsel-Pfeile
-let shiftEvents = [];
                                             
 const generateSeries = () => {
   seriesCounter = 0;
@@ -3042,26 +3040,6 @@ const generateSeries = () => {
   for (let i = 0; i < seriesLength; i++) {
     currentSeriesSingle.push(chooseNote());
   }
-  // Berechne Handwechsel-Ereignisse für Pfeile (zwei Noten vorher)
-  shiftEvents = [];
-  if (customOpenSettings && customOpenSettings.helperFlag) {
-    const baseNotes = rangeNotes[currentRange];
-    const allNotes = ["c","d","e","f","g","a","b"];
-    const firstIdx = allNotes.indexOf(baseNotes[0]);
-    const lastIdx = allNotes.indexOf(baseNotes[baseNotes.length - 1]);
-    currentSeriesSingle.forEach((item, idx) => {
-      const noteIdx = allNotes.indexOf(item.note);
-      if (noteIdx < firstIdx || noteIdx > lastIdx) {
-        const arrowIdx = idx - 2;
-        if (arrowIdx >= 0) {
-          shiftEvents.push({
-            arrowIdx,
-            direction: noteIdx > lastIdx ? "→" : "←"
-          });
-        }
-      }
-    });
-  }
   drawSeries();
 };
       
@@ -3090,6 +3068,12 @@ const generateSeries = () => {
         });
         modal.innerHTML = `
           <h3>Open-Mode Einstellungen</h3>
+        <label>Schlüssel:
+          <select id="clefSelect">
+            <option value="treble">Violinenschlüssel</option>
+            <option value="bass">Bassschlüssel</option>
+          </select>
+        </label><br><br>
           <label>Davor: <input id="beforeNotes" type="number" value="2" min="0" max="5" style="width:50px;"></label><br><br>
           <label>Danach: <input id="afterNotes" type="number" value="2" min="0" max="5" style="width:50px;"></label><br><br>
           <label><input id="helperFlag" type="checkbox"> Hilfsflagge</label><br><br>
@@ -3100,7 +3084,8 @@ const generateSeries = () => {
           const before = parseInt(document.getElementById("beforeNotes").value, 10);
           const after  = parseInt(document.getElementById("afterNotes").value, 10);
           const helperFlag = document.getElementById("helperFlag").checked;
-          customOpenSettings = { before, after, helperFlag };
+          const clef = document.getElementById("clefSelect").value;
+          customOpenSettings = { before, after, helperFlag, clef };
           modal.remove();
           generateSeries();
         });
@@ -3200,29 +3185,6 @@ const drawSeries = () => {
     });
   }
 
-  // Zeichne Handwechsel-Pfeile basierend auf shiftEvents
-  if (shiftEvents.length) {
-    shiftEvents.forEach(ev => {
-      const noteElem = staveNotes[ev.arrowIdx];
-      if (noteElem && typeof noteElem.getBoundingBox === 'function') {
-        const bbox = noteElem.getBoundingBox();
-        if (bbox) {
-          const noteX = bbox.getX() + bbox.getW() / 2;
-          const triangleHeight = 5;
-          const triangleTopY = stave.getY() - 1 - triangleHeight;
-          const arrowY = triangleTopY - 5; // 5px oberhalb
-          const arrowText = document.createElementNS("http://www.w3.org/2000/svg","text");
-          arrowText.setAttribute("x", noteX);
-          arrowText.setAttribute("y", arrowY);
-          arrowText.setAttribute("text-anchor","middle");
-          arrowText.setAttribute("dominant-baseline","middle");
-          arrowText.setAttribute("font-size","16");
-          arrowText.textContent = ev.direction;
-          svg.appendChild(arrowText);
-        }
-      }
-    });
-  }
 
   // 🐝 Kinder-Modus: Emojis auf die Notenköpfe setzen
   if (kidsMode) {
