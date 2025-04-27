@@ -3162,6 +3162,40 @@ const drawSeries = () => {
     });
   }
 
+  // Pfeile für Handwechsel: 2 Noten vorher anzeigen
+  if (customOpenSettings && customOpenSettings.helperFlag) {
+    const baseNotes = rangeNotes[currentRange];
+    const allNotes = ["c","d","e","f","g","a","b"];
+    const firstIdx = allNotes.indexOf(baseNotes[0]);
+    const lastIdx = allNotes.indexOf(baseNotes[baseNotes.length - 1]);
+    const triangleHeight = 5;
+    const triangleTopY = stave.getY() - 1 - triangleHeight;
+    const arrowY = triangleTopY - 5;
+    currentSeriesSingle.forEach((item, idx) => {
+      const noteName = item.note;
+      const noteIdx = allNotes.indexOf(noteName);
+      // Wenn Note außerhalb der Basis-Lage liegt
+      if (noteIdx < firstIdx || noteIdx > lastIdx) {
+        const arrowIdx = idx - 2;
+        if (arrowIdx >= 0) {
+          const noteElem = staveNotes[arrowIdx];
+          const bbox = noteElem.getBoundingBox();
+          if (bbox) {
+            const noteX = bbox.getX() + bbox.getW() / 2;
+            const arrowText = document.createElementNS("http://www.w3.org/2000/svg","text");
+            arrowText.setAttribute("x", noteX);
+            arrowText.setAttribute("y", arrowY);
+            arrowText.setAttribute("text-anchor","middle");
+            arrowText.setAttribute("dominant-baseline","middle");
+            arrowText.setAttribute("font-size","16");
+            arrowText.textContent = noteIdx > lastIdx ? "→" : "←";
+            svg.appendChild(arrowText);
+          }
+        }
+      }
+    });
+  }
+
   // 🐝 Kinder-Modus: Emojis auf die Notenköpfe setzen
   if (kidsMode) {
     const svg = notationDiv.querySelector("svg");
