@@ -21,27 +21,6 @@
       <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
       
   <style>
-      
-      #accuracyBarContainer {
-        position: fixed;
-        width: 80%;
-        height: 30px;
-        background: linear-gradient(to right, #ff9999, #aaffaa 45%, #aaffaa 55%, #ff9999);
-        border-radius: 15px;
-        z-index: 1000;
-        display: none;
-      }
-
-      #accuracyMarker {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-        background: black;
-        transition: left 0.2s ease-in-out;
-        left: 50%;
-      }
-      
     /* Grundlayout */
     html, body {
       height: 100%;
@@ -786,7 +765,6 @@
       let currentSeriesLeft = [];
       let currentSeriesRight = [];
       let articulationMode = null; // null, "staccato" oder "legato"
-      let activeNotes = {};
 
         // Initialize global homeworkData from storage
         window.homeworkData = JSON.parse(localStorage.getItem("homeworkData") || "null");
@@ -996,7 +974,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const tickSound = new Audio("https://raw.githubusercontent.com/JP0024/piano.github.io/main/tick.mp3");
     
       function startMetronome() {
-          
         lastTickTime = Date.now();
         tickSound.currentTime = 0;
         tickSound.play();
@@ -2406,38 +2383,15 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
 
       let staccatoModeActive = false;
 
-staccatoToggle.addEventListener("click", () => {
-  staccatoModeActive = !staccatoModeActive;
-  articulationMode = staccatoModeActive ? "staccato" : null;
-  staccatoToggle.style.opacity = staccatoModeActive ? "1" : "0.5";
-
-  const clefTitle = document.getElementById("clefTitle");
-  if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
-
-  const notation = document.getElementById("notation");
-  const bar = document.getElementById("accuracyBarContainer");
-
-  if (notation) {
-    notation.style.display = staccatoModeActive ? "none" : "block";
-  }
-  
-  const containerWidth = bar.offsetWidth;
-  const center = containerWidth / 2;
-  const marker = document.getElementById("accuracyMarker");
-  if (marker) marker.style.left = `${center}px`;
-
-  if (bar) {
-    if (staccatoModeActive) {
-      bar.style.position = "fixed";
-      bar.style.display = "block";
-      bar.style.top = notation?.style.top || "50%";
-      bar.style.left = notation?.style.left || "50%";
-      bar.style.transform = notation?.style.transform || "translate(-50%, -50%)";
-    } else {
-      bar.style.display = "none";
-    }
-  }
-});
+      staccatoToggle.addEventListener("click", () => {
+        staccatoModeActive = !staccatoModeActive;
+        articulationMode = staccatoModeActive ? "staccato" : null;
+        staccatoToggle.style.opacity = staccatoModeActive ? "1" : "0.5";
+        const clefTitle = document.getElementById("clefTitle");
+        if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
+        const notation = document.getElementById("notation");
+        if (notation) notation.style.display = staccatoModeActive ? "none" : "block";
+      });
       
       const blobToggle = document.createElement("span");
       blobToggle.id = "blobToggle";
@@ -3309,29 +3263,21 @@ const drawSeries = () => {
       
 let reverseAnimationTimeout;
 let menusHidden = false;
-// Neue Hilfsfunktion für sicheres Animate-Out
-function safeAnimateOut(element, classIn, classOut) {
-  if (!element) return;
-  element.classList.remove(classIn, classOut);
-  void element.offsetWidth;
-  element.classList.add(classOut);
-}
-
 function scheduleReverseAnimation() {
   clearTimeout(reverseAnimationTimeout);
   reverseAnimationTimeout = setTimeout(() => {
-    const settingsPanel = document.getElementById("settingsPanel");
-    const streakDisplay = document.getElementById("streakDisplay");
-    if (settingsPanel) {
-      settingsPanel.classList.remove("fly-out-right");
-      settingsPanel.classList.add("fly-in-right");
-    }
-    if (streakDisplay) {
-      streakDisplay.classList.remove("fly-out-left");
-      streakDisplay.classList.add("fly-in-left");
-    }
-    menusHidden = false;
-  }, 2000);
+        const settingsPanel = document.getElementById("settingsPanel");
+        const streakDisplay = document.getElementById("streakDisplay");
+        if (settingsPanel) {
+          settingsPanel.classList.remove("fly-out-right");
+          settingsPanel.classList.add("fly-in-right");
+        }
+        if (streakDisplay) {
+          streakDisplay.classList.remove("fly-out-left");
+          streakDisplay.classList.add("fly-in-left");
+        }
+        menusHidden = false;
+      }, 2000);
 }
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
@@ -3339,113 +3285,100 @@ function scheduleReverseAnimation() {
       const settingsPanel = document.getElementById("settingsPanel");
       const streakDisplay = document.getElementById("streakDisplay");
       if (!menusHidden) {
-        safeAnimateOut(settingsPanel, "fly-in-right", "fly-out-right");
-        safeAnimateOut(streakDisplay, "fly-in-left", "fly-out-left");
+        if (settingsPanel) {
+          settingsPanel.classList.remove("fly-in-right", "fly-out-right");
+          void settingsPanel.offsetWidth;
+          settingsPanel.classList.add("fly-out-right");
+        }
+        if (streakDisplay) {
+          streakDisplay.classList.remove("fly-in-left", "fly-out-left");
+          void streakDisplay.offsetWidth;
+          streakDisplay.classList.add("fly-out-left");
+        }
         menusHidden = true;
       }
       scheduleReverseAnimation();
       if (metronomeOn) {
         const now = Date.now();
         const diff = now - lastTickTime;
-        const deviationRatio = diff / metronomeInterval;
-        updateAccuracyMarker(deviationRatio);
         if (Math.abs(diff) > metronomeTolerance) {
           console.log(`MIDI außerhalb der Metronom-Toleranz: ${diff}ms`);
           return;
         }
       }
       resetInactivityTimer();
-
-      // NOTE-ON: Taste gedrückt
       if ((status & 0xf0) === 0x90 && data2 > 0) {
-        if (articulationMode === "staccato") {
-          activeNotes[data1] = { timestamp: Date.now(), velocity: data2 };
-          return; // Staccato prüft beim Loslassen
+        if (seriesCounter >= currentSeriesSingle.length) return;
+        let currentTime = Date.now();
+        let responseTime = currentTime - lastNoteTimestamp;
+        if (articulationMode) {
+          checkArticulation(lastNoteTimestamp, currentTime, data2);
+          return; // Rest überspringen
         }
-
-        if (!articulationMode) {
-          evaluateStandardNote(data1, data2);
-        }
-      }
-
-      // NOTE-OFF: Taste losgelassen (Note-Off oder Note-On mit Velocity 0)
-      if (((status & 0xf0) === 0x80 || ((status & 0xf0) === 0x90 && data2 === 0)) && articulationMode === "staccato") {
-        if (activeNotes[data1]) {
-          const noteData = activeNotes[data1];
-          checkArticulation(noteData.timestamp, Date.now(), noteData.velocity);
-          delete activeNotes[data1];
-        }
-      }
-         
-
-      // Standard-Verarbeitung (nur wenn kein articulationMode aktiv ist)
-      if (seriesCounter >= currentSeriesSingle.length) return;
-      let currentTime = Date.now();
-      let responseTime = currentTime - lastNoteTimestamp;
-      responseTimes.push(responseTime);
-      lastNoteTimestamp = currentTime;
-      const midiInfo = (() => {
-        const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
-        const octave = Math.floor(data1 / 12) - 1;
-        const rawNote = noteNames[data1 % 12];
-        const convertedNote = (rawNote === "a#") ? "bb" : rawNote;
-        return { note: convertedNote, octave: octave };
-      })();
-      let playedNoteDisplay;
-      if (kidsMode) {
-        const emojiMap = {
-          "c": "🐱", "d": "🐳", "e": "🐷", "f": "🐟",
-          "g": "🐤", "a": "🦊", "b": "🐝", "bb": "🦁",
-          "f#": "🐙", "g#": "🐵", "d#": "🐭"
-        };
-        playedNoteDisplay = emojiMap[midiInfo.note.toLowerCase()] || "❓";
-      } else {
-        playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note);
-      }
-      const noteDisplay = document.getElementById("noteNameDisplay");
-      totalAttempts++;
-
-      if (isNoteCorrect(midiInfo)) {
-        // Standardfarbe für korrekte Noten: grün
-        let displayColor = "green";
-        if (metronomeOn) {
-          const currentTime = Date.now();
-          const actualInterval = currentTime - lastTickTime;
-          const tolerance = metronomeInterval * 0.3;
-          // Wenn zu schnell oder zu langsam gespielt wird, setze die Farbe auf gelb und zeige entsprechende Motivation
-          if (actualInterval < metronomeInterval - tolerance) {
-            displayColor = "orange";
-            showMotivation("Zu schnell! Langsamer spielen.");
-          } else if (actualInterval > metronomeInterval + tolerance) {
-            displayColor = "orange";
-            showMotivation("Zu langsam! Schneller spielen.");
+        responseTimes.push(responseTime);
+        lastNoteTimestamp = currentTime;
+        const midiInfo = (() => {
+          const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+          const octave = Math.floor(data1 / 12) - 1;
+          const rawNote = noteNames[data1 % 12];
+          const convertedNote = (rawNote === "a#") ? "bb" : rawNote;
+          return { note: convertedNote, octave: octave };
+        })();
+    let playedNoteDisplay;
+    if (kidsMode) {
+      const emojiMap = {
+        "c": "🐱", "d": "🐳", "e": "🐷", "f": "🐟",
+        "g": "🐤", "a": "🦊", "b": "🐝", "bb": "🦁",
+        "f#": "🐙", "g#": "🐵", "d#": "🐭"
+      };
+      playedNoteDisplay = emojiMap[midiInfo.note.toLowerCase()] || "❓";
+    } else {
+      playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note);
+    }
+        const noteDisplay = document.getElementById("noteNameDisplay");
+        totalAttempts++;
+        
+        if (isNoteCorrect(midiInfo)) {
+          // Standardfarbe für korrekte Noten: grün
+          let displayColor = "green";
+          if (metronomeOn) {
+            const currentTime = Date.now();
+            const actualInterval = currentTime - lastTickTime;
+            const tolerance = metronomeInterval * 0.3;
+            // Wenn zu schnell oder zu langsam gespielt wird, setze die Farbe auf gelb und zeige entsprechende Motivation
+            if (actualInterval < metronomeInterval - tolerance) {
+              displayColor = "orange";
+              showMotivation("Zu schnell! Langsamer spielen.");
+            } else if (actualInterval > metronomeInterval + tolerance) {
+              displayColor = "orange";
+              showMotivation("Zu langsam! Schneller spielen.");
+            } else {
+              clearMotivation();
+              showMotivation("Super! Weiter so!");
+            }
           } else {
+            // Ohne Metronom: explizit grün
             clearMotivation();
             showMotivation("Super! Weiter so!");
+            displayColor = "green";
           }
-        } else {
-          // Ohne Metronom: explizit grün
-          clearMotivation();
-          showMotivation("Super! Weiter so!");
-          displayColor = "green";
-        }
-        // Setze die Farbe im Noten-Objekt, damit sie auch beim Zeichnen verwendet wird
-        currentSeriesSingle[seriesCounter].color = displayColor;
-
-        correctAnswers++;
-        correctNoteCount++;
-        removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
-        addCircle("positive");
+          // Setze die Farbe im Noten-Objekt, damit sie auch beim Zeichnen verwendet wird
+          currentSeriesSingle[seriesCounter].color = displayColor;
+          
+          correctAnswers++;
+          correctNoteCount++;
+          removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
+          addCircle("positive");
         if (noteDisplay) {
           noteDisplay.innerHTML = '<span style="color:' + displayColor + ';">' + playedNoteDisplay + '</span>';
         }
         sessionCounter--;
-
-      } else {
-        // Falsche Note: rot markieren
-        currentSeriesSingle[seriesCounter].color = "red";
-        errorNotes.push(currentSeriesSingle[seriesCounter]);
-        addCircle("negative");
+          
+        } else {
+          // Falsche Note: rot markieren
+          currentSeriesSingle[seriesCounter].color = "red";
+          errorNotes.push(currentSeriesSingle[seriesCounter]);
+          addCircle("negative");
         if (noteDisplay) {
           const correctRaw = currentSeriesSingle[seriesCounter].note;
           const correctDisplay = (correctRaw === "b" ? "h" : correctRaw);
@@ -3521,26 +3454,27 @@ function scheduleReverseAnimation() {
             }
           }
         }
-        if (!unlimitedLives) {
-          hearts--;
-          updateHeartsDisplay();
-          if (hearts <= 0) { endGame(); return; }
+          if (!unlimitedLives) {
+            hearts--;
+            updateHeartsDisplay();
+            if (hearts <= 0) { endGame(); return; }
+          }
         }
-      }
-
-      if (sessionCounter <= 0 && !sessionPaused) {
-        sessionCounter = 0;
+        
+        if (sessionCounter <= 0 && !sessionPaused) {
+          sessionCounter = 0;
+          updateTimer();
+          startLocalTimer();
+          return;
+        }
+        seriesCounter++;
+        if (seriesCounter >= seriesLength) {
+          generateSeries();
+        } else {
+          queueRedraw();
+        }
         updateTimer();
-        startLocalTimer();
-        return;
       }
-      seriesCounter++;
-      if (seriesCounter >= seriesLength) {
-        generateSeries();
-      } else {
-        queueRedraw();
-      }
-      updateTimer();
     };
       const resetGame = () => {
         sessionCounter = 5;      // Counter auf 1000
@@ -3567,55 +3501,11 @@ function scheduleReverseAnimation() {
   
   // --- checkArticulation Funktion ---
   function checkArticulation(startTime, endTime, velocity) {
-    // Logge die Anschlagzeit, Loslasszeit, Dauer und Anschlagsstärke
-    console.log(`⏱️ start: ${startTime}, end: ${endTime}, duration: ${endTime - startTime}ms, velocity: ${velocity}`);
     // Nur noch Staccato prüfen, Legato entfällt
     let correct = false;
-    let deviation = null;
     if (articulationMode === "staccato") {
       correct = (endTime - startTime) < 350 && velocity > 30;
-      const expected = 300; // ms, oder dein Zielwert
-      const actual = endTime - startTime;
-      deviation = ((expected - actual) / expected) * 2;  // Verstärkung der Bewegung
     }
-    // Marker-Update und Logging erst direkt vor Feedback!
-    if (deviation !== null) {
-      updateAccuracyMarker(deviation);
-      // Logging der skalierten Abweichung
-      console.log("Deviation (scaled):", deviation);
-    }
-    // Feedback
-    const clefTitle = document.getElementById("clefTitle");
-    if (correct) {
-      clefTitle.textContent = "Richtig!";
-      setTimeout(() => {
-        document.getElementById("clefTitle").textContent = "🥁 Staccato";
-      }, 700);
-    } else {
-      clefTitle.textContent = "Zu lang! Kürzer spielen.";
-    }
-  }
-
-// --- Animierte Accuracy-Marker-Funktion ---
-let markerTargetPosition = 0;
-let markerAnimationFrame;
-
-
-function animateMarker() {
-  const marker = document.getElementById("accuracyMarker");
-  if (!marker) return;
-
-  const currentLeft = parseFloat(marker.style.left) || 0;
-  const delta = markerTargetPosition - currentLeft;
-  const step = delta * 0.1;
-
-  if (Math.abs(delta) > 0.5) {
-    marker.style.left = `${currentLeft + step}px`;
-    markerAnimationFrame = requestAnimationFrame(animateMarker);
-  } else {
-    marker.style.left = `${markerTargetPosition}px`;
-  }
-}
 
   // Hilfsfunktion: Staccato-Modus deaktivieren
   function deactivateStaccatoMode() {
@@ -3626,9 +3516,17 @@ function animateMarker() {
     if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
     const staccatoToggle = document.getElementById("staccatoToggle");
     if (staccatoToggle) staccatoToggle.style.opacity = "0.5";
-    // Optional: Accuracy-Bar ausblenden, wenn Staccato deaktiviert wird
-    const bar = document.getElementById("accuracyBarContainer");
-    if (bar) bar.style.display = "none";
+  }
+    // Feedback
+    const clefTitle = document.getElementById("clefTitle");
+    if (correct) {
+      clefTitle.textContent = "Richtig!";
+      setTimeout(() => {
+        document.getElementById("clefTitle").textContent = "🥁 Staccato";
+      }, 700);
+    } else {
+      clefTitle.textContent = "Zu lang! Kürzer spielen.";
+    }
   }
   
   function resetArticulationMode() {
@@ -4058,17 +3956,6 @@ document.addEventListener("DOMContentLoaded", () => {
        
         <div id="notation"></div>
         <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase; z-index: 1000; pointer-events: auto;"></div>
-        <div id="staccatoPercentDisplay" style="
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          font-size: 3em;
-          font-weight: bold;
-          z-index: 1000;
-          display: none;
-          color: #333;">
-        </div>
         <div id="correctionBox" class="hidden">
           <div id="correctionChoices">
             <button id="prevNoteBtn">&lt;</button>
@@ -4666,23 +4553,25 @@ document.addEventListener("DOMContentLoaded", () => {
             });
           }
         
-        
-        
-        function updateAccuracyMarker(deviationRatio) {
-          const display = document.getElementById("staccatoPercentDisplay");
-          if (!display) return;
+        function checkArticulation(noteOnTime, noteOffTime, velocity) {
+          if (!articulationMode) return;
 
-          // Berechne Prozentgenauigkeit (100 % = perfekt, 0 % = große Abweichung)
-          const accuracy = Math.max(0, Math.min(100, 100 - Math.abs(deviationRatio * 100)));
-          display.textContent = `${Math.round(accuracy)}%`;
-          display.style.display = "block";
+          const duration = noteOffTime - noteOnTime;
+          let correct = false;
 
-          // Nach 1 Sekunde wieder ausblenden
-          clearTimeout(display._hideTimeout);
-          display._hideTimeout = setTimeout(() => {
-            display.style.display = "none";
-          }, 1000);
+          if (articulationMode === "staccato") {
+            correct = duration < 250 && velocity > 50;
+          } else if (articulationMode === "legato") {
+            correct = duration > 500 && velocity > 30;
+          }
+
+          if (correct) {
+            showMotivation("✅ Artikulation korrekt");
+          } else {
+            showMotivation("❌ Falsche Artikulation");
+          }
         }
+        
     
     </script>
     
