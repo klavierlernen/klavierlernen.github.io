@@ -764,6 +764,7 @@
       let seriesCounterRight = 0;
       let currentSeriesLeft = [];
       let currentSeriesRight = [];
+      let articulationMode = null; // null, "staccato" oder "legato"
 
         // Initialize global homeworkData from storage
         window.homeworkData = JSON.parse(localStorage.getItem("homeworkData") || "null");
@@ -3021,6 +3022,25 @@ const generateSeries = () => {
   }
   drawSeries();
 };
+      
+      function toggleArticulationMode() {
+        const clefTitle = document.getElementById("clefTitle");
+        const notation = document.getElementById("notation");
+
+        if (articulationMode === null) {
+          articulationMode = "staccato";
+          clefTitle.textContent = "Modus: 🥁 Staccato";
+          notation.style.display = "none";
+        } else if (articulationMode === "staccato") {
+          articulationMode = "legato";
+          clefTitle.textContent = "Modus: 🎼 Legato";
+          notation.style.display = "none";
+        } else {
+          articulationMode = null;
+          clefTitle.textContent = currentRange + "-Lage";
+          notation.style.display = "block";
+        }
+      }
                                             
 const drawSeries = () => {
   const noteAnimals = {
@@ -3255,6 +3275,10 @@ function scheduleReverseAnimation() {
         if (seriesCounter >= currentSeriesSingle.length) return;
         let currentTime = Date.now();
         let responseTime = currentTime - lastNoteTimestamp;
+        if (articulationMode) {
+          checkArticulation(lastNoteTimestamp, currentTime, data2);
+          return; // Rest überspringen
+        }
         responseTimes.push(responseTime);
         lastNoteTimestamp = currentTime;
         const midiInfo = (() => {
@@ -3870,7 +3894,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <button id="confirmNoteBtn">OK</button>
         </div>
         <div id="buttonContainer">
-            <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
+            <div id="clefTitle" onclick="toggleArticulationMode()">C-Lage</div>
             <div id="heartsContainer" style="margin-left:10px;"></div>
         </div>
     </div>
@@ -4457,6 +4481,25 @@ document.addEventListener("DOMContentLoaded", () => {
               container.appendChild(btn);
             });
           }
+        
+        function checkArticulation(noteOnTime, noteOffTime, velocity) {
+          if (!articulationMode) return;
+
+          const duration = noteOffTime - noteOnTime;
+          let correct = false;
+
+          if (articulationMode === "staccato") {
+            correct = duration < 250 && velocity > 50;
+          } else if (articulationMode === "legato") {
+            correct = duration > 500 && velocity > 30;
+          }
+
+          if (correct) {
+            showMotivation("✅ Artikulation korrekt");
+          } else {
+            showMotivation("❌ Falsche Artikulation");
+          }
+        }
         
     
     </script>
