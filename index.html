@@ -3367,15 +3367,14 @@ function scheduleReverseAnimation() {
       }
 
       // NOTE-OFF: Taste losgelassen (Note-Off oder Note-On mit Velocity 0)
-      if ((status & 0xf0) === 0x80 || ((status & 0xf0) === 0x90 && data2 === 0)) {
-        const noteData = activeNotes[data1];
-        if (noteData && articulationMode === "staccato") {
-          const releaseTime = Date.now();
-          checkArticulation(noteData.timestamp, releaseTime, noteData.velocity);
+      if (((status & 0xf0) === 0x80 || ((status & 0xf0) === 0x90 && data2 === 0)) && articulationMode === "staccato") {
+        if (activeNotes[data1]) {
+          const noteData = activeNotes[data1];
+          checkArticulation(noteData.timestamp, Date.now(), noteData.velocity);
           delete activeNotes[data1];
-          return;
         }
       }
+         
 
       // Standard-Verarbeitung (nur wenn kein articulationMode aktiv ist)
       if (seriesCounter >= currentSeriesSingle.length) return;
