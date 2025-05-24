@@ -765,6 +765,7 @@
       let currentSeriesLeft = [];
       let currentSeriesRight = [];
       let articulationMode = null; // null, "staccato" oder "legato"
+      let activeNotes = {};
 
         // Initialize global homeworkData from storage
         window.homeworkData = JSON.parse(localStorage.getItem("homeworkData") || "null");
@@ -3329,6 +3330,16 @@ function scheduleReverseAnimation() {
       }
       resetInactivityTimer();
       if ((status & 0xf0) === 0x90 && data2 > 0) {
+          activeNotes[data1] = { timestamp: Date.now(), velocity: data2 };
+          if ((status & 0xf0) === 0x80 || ((status & 0xf0) === 0x90 && data2 === 0)) {
+            const noteData = activeNotes[data1];
+            if (noteData && articulationMode === "staccato") {
+              const releaseTime = Date.now();
+              checkArticulation(noteData.timestamp, releaseTime, noteData.velocity);
+              delete activeNotes[data1];
+              return; // nicht weiter prüfen
+            }
+          }
         if (seriesCounter >= currentSeriesSingle.length) return;
         let currentTime = Date.now();
         let responseTime = currentTime - lastNoteTimestamp;
@@ -3522,6 +3533,8 @@ function scheduleReverseAnimation() {
   
   // --- checkArticulation Funktion ---
   function checkArticulation(startTime, endTime, velocity) {
+    // Logge die Anschlagzeit, Loslasszeit, Dauer und Anschlagsstärke
+    console.log(`⏱️ start: ${startTime}, end: ${endTime}, duration: ${endTime - startTime}ms, velocity: ${velocity}`);
     // Nur noch Staccato prüfen, Legato entfällt
     let correct = false;
     if (articulationMode === "staccato") {
