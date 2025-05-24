@@ -2561,71 +2561,14 @@ metronomeToggle.addEventListener("click", () => {
       customModeToggle.addEventListener("click", () => {
         const modal = document.getElementById("customModeModal");
         modal.classList.toggle("hidden");
-        // Erweiterung: Checkboxen für Custom-Notenauswahl
+
         if (!modal.querySelector("#customModeContent")) {
           const container = document.createElement("div");
           container.id = "customModeContent";
           container.style.marginTop = "10px";
-
-          const octaves = {
-            "große Oktave": ["C", "D", "E", "F", "G", "A", "H"],
-            "kleine Oktave": ["c", "d", "e", "f", "g", "a", "h"],
-            "eingestrichene Oktave": ["c'", "d'", "e'", "f'", "g'", "a'", "h'"],
-            "zweigestrichene Oktave": ["c''", "d''", "e''", "f''", "g''", "a''", "h''"],
-          };
-
-          Object.entries(octaves).forEach(([octaveName, notes]) => {
-            // 1. Oktaven-Label als Button statt div
-            const octaveLabel = document.createElement("button");
-            octaveLabel.textContent = octaveName;
-            octaveLabel.style.marginTop = "10px";
-            octaveLabel.style.fontWeight = "bold";
-            octaveLabel.style.cursor = "pointer";
-            container.appendChild(octaveLabel);
-
-            notes.forEach(note => {
-              const label = document.createElement("label");
-              label.style.marginRight = "8px";
-              const checkbox = document.createElement("input");
-              checkbox.type = "checkbox";
-              checkbox.value = note;
-              checkbox.disabled = true;
-              label.appendChild(checkbox);
-              label.appendChild(document.createTextNode(note));
-              container.appendChild(label);
-            });
-
-            // 2. Klick auf Oktaven-Button aktiviert zugehörige Checkboxen
-            octaveLabel.addEventListener("click", () => {
-              notes.forEach(note => {
-                const checkbox = container.querySelector(`input[value="${note}"]`);
-                if (checkbox) {
-                  checkbox.disabled = false;
-                  checkbox.checked = true;
-                }
-              });
-            });
-          });
-
-          // Verwende existierenden Save-Button im .custom-mode-save Bereich
           modal.appendChild(container);
-          // Suche den Speichern-Button im Custom-Mode-Bereich und setze Listener
-          const saveBtn = document.querySelector(".custom-mode-save button");
-          if (saveBtn) {
-            // 3. Nur noch eine Auswahl, keine Unterscheidung mehr zwischen linker und rechter Hand
-            saveBtn.addEventListener("click", () => {
-              const selectedNotes = Array.from(container.querySelectorAll("input[type=checkbox]"))
-                .filter(cb => cb.checked && !cb.disabled)
-                .map(cb => cb.value);
 
-              window.customModeSettings = {
-                clef: "bass",
-                range: "MC",
-                selectedNotes: selectedNotes.map(n => n.replace(/'/g, "").toLowerCase())
-              };
-              generateSeries();
-            });
-          }
+          populateCustomNotes(); // Container existiert nun sicher
         }
       });
       
@@ -2968,52 +2911,38 @@ const generateSeries = () => {
   let seriesClef, chooseNote;
 
   // Prüfe, ob benutzerdefinierte Einstellungen aktiv sind
-  if (window.customModeSettings && window.customModeSettings.clef && window.customModeSettings.range) {
-    // Verwende die benutzerdefinierten Einstellungen
-    seriesClef = window.customModeSettings.clef; // z.B. 'treble' oder 'bass'
-    currentRange = window.customModeSettings.range; // Aktualisiere die globale Lage
-    // Wähle die Noten basierend auf der ausgewählten Hand (left/right)
-    let customNotes = (selectedMode === "left") ? window.customModeSettings.leftNotes : window.customModeSettings.rightNotes;
-    // Fallback, falls keine Noten ausgewählt wurden
-    if (!customNotes || customNotes.length === 0) {
-      if (currentRange === "MC") {
-        customNotes = seriesClef === "bass"
-          ? ["f", "g", "a", "b", "c"]
-          : ["c", "d", "e", "f", "g"];
-      } else if (currentRange === "D") {
-        customNotes = ["d", "e", "f#", "g", "a"];
-      } else if (currentRange === "F") {
-        customNotes = ["f", "g", "a", "bb", "c"];
-      } else {
-        customNotes = rangeNotes[currentRange];
-      }
-    }
-    
+  if (
+    window.customModeSettings &&
+    window.customModeSettings.selectedNotes &&
+    window.customModeSettings.selectedNotes.length > 0 &&
+    window.customModeSettings.clef
+  ) {
+    // Benutzerdefinierter Modus aktiv
+    seriesClef = window.customModeSettings.clef;
+    currentRange = window.customModeSettings.range;
+    const customNotes = window.customModeSettings.selectedNotes;
+
     chooseNote = () => {
-      if (errorNotes.length > 0 && Math.random() < 0.6) {
-        const idx = errorNotes.findIndex(note => note.clef === seriesClef);
-        if (idx !== -1) {
-          return errorNotes.splice(idx, 1)[0];
-        }
-      }
       const randomIndex = Math.floor(Math.random() * customNotes.length);
-      const chosenNote = customNotes[randomIndex];
-      let noteOctave = seriesClef === "bass" ? 3 : 4;
-      // F-Lage: ensure C is one octave higher in treble clef
-      if (currentRange === "F" && seriesClef === "treble" && chosenNote.toLowerCase() === "c") {
-        noteOctave = 5;
-      }
+      const chosenNoteRaw = customNotes[randomIndex];
+      // Remove apostrophes for base note (e.g. c', c'')
+      let baseNote = chosenNoteRaw.replace(/'+/g, "").toLowerCase();
+      let apostrophes = (chosenNoteRaw.match(/'/g) || []).length;
+      let noteOctave = (seriesClef === "bass") ? 2 : 4;
+      noteOctave += apostrophes;
+
       let accidental = undefined;
       if (["F", "G"].includes(currentRange)) {
-        if (currentRange === "F" && chosenNote.toLowerCase() === "bb") {
+        if (currentRange === "F" && baseNote === "bb") {
           accidental = "b";
-        } else if (currentRange === "F" && chosenNote.includes("b") && chosenNote !== "b") {
-          accidental = chosenNote;
-        } else if (currentRange === "G" && (chosenNote.includes("#") || (chosenNote.includes("b") && chosenNote !== "b"))) {
-          accidental = chosenNote;
+        } else if (currentRange === "F" && baseNote.includes("b") && baseNote !== "b") {
+          accidental = baseNote;
+        } else if (currentRange === "G" && (baseNote.includes("#") || (baseNote.includes("b") && baseNote !== "b"))) {
+          accidental = baseNote;
         }
       }
-      return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
+
+      return { note: baseNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
     };
 
   } else {
@@ -3137,7 +3066,7 @@ const drawSeries = () => {
   const noteOrder = ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"];
 
   const staveNotes = currentSeriesSingle.map(item => {
-    let noteName = item.note.toLowerCase().replace(/♯/g, "#").replace(/♭/g, "b");
+      let noteName = item.note.toLowerCase().replace(/♯/g, "#").replace(/♭/g, "b").replace(/^h$/, "b");
     const key = noteName + "/" + item.octave;
     const staveNote = new Vex.Flow.StaveNote({
       clef: item.clef,
@@ -4249,29 +4178,28 @@ document.addEventListener("DOMContentLoaded", () => {
           // 7. Speichern-Button
           const saveBtn = document.getElementById('custom-mode-save-button');
           if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
-              const content = document.getElementById('customModeContent');
-              if (!selectedClef || !selectedRange || !content) return;
-              const selected = Array.from(content.querySelectorAll('input[type=checkbox]'))
-                .filter(cb => cb.checked)
-                .map(cb => cb.value);
-              // Notenwert-Checkbox
-              const noteValueCheckbox = document.getElementById('noteValueCheckbox');
-              const noteValue = noteValueCheckbox && noteValueCheckbox.checked ? "8" : "q";
-              window.customModeSettings = {
-                clef: selectedClef,
-                range: selectedRange,
-                selectedNotes: selected.map(n => n.replace(/'/g, "").toLowerCase()),
-                noteValue: noteValue
-              };
-              // clefTitle aktualisieren
-              const clefTitle = document.getElementById("clefTitle");
-              if (clefTitle && selectedRange) {
-                clefTitle.textContent = selectedRange + "-Lage";
-              }
-              generateSeries();
-              modal.classList.add('hidden');
-            });
+              saveBtn.addEventListener('click', () => {
+                const content = document.getElementById('customModeContent');
+                if (!selectedClef || !selectedRange || !content) return;
+
+                const selected = Array.from(content.querySelectorAll('input[type=checkbox]'))
+                  .filter(cb => cb.checked)
+                  .map(cb => cb.value);
+
+                window.customModeSettings = {
+                  clef: selectedClef,
+                  range: selectedRange,
+                  selectedNotes: selected.map(n => n.replace(/'/g, "").toLowerCase()) // Achtung: ' entfernen
+                };
+
+                const clefTitle = document.getElementById("clefTitle");
+                if (clefTitle && selectedRange) {
+                  clefTitle.textContent = selectedRange + "-Lage";
+                }
+
+                generateSeries();
+                modal.classList.add('hidden');
+              });
           }
         });
     </script>
