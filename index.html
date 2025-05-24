@@ -3329,88 +3329,92 @@ function scheduleReverseAnimation() {
         }
       }
       resetInactivityTimer();
+
+      // NOTE-ON: Taste gedrückt
       if ((status & 0xf0) === 0x90 && data2 > 0) {
-          activeNotes[data1] = { timestamp: Date.now(), velocity: data2 };
-          if ((status & 0xf0) === 0x80 || ((status & 0xf0) === 0x90 && data2 === 0)) {
-            const noteData = activeNotes[data1];
-            if (noteData && articulationMode === "staccato") {
-              const releaseTime = Date.now();
-              checkArticulation(noteData.timestamp, releaseTime, noteData.velocity);
-              delete activeNotes[data1];
-              return; // nicht weiter prüfen
-            }
-          }
-        if (seriesCounter >= currentSeriesSingle.length) return;
-        let currentTime = Date.now();
-        let responseTime = currentTime - lastNoteTimestamp;
-        if (articulationMode) {
-          checkArticulation(lastNoteTimestamp, currentTime, data2);
-          return; // Rest überspringen
+        activeNotes[data1] = { timestamp: Date.now(), velocity: data2 };
+        return; // warte auf Note-Off zur Auswertung
+      }
+
+      // NOTE-OFF: Taste losgelassen (Note-Off oder Note-On mit Velocity 0)
+      if ((status & 0xf0) === 0x80 || ((status & 0xf0) === 0x90 && data2 === 0)) {
+        const noteData = activeNotes[data1];
+        if (noteData && articulationMode === "staccato") {
+          const releaseTime = Date.now();
+          checkArticulation(noteData.timestamp, releaseTime, noteData.velocity);
+          delete activeNotes[data1];
+          return;
         }
-        responseTimes.push(responseTime);
-        lastNoteTimestamp = currentTime;
-        const midiInfo = (() => {
-          const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
-          const octave = Math.floor(data1 / 12) - 1;
-          const rawNote = noteNames[data1 % 12];
-          const convertedNote = (rawNote === "a#") ? "bb" : rawNote;
-          return { note: convertedNote, octave: octave };
-        })();
-    let playedNoteDisplay;
-    if (kidsMode) {
-      const emojiMap = {
-        "c": "🐱", "d": "🐳", "e": "🐷", "f": "🐟",
-        "g": "🐤", "a": "🦊", "b": "🐝", "bb": "🦁",
-        "f#": "🐙", "g#": "🐵", "d#": "🐭"
-      };
-      playedNoteDisplay = emojiMap[midiInfo.note.toLowerCase()] || "❓";
-    } else {
-      playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note);
-    }
-        const noteDisplay = document.getElementById("noteNameDisplay");
-        totalAttempts++;
-        
-        if (isNoteCorrect(midiInfo)) {
-          // Standardfarbe für korrekte Noten: grün
-          let displayColor = "green";
-          if (metronomeOn) {
-            const currentTime = Date.now();
-            const actualInterval = currentTime - lastTickTime;
-            const tolerance = metronomeInterval * 0.3;
-            // Wenn zu schnell oder zu langsam gespielt wird, setze die Farbe auf gelb und zeige entsprechende Motivation
-            if (actualInterval < metronomeInterval - tolerance) {
-              displayColor = "orange";
-              showMotivation("Zu schnell! Langsamer spielen.");
-            } else if (actualInterval > metronomeInterval + tolerance) {
-              displayColor = "orange";
-              showMotivation("Zu langsam! Schneller spielen.");
-            } else {
-              clearMotivation();
-              showMotivation("Super! Weiter so!");
-            }
+      }
+
+      // Standard-Verarbeitung (nur wenn kein articulationMode aktiv ist)
+      if (seriesCounter >= currentSeriesSingle.length) return;
+      let currentTime = Date.now();
+      let responseTime = currentTime - lastNoteTimestamp;
+      responseTimes.push(responseTime);
+      lastNoteTimestamp = currentTime;
+      const midiInfo = (() => {
+        const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+        const octave = Math.floor(data1 / 12) - 1;
+        const rawNote = noteNames[data1 % 12];
+        const convertedNote = (rawNote === "a#") ? "bb" : rawNote;
+        return { note: convertedNote, octave: octave };
+      })();
+      let playedNoteDisplay;
+      if (kidsMode) {
+        const emojiMap = {
+          "c": "🐱", "d": "🐳", "e": "🐷", "f": "🐟",
+          "g": "🐤", "a": "🦊", "b": "🐝", "bb": "🦁",
+          "f#": "🐙", "g#": "🐵", "d#": "🐭"
+        };
+        playedNoteDisplay = emojiMap[midiInfo.note.toLowerCase()] || "❓";
+      } else {
+        playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note);
+      }
+      const noteDisplay = document.getElementById("noteNameDisplay");
+      totalAttempts++;
+
+      if (isNoteCorrect(midiInfo)) {
+        // Standardfarbe für korrekte Noten: grün
+        let displayColor = "green";
+        if (metronomeOn) {
+          const currentTime = Date.now();
+          const actualInterval = currentTime - lastTickTime;
+          const tolerance = metronomeInterval * 0.3;
+          // Wenn zu schnell oder zu langsam gespielt wird, setze die Farbe auf gelb und zeige entsprechende Motivation
+          if (actualInterval < metronomeInterval - tolerance) {
+            displayColor = "orange";
+            showMotivation("Zu schnell! Langsamer spielen.");
+          } else if (actualInterval > metronomeInterval + tolerance) {
+            displayColor = "orange";
+            showMotivation("Zu langsam! Schneller spielen.");
           } else {
-            // Ohne Metronom: explizit grün
             clearMotivation();
             showMotivation("Super! Weiter so!");
-            displayColor = "green";
           }
-          // Setze die Farbe im Noten-Objekt, damit sie auch beim Zeichnen verwendet wird
-          currentSeriesSingle[seriesCounter].color = displayColor;
-          
-          correctAnswers++;
-          correctNoteCount++;
-          removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
-          addCircle("positive");
+        } else {
+          // Ohne Metronom: explizit grün
+          clearMotivation();
+          showMotivation("Super! Weiter so!");
+          displayColor = "green";
+        }
+        // Setze die Farbe im Noten-Objekt, damit sie auch beim Zeichnen verwendet wird
+        currentSeriesSingle[seriesCounter].color = displayColor;
+
+        correctAnswers++;
+        correctNoteCount++;
+        removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
+        addCircle("positive");
         if (noteDisplay) {
           noteDisplay.innerHTML = '<span style="color:' + displayColor + ';">' + playedNoteDisplay + '</span>';
         }
         sessionCounter--;
-          
-        } else {
-          // Falsche Note: rot markieren
-          currentSeriesSingle[seriesCounter].color = "red";
-          errorNotes.push(currentSeriesSingle[seriesCounter]);
-          addCircle("negative");
+
+      } else {
+        // Falsche Note: rot markieren
+        currentSeriesSingle[seriesCounter].color = "red";
+        errorNotes.push(currentSeriesSingle[seriesCounter]);
+        addCircle("negative");
         if (noteDisplay) {
           const correctRaw = currentSeriesSingle[seriesCounter].note;
           const correctDisplay = (correctRaw === "b" ? "h" : correctRaw);
@@ -3486,27 +3490,26 @@ function scheduleReverseAnimation() {
             }
           }
         }
-          if (!unlimitedLives) {
-            hearts--;
-            updateHeartsDisplay();
-            if (hearts <= 0) { endGame(); return; }
-          }
+        if (!unlimitedLives) {
+          hearts--;
+          updateHeartsDisplay();
+          if (hearts <= 0) { endGame(); return; }
         }
-        
-        if (sessionCounter <= 0 && !sessionPaused) {
-          sessionCounter = 0;
-          updateTimer();
-          startLocalTimer();
-          return;
-        }
-        seriesCounter++;
-        if (seriesCounter >= seriesLength) {
-          generateSeries();
-        } else {
-          queueRedraw();
-        }
-        updateTimer();
       }
+
+      if (sessionCounter <= 0 && !sessionPaused) {
+        sessionCounter = 0;
+        updateTimer();
+        startLocalTimer();
+        return;
+      }
+      seriesCounter++;
+      if (seriesCounter >= seriesLength) {
+        generateSeries();
+      } else {
+        queueRedraw();
+      }
+      updateTimer();
     };
       const resetGame = () => {
         sessionCounter = 5;      // Counter auf 1000
