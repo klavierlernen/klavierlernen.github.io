@@ -2360,9 +2360,37 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       wizardToggle.style.opacity = "1";
       settingsPanel.appendChild(wizardToggle);
       let wizardMode = true;
+      // --- resetArticulationMode helper ---
+      function resetArticulationMode() {
+        articulationMode = null;
+        const clefTitle = document.getElementById("clefTitle");
+        if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
+        const notation = document.getElementById("notation");
+        if (notation) notation.style.display = "block";
+      }
       wizardToggle.addEventListener("click", () => {
+        resetArticulationMode();
         wizardMode = !wizardMode;
         wizardToggle.style.opacity = wizardMode ? "1" : "0.5";
+      });
+      
+      const staccatoToggle = document.createElement("span");
+      staccatoToggle.id = "staccatoToggle";
+      staccatoToggle.textContent = "🥁";
+      staccatoToggle.style.cursor = "pointer";
+      staccatoToggle.style.opacity = "0.5";
+      settingsPanel.appendChild(staccatoToggle);
+
+      let staccatoModeActive = false;
+
+      staccatoToggle.addEventListener("click", () => {
+        staccatoModeActive = !staccatoModeActive;
+        articulationMode = staccatoModeActive ? "staccato" : null;
+        staccatoToggle.style.opacity = staccatoModeActive ? "1" : "0.5";
+        const clefTitle = document.getElementById("clefTitle");
+        if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
+        const notation = document.getElementById("notation");
+        if (notation) notation.style.display = staccatoModeActive ? "none" : "block";
       });
       
       const blobToggle = document.createElement("span");
@@ -2372,6 +2400,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       settingsPanel.appendChild(blobToggle);
 
       blobToggle.addEventListener("click", () => {
+        resetArticulationMode();
         blobsEnabled = !blobsEnabled;
         blobToggle.textContent = blobsEnabled ? "🔆" : "🔅";
       });
@@ -2547,6 +2576,8 @@ metronomeToggle.addEventListener("click", () => {
       settingsPanel.appendChild(kidsModeToggle);
 
       kidsModeToggle.addEventListener("click", () => {
+        deactivateStaccatoMode();
+        resetArticulationMode();
         kidsMode = !kidsMode;
         kidsModeToggle.style.opacity = kidsMode ? "1" : "0.5";
         drawSeries();
@@ -2560,6 +2591,8 @@ metronomeToggle.addEventListener("click", () => {
       customModeToggle.style.marginTop = "10px";
       settingsPanel.appendChild(customModeToggle);
       customModeToggle.addEventListener("click", () => {
+        deactivateStaccatoMode();
+        resetArticulationMode();
         const modal = document.getElementById("customModeModal");
         modal.classList.toggle("hidden");
 
@@ -2572,7 +2605,6 @@ metronomeToggle.addEventListener("click", () => {
           populateCustomNotes(); // Container existiert nun sicher
         }
       });
-      
       
 
       // Move Notation Toggle
@@ -2589,6 +2621,8 @@ metronomeToggle.addEventListener("click", () => {
       let duringDrag, endDrag; // For removal of listeners
 
       moveNotationToggle.addEventListener("click", () => {
+        deactivateStaccatoMode();
+        resetArticulationMode();
         const notation = document.getElementById("notation");
         // Drag-Cursor für Notation
         notation.style.cursor = "grab";
@@ -2794,7 +2828,26 @@ document.getElementById("timerContainer").addEventListener("click", () => {
       darkModeToggle.id = "darkModeToggle";
       darkModeToggle.textContent = "🌙";
       settingsPanel.appendChild(darkModeToggle);
-      darkModeToggle.addEventListener("click", toggleDarkMode);
+      darkModeToggle.addEventListener("click", () => {
+        deactivateStaccatoMode();
+        resetArticulationMode();
+        toggleDarkMode();
+      });
+      blobToggle.addEventListener("click", () => {
+        deactivateStaccatoMode();
+        resetArticulationMode();
+        blobMode = !blobMode;
+        blobToggle.style.opacity = blobMode ? "1" : "0.5";
+        drawSeries();
+      });
+
+      wizardToggle.addEventListener("click", () => {
+        deactivateStaccatoMode();
+        resetArticulationMode();
+        wizardMode = !wizardMode;
+        wizardToggle.style.opacity = wizardMode ? "1" : "0.5";
+        drawSeries();
+      });
 
       // Animated carousel using a sliding track
       const carouselContainer = document.createElement('div');
@@ -2830,7 +2883,7 @@ document.getElementById("timerContainer").addEventListener("click", () => {
         localStorage.setItem('notationZoom', notationZoom);
         drawSeries();
       });
-      const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle, moveNotationToggle, wizardToggle];
+      const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle, moveNotationToggle, wizardToggle, staccatoToggle];
       carouselButtons.forEach(btn => {
         const item = document.createElement('div');
         item.className = 'carouselItem';
@@ -3023,24 +3076,7 @@ const generateSeries = () => {
   drawSeries();
 };
       
-      function toggleArticulationMode() {
-        const clefTitle = document.getElementById("clefTitle");
-        const notation = document.getElementById("notation");
-
-        if (articulationMode === null) {
-          articulationMode = "staccato";
-          clefTitle.textContent = "Modus: 🥁 Staccato";
-          notation.style.display = "none";
-        } else if (articulationMode === "staccato") {
-          articulationMode = "legato";
-          clefTitle.textContent = "Modus: 🎼 Legato";
-          notation.style.display = "none";
-        } else {
-          articulationMode = null;
-          clefTitle.textContent = currentRange + "-Lage";
-          notation.style.display = "block";
-        }
-      }
+      
                                             
 const drawSeries = () => {
   const noteAnimals = {
@@ -3463,6 +3499,41 @@ function scheduleReverseAnimation() {
 
   // Funktion, die den Hintergrund für kurze Zeit grün färbt und danach wieder zurücksetzt
   
+  // --- checkArticulation Funktion ---
+  function checkArticulation(startTime, endTime, velocity) {
+    // Nur noch Staccato prüfen, Legato entfällt
+    let correct = false;
+    if (articulationMode === "staccato") {
+      correct = (endTime - startTime) < 350 && velocity > 30;
+    }
+
+  // Hilfsfunktion: Staccato-Modus deaktivieren
+  function deactivateStaccatoMode() {
+    articulationMode = null;
+    const notation = document.getElementById("notation");
+    if (notation) notation.style.display = "block";
+    const clefTitle = document.getElementById("clefTitle");
+    if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
+    const staccatoToggle = document.getElementById("staccatoToggle");
+    if (staccatoToggle) staccatoToggle.style.opacity = "0.5";
+  }
+    // Feedback
+    const clefTitle = document.getElementById("clefTitle");
+    if (correct) {
+      clefTitle.textContent = "Richtig!";
+      setTimeout(() => {
+        document.getElementById("clefTitle").textContent = "🥁 Staccato";
+      }, 700);
+    } else {
+      clefTitle.textContent = "Zu lang! Kürzer spielen.";
+    }
+  }
+  
+  function resetArticulationMode() {
+    articulationMode = null;
+    // ... ggf. weitere Rücksetzungen
+  }
+
   function checkOrientation() {
     const settingsPanel = document.getElementById("settingsPanel");
     if (!settingsPanel) return; // Falls das Element nicht existiert, beende die Funktion
@@ -3894,7 +3965,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <button id="confirmNoteBtn">OK</button>
         </div>
         <div id="buttonContainer">
-            <div id="clefTitle" onclick="toggleArticulationMode()">C-Lage</div>
+            <div id="clefTitle">C-Lage</div>
             <div id="heartsContainer" style="margin-left:10px;"></div>
         </div>
     </div>
