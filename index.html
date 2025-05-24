@@ -3309,21 +3309,29 @@ const drawSeries = () => {
       
 let reverseAnimationTimeout;
 let menusHidden = false;
+// Neue Hilfsfunktion für sicheres Animate-Out
+function safeAnimateOut(element, classIn, classOut) {
+  if (!element) return;
+  element.classList.remove(classIn, classOut);
+  void element.offsetWidth;
+  element.classList.add(classOut);
+}
+
 function scheduleReverseAnimation() {
   clearTimeout(reverseAnimationTimeout);
   reverseAnimationTimeout = setTimeout(() => {
-        const settingsPanel = document.getElementById("settingsPanel");
-        const streakDisplay = document.getElementById("streakDisplay");
-        if (settingsPanel) {
-          settingsPanel.classList.remove("fly-out-right");
-          settingsPanel.classList.add("fly-in-right");
-        }
-        if (streakDisplay) {
-          streakDisplay.classList.remove("fly-out-left");
-          streakDisplay.classList.add("fly-in-left");
-        }
-        menusHidden = false;
-      }, 2000);
+    const settingsPanel = document.getElementById("settingsPanel");
+    const streakDisplay = document.getElementById("streakDisplay");
+    if (settingsPanel) {
+      settingsPanel.classList.remove("fly-out-right");
+      settingsPanel.classList.add("fly-in-right");
+    }
+    if (streakDisplay) {
+      streakDisplay.classList.remove("fly-out-left");
+      streakDisplay.classList.add("fly-in-left");
+    }
+    menusHidden = false;
+  }, 2000);
 }
     const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
@@ -3331,16 +3339,8 @@ function scheduleReverseAnimation() {
       const settingsPanel = document.getElementById("settingsPanel");
       const streakDisplay = document.getElementById("streakDisplay");
       if (!menusHidden) {
-        if (settingsPanel) {
-          settingsPanel.classList.remove("fly-in-right", "fly-out-right");
-          void settingsPanel.offsetWidth;
-          settingsPanel.classList.add("fly-out-right");
-        }
-        if (streakDisplay) {
-          streakDisplay.classList.remove("fly-in-left", "fly-out-left");
-          void streakDisplay.offsetWidth;
-          streakDisplay.classList.add("fly-out-left");
-        }
+        safeAnimateOut(settingsPanel, "fly-in-right", "fly-out-right");
+        safeAnimateOut(streakDisplay, "fly-in-left", "fly-out-left");
         menusHidden = true;
       }
       scheduleReverseAnimation();
