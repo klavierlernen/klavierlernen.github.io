@@ -3580,13 +3580,15 @@ function updateAccuracyMarker(deviationRatio) {
   if (!marker || !container) return;
 
   const containerWidth = container.offsetWidth;
-  // Skaliere und normalisiere die Abweichung klarer:
-  const normalized = Math.max(0, Math.min(1, 1 - Math.abs(deviationRatio)));
-  markerTargetPosition = containerWidth * normalized;
+  // Neue Logik: Marker kann sich nach links (zu kurz), rechts (zu lang) oder in die Mitte (perfekt) bewegen
+  const clampedRatio = Math.max(-1, Math.min(1, deviationRatio)); // -1 bis +1
+  const center = containerWidth / 2;
+  const offset = clampedRatio * (containerWidth / 2);
+  markerTargetPosition = center + offset;
 
   // Marker initial in px setzen, falls nicht vorhanden
   if (!marker.style.left || marker.style.left.indexOf("px") === -1) {
-    marker.style.left = `${containerWidth / 2}px`;
+    marker.style.left = `${center}px`;
   }
 
   if (markerAnimationFrame) cancelAnimationFrame(markerAnimationFrame);
