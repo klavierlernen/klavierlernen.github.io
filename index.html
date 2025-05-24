@@ -3569,14 +3569,18 @@ function scheduleReverseAnimation() {
     console.log(`⏱️ start: ${startTime}, end: ${endTime}, duration: ${endTime - startTime}ms, velocity: ${velocity}`);
     // Nur noch Staccato prüfen, Legato entfällt
     let correct = false;
+    let deviation = null;
     if (articulationMode === "staccato") {
       correct = (endTime - startTime) < 350 && velocity > 30;
       const expected = 300; // ms, oder dein Zielwert
       const actual = endTime - startTime;
-      const deviation = ((expected - actual) / expected) * 2;  // Verstärkung der Bewegung
-      // Logging der Skalierten Abweichung
-      console.log("Deviation (scaled):", deviation);
+      deviation = ((expected - actual) / expected) * 2;  // Verstärkung der Bewegung
+    }
+    // Marker-Update und Logging erst direkt vor Feedback!
+    if (deviation !== null) {
       updateAccuracyMarker(deviation);
+      // Logging der skalierten Abweichung
+      console.log("Deviation (scaled):", deviation);
     }
     // Feedback
     const clefTitle = document.getElementById("clefTitle");
