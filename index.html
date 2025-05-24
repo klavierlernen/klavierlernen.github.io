@@ -3361,7 +3361,9 @@ function scheduleReverseAnimation() {
         if (articulationMode === "staccato") {
           activeNotes[data1] = { timestamp: Date.now(), velocity: data2 };
           return; // Staccato prüft beim Loslassen
-        } else {
+        }
+
+        if (!articulationMode) {
           evaluateStandardNote(data1, data2);
         }
       }
