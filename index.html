@@ -4686,24 +4686,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
           }
         
-        function checkArticulation(noteOnTime, noteOffTime, velocity) {
-          if (!articulationMode) return;
-
-          const duration = noteOffTime - noteOnTime;
-          let correct = false;
-
-          if (articulationMode === "staccato") {
-            correct = duration < 250 && velocity > 50;
-          } else if (articulationMode === "legato") {
-            correct = duration > 500 && velocity > 30;
-          }
-
-          if (correct) {
-            showMotivation("✅ Artikulation korrekt");
-          } else {
-            showMotivation("❌ Falsche Artikulation");
-          }
-        }
+        
         
         function updateAccuracyMarker(deviationRatio) {
           const display = document.getElementById("staccatoPercentDisplay");
