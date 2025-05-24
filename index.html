@@ -3600,26 +3600,6 @@ function scheduleReverseAnimation() {
 let markerTargetPosition = 0;
 let markerAnimationFrame;
 
-function updateAccuracyMarker(deviationRatio) {
-  const marker = document.getElementById("accuracyMarker");
-  const container = document.getElementById("accuracyBarContainer");
-  if (!marker || !container) return;
-
-  const containerWidth = container.offsetWidth;
-  // Neue Logik: Marker kann sich nach links (zu kurz), rechts (zu lang) oder in die Mitte (perfekt) bewegen
-  const clampedRatio = Math.max(-1.5, Math.min(1.5, deviationRatio));
-  const center = containerWidth / 2;
-  const offset = clampedRatio * (containerWidth / 2);
-  markerTargetPosition = center + offset;
-
-  // Marker initial in px setzen, falls nicht vorhanden
-  if (!marker.style.left || marker.style.left.indexOf("px") === -1) {
-    marker.style.left = `${center}px`;
-  }
-
-  if (markerAnimationFrame) cancelAnimationFrame(markerAnimationFrame);
-  animateMarker();
-}
 
 function animateMarker() {
   const marker = document.getElementById("accuracyMarker");
