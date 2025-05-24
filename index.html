@@ -974,6 +974,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const tickSound = new Audio("https://raw.githubusercontent.com/JP0024/piano.github.io/main/tick.mp3");
     
       function startMetronome() {
+          
         lastTickTime = Date.now();
         tickSound.currentTime = 0;
         tickSound.play();
@@ -2383,15 +2384,33 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
 
       let staccatoModeActive = false;
 
-      staccatoToggle.addEventListener("click", () => {
-        staccatoModeActive = !staccatoModeActive;
-        articulationMode = staccatoModeActive ? "staccato" : null;
-        staccatoToggle.style.opacity = staccatoModeActive ? "1" : "0.5";
-        const clefTitle = document.getElementById("clefTitle");
-        if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
-        const notation = document.getElementById("notation");
-        if (notation) notation.style.display = staccatoModeActive ? "none" : "block";
-      });
+staccatoToggle.addEventListener("click", () => {
+  staccatoModeActive = !staccatoModeActive;
+  articulationMode = staccatoModeActive ? "staccato" : null;
+  staccatoToggle.style.opacity = staccatoModeActive ? "1" : "0.5";
+
+  const clefTitle = document.getElementById("clefTitle");
+  if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
+
+  const notation = document.getElementById("notation");
+  const bar = document.getElementById("accuracyBarContainer");
+
+  if (notation) {
+    notation.style.display = staccatoModeActive ? "none" : "block";
+  }
+
+  if (bar) {
+    if (staccatoModeActive) {
+      bar.style.position = "fixed";
+      bar.style.display = "block";
+      bar.style.top = notation?.style.top || "50%";
+      bar.style.left = notation?.style.left || "50%";
+      bar.style.transform = notation?.style.transform || "translate(-50%, -50%)";
+    } else {
+      bar.style.display = "none";
+    }
+  }
+});
       
       const blobToggle = document.createElement("span");
       blobToggle.id = "blobToggle";
@@ -3301,6 +3320,8 @@ function scheduleReverseAnimation() {
       if (metronomeOn) {
         const now = Date.now();
         const diff = now - lastTickTime;
+        const deviationRatio = diff / metronomeInterval;
+        updateAccuracyMarker(deviationRatio);
         if (Math.abs(diff) > metronomeTolerance) {
           console.log(`MIDI außerhalb der Metronom-Toleranz: ${diff}ms`);
           return;
@@ -3505,18 +3526,10 @@ function scheduleReverseAnimation() {
     let correct = false;
     if (articulationMode === "staccato") {
       correct = (endTime - startTime) < 350 && velocity > 30;
+      const expected = 300; // ms, oder dein Zielwert
+      const deviation = (expected - (endTime - startTime)) / expected; // perfekt = 0
+      updateAccuracyMarker(deviation);
     }
-
-  // Hilfsfunktion: Staccato-Modus deaktivieren
-  function deactivateStaccatoMode() {
-    articulationMode = null;
-    const notation = document.getElementById("notation");
-    if (notation) notation.style.display = "block";
-    const clefTitle = document.getElementById("clefTitle");
-    if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
-    const staccatoToggle = document.getElementById("staccatoToggle");
-    if (staccatoToggle) staccatoToggle.style.opacity = "0.5";
-  }
     // Feedback
     const clefTitle = document.getElementById("clefTitle");
     if (correct) {
@@ -3527,6 +3540,17 @@ function scheduleReverseAnimation() {
     } else {
       clefTitle.textContent = "Zu lang! Kürzer spielen.";
     }
+  }
+
+  // Hilfsfunktion: Staccato-Modus deaktivieren
+  function deactivateStaccatoMode() {
+    articulationMode = null;
+    const notation = document.getElementById("notation");
+    if (notation) notation.style.display = "block";
+    const clefTitle = document.getElementById("clefTitle");
+    if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
+    const staccatoToggle = document.getElementById("staccatoToggle");
+    if (staccatoToggle) staccatoToggle.style.opacity = "0.5";
   }
   
   function resetArticulationMode() {
@@ -3956,6 +3980,11 @@ document.addEventListener("DOMContentLoaded", () => {
        
         <div id="notation"></div>
         <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase; z-index: 1000; pointer-events: auto;"></div>
+        <div id="accuracyBarContainer" style="position: fixed; width: 80%; height: 30px; background: linear-gradient(to right, red, green 45%, green 55%, red); border-radius: 15px; z-index: 1000; display: none;">
+          <div id="accuracyMarker" style="position: absolute; top: 0; bottom: 0; width: 4px; background: black; transition: left 0.2s;"></div>
+        </div>
+          <div id="accuracyMarker" style="position: absolute; top: 0; bottom: 0; width: 4px; background: black; transition: left 0.2s;"></div>
+        </div>
         <div id="correctionBox" class="hidden">
           <div id="correctionChoices">
             <button id="prevNoteBtn">&lt;</button>
@@ -4572,6 +4601,17 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
         
+        function updateAccuracyMarker(deviationRatio) {
+          const marker = document.getElementById("accuracyMarker");
+          const container = document.getElementById("accuracyBarContainer");
+          if (!marker || !container) return;
+
+          const containerWidth = container.offsetWidth;
+          const clampedRatio = Math.max(-1, Math.min(1, deviationRatio));
+          const center = containerWidth / 2;
+          const offset = clampedRatio * (containerWidth / 2);
+          marker.style.left = `${center + offset}px`;
+        }
     
     </script>
     
