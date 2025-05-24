@@ -3558,6 +3558,40 @@ function scheduleReverseAnimation() {
     }
   }
 
+// --- Animierte Accuracy-Marker-Funktion ---
+let markerTargetPosition = 0;
+let markerAnimationFrame;
+
+function updateAccuracyMarker(deviationRatio) {
+  const marker = document.getElementById("accuracyMarker");
+  const container = document.getElementById("accuracyBarContainer");
+  if (!marker || !container) return;
+
+  const containerWidth = container.offsetWidth;
+  const clampedRatio = Math.max(-1, Math.min(1, deviationRatio));
+  const center = containerWidth / 2;
+  markerTargetPosition = center + clampedRatio * (containerWidth / 2);
+
+  if (markerAnimationFrame) cancelAnimationFrame(markerAnimationFrame);
+  animateMarker();
+}
+
+function animateMarker() {
+  const marker = document.getElementById("accuracyMarker");
+  if (!marker) return;
+
+  const currentLeft = parseFloat(marker.style.left) || 0;
+  const delta = markerTargetPosition - currentLeft;
+  const step = delta * 0.1;
+
+  if (Math.abs(delta) > 0.5) {
+    marker.style.left = `${currentLeft + step}px`;
+    markerAnimationFrame = requestAnimationFrame(animateMarker);
+  } else {
+    marker.style.left = `${markerTargetPosition}px`;
+  }
+}
+
   // Hilfsfunktion: Staccato-Modus deaktivieren
   function deactivateStaccatoMode() {
     articulationMode = null;
