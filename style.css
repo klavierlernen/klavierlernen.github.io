@@ -270,7 +270,7 @@ body.dark-mode #gameOverOverlay {
   border: 2px solid black;         /* Passender Randton */
   border-radius: 10px;
   box-shadow:
-    0 6px 0 black,                 /* "fester" Schatten für die 3D-Kante */
+    0 6px 0 black,                 /* „fester“ Schatten für die 3D-Kante */
     0 6px 6px rgba(0, 0, 0, 0.2);    /* Weicher Schlagschatten */
   padding: 15px 24px;                /* Innenabstand */
   margin: 8px;                       /* Außenabstand */
@@ -302,7 +302,6 @@ body.dark-mode #gameOverOverlay {
   color: #333;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  animation: float 3s ease-in-out infinite;
 }
 #clefTitle:active {
   transform: translateY(6px);
@@ -313,7 +312,6 @@ body.dark-mode #gameOverOverlay {
 body.dark-mode #settingsPanel {
   background: #000;
   border-color: #fff;
-  color: #fff;
 }
 #settingsPanel span {
   display: block;
@@ -410,7 +408,7 @@ body.dark-mode #noteNameDisplay { color: #e0e0e0; }
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-image: url("https://raw.githubusercontent.com/jp0024/piano.github.io/main/hintergrund.svg");
+  background-image: url("https://raw.githubusercontent.com/jp0024/piano.github.io/main/IMAGES/hintergrund.svg");
   background-size: cover;
   background-position: center;
 }
@@ -638,7 +636,6 @@ font-weight: bold;
   }
   .fly-out-left {
     animation: flyOutLeft 0.5s forwards;
-    
   }
   
   #virtualKeyboard {
@@ -761,4 +758,9 @@ animation: flyInRight 0.5s forwards;
 }
 .fly-in-left {
 animation: flyInLeft 0.5s forwards;
+}
+
+/* Weniger Abstand des Notensystems nach oben */
+#notation {
+margin-top: 10px;
 }
