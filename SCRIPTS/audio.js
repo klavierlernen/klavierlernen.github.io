@@ -1,4 +1,6 @@
 // Audio Module
+console.log('🎵 Loading audio.js...');
+
 export const audioModule = {
     // MIDI State
     midiAccess: null,
@@ -11,19 +13,23 @@ export const audioModule = {
 
     // MIDI Functions
     async initMIDIAccess() {
+        console.log('🎹 Requesting MIDI access...');
         try {
             this.midiAccess = await navigator.requestMIDIAccess();
             this.midiInputs = Array.from(this.midiAccess.inputs.values());
+            console.log(`✅ MIDI access granted. Found ${this.midiInputs.length} input(s)`);
             this.setupMIDIListeners();
             return true;
         } catch (error) {
-            console.error('MIDI access failed:', error);
+            console.error('❌ MIDI access failed:', error);
             return false;
         }
     },
 
     setupMIDIListeners() {
+        console.log('🎹 Setting up MIDI listeners...');
         this.midiInputs.forEach(input => {
+            console.log(`  - Found MIDI input: ${input.name}`);
             input.onmidimessage = this.handleMIDIMessage.bind(this);
         });
     },
@@ -32,16 +38,19 @@ export const audioModule = {
     startMetronome() {
         if (this.isMetronomeActive) return;
         
-        const click = new Audio('tick.mp3');
+        console.log('⏰ Starting metronome...');
+        const click = new Audio('https://jp0024.github.io/piano.github.io/AUDIO/tick.mp3');
         this.metronomeInterval = setInterval(() => {
             click.play();
         }, 60000 / this.tempo);
         
         this.isMetronomeActive = true;
+        console.log(`✅ Metronome started at ${this.tempo} BPM`);
     },
 
     stopMetronome() {
         if (this.metronomeInterval) {
+            console.log('⏹️ Stopping metronome...');
             clearInterval(this.metronomeInterval);
             this.metronomeInterval = null;
             this.isMetronomeActive = false;
@@ -49,6 +58,7 @@ export const audioModule = {
     },
 
     setTempo(newTempo) {
+        console.log(`🎯 Setting tempo to ${newTempo} BPM`);
         this.tempo = newTempo;
         if (this.isMetronomeActive) {
             this.stopMetronome();
@@ -62,10 +72,12 @@ export const audioModule = {
         
         // Note On
         if (status === 144 && velocity > 0) {
+            console.log(`🎹 Note On: ${note} (velocity: ${velocity})`);
             this.onNoteOn(note, velocity);
         }
         // Note Off
         else if (status === 128 || (status === 144 && velocity === 0)) {
+            console.log(`🎹 Note Off: ${note}`);
             this.onNoteOff(note);
         }
     },
