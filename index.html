@@ -2559,73 +2559,143 @@ metronomeToggle.addEventListener("click", () => {
       customModeToggle.style.marginTop = "10px";
       settingsPanel.appendChild(customModeToggle);
       customModeToggle.addEventListener("click", () => {
+        // Speichere die aktuelle seriesLength
+        const originalSeriesLength = seriesLength;
+        // Temporär die Serienlänge erhöhen für alle Noten
+        seriesLength = 14; // 7 Noten pro Oktave * 2 Oktaven
+
+        // Speichere den aktuellen Zustand
+        const originalSeries = [...currentSeriesSingle];
+        const originalCounter = seriesCounter;
+        
+        // Aktiviere den Custom Mode
         const modal = document.getElementById("customModeModal");
         modal.classList.toggle("hidden");
-        // Erweiterung: Checkboxen für Custom-Notenauswahl
-        if (!modal.querySelector("#customModeContent")) {
-          const container = document.createElement("div");
-          container.id = "customModeContent";
-          container.style.marginTop = "10px";
-
-          const octaves = {
-            "große Oktave": ["C", "D", "E", "F", "G", "A", "H"],
-            "kleine Oktave": ["c", "d", "e", "f", "g", "a", "h"],
-            "eingestrichene Oktave": ["c'", "d'", "e'", "f'", "g'", "a'", "h'"],
-            "zweigestrichene Oktave": ["c''", "d''", "e''", "f''", "g''", "a''", "h''"],
-          };
-
-          Object.entries(octaves).forEach(([octaveName, notes]) => {
-            // 1. Oktaven-Label als Button statt div
-            const octaveLabel = document.createElement("button");
-            octaveLabel.textContent = octaveName;
-            octaveLabel.style.marginTop = "10px";
-            octaveLabel.style.fontWeight = "bold";
-            octaveLabel.style.cursor = "pointer";
-            container.appendChild(octaveLabel);
-
-            notes.forEach(note => {
-              const label = document.createElement("label");
-              label.style.marginRight = "8px";
-              const checkbox = document.createElement("input");
-              checkbox.type = "checkbox";
-              checkbox.value = note;
-              checkbox.disabled = true;
-              label.appendChild(checkbox);
-              label.appendChild(document.createTextNode(note));
-              container.appendChild(label);
-            });
-
-            // 2. Klick auf Oktaven-Button aktiviert zugehörige Checkboxen
-            octaveLabel.addEventListener("click", () => {
-              notes.forEach(note => {
-                const checkbox = container.querySelector(`input[value="${note}"]`);
-                if (checkbox) {
-                  checkbox.disabled = false;
-                  checkbox.checked = true;
-                }
+        
+        if (!modal.classList.contains("hidden")) {
+          // Custom Mode wurde aktiviert
+          const selectedNotes = new Set();
+          
+          // Generiere alle möglichen Noten
+          currentSeriesSingle = [];
+          
+          if (currentClef === "treble") {
+            // Eingestrichene Oktave (c4-h4)
+            ['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(note => {
+              currentSeriesSingle.push({
+                note: note,
+                octave: 4,
+                clef: 'treble',
+                color: 'black'
               });
             });
-          });
-
-          // Verwende existierenden Save-Button im .custom-mode-save Bereich
-          modal.appendChild(container);
-          // Suche den Speichern-Button im Custom-Mode-Bereich und setze Listener
-          const saveBtn = document.querySelector(".custom-mode-save button");
-          if (saveBtn) {
-            // 3. Nur noch eine Auswahl, keine Unterscheidung mehr zwischen linker und rechter Hand
-            saveBtn.addEventListener("click", () => {
-              const selectedNotes = Array.from(container.querySelectorAll("input[type=checkbox]"))
-                .filter(cb => cb.checked && !cb.disabled)
-                .map(cb => cb.value);
-
-              window.customModeSettings = {
-                clef: "bass",
-                range: "MC",
-                selectedNotes: selectedNotes.map(n => n.replace(/'/g, "").toLowerCase())
-              };
-              generateSeries();
+            // Zweigestrichene Oktave (c5-h5)
+            ['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(note => {
+              currentSeriesSingle.push({
+                note: note,
+                octave: 5,
+                clef: 'treble',
+                color: 'black'
+              });
+            });
+          } else {
+            // Große Oktave (C2-H2)
+            ['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(note => {
+              currentSeriesSingle.push({
+                note: note,
+                octave: 2,
+                clef: 'bass',
+                color: 'black'
+              });
+            });
+            // Kleine Oktave (c3-h3)
+            ['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(note => {
+              currentSeriesSingle.push({
+                note: note,
+                octave: 3,
+                clef: 'bass',
+                color: 'black'
+              });
             });
           }
+          
+          // Zeichne alle Noten
+          drawSeries();
+          
+          // Mache Noten anklickbar
+          const notation = document.getElementById("notation");
+          notation.style.cursor = "pointer";
+          
+          // Click-Handler für die Noten
+          notation.onclick = function(event) {
+            if (modal.classList.contains("hidden")) return; // Nur im Custom Mode aktiv
+            
+            const rect = notation.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            const notes = notation.querySelectorAll('.vf-stavenote');
+            notes.forEach((note, index) => {
+              const bbox = note.getBoundingClientRect();
+              if (x >= bbox.left - rect.left && x <= bbox.right - rect.left &&
+                  y >= bbox.top - rect.top && y <= bbox.bottom - rect.top) {
+                const noteInfo = currentSeriesSingle[index];
+                const noteId = `${noteInfo.note}${noteInfo.octave}`;
+                
+                if (selectedNotes.has(noteId)) {
+                  selectedNotes.delete(noteId);
+                  noteInfo.color = 'black';
+                } else {
+                  selectedNotes.add(noteId);
+                  noteInfo.color = '#4CAF50';
+                }
+                drawSeries();
+              }
+            });
+          };
+          
+          // Speichern-Button Event Handler
+          const saveButton = document.getElementById("custom-mode-save-button");
+          saveButton.onclick = function() {
+            // Speichere die ausgewählten Noten
+            window.customModeSettings = {
+              clef: currentClef,
+              notes: Array.from(selectedNotes),
+              noteValue: "4" // Standard: Viertelnoten
+            };
+            
+            // Schließe den Custom Mode
+            modal.classList.add("hidden");
+            
+            // Stelle den ursprünglichen Zustand wieder her
+            seriesLength = originalSeriesLength;
+            currentSeriesSingle = originalSeries;
+            seriesCounter = originalCounter;
+            
+            // Entferne den Click-Handler
+            notation.onclick = null;
+            notation.style.cursor = "default";
+            
+            // Zeichne die ursprüngliche Serie neu
+            drawSeries();
+            
+            // Generiere neue Serie mit den ausgewählten Noten
+            generateSeries();
+          };
+        } else {
+          // Custom Mode wurde deaktiviert
+          // Stelle den ursprünglichen Zustand wieder her
+          seriesLength = originalSeriesLength;
+          currentSeriesSingle = originalSeries;
+          seriesCounter = originalCounter;
+          
+          // Entferne den Click-Handler
+          const notation = document.getElementById("notation");
+          notation.onclick = null;
+          notation.style.cursor = "default";
+          
+          // Zeichne die ursprüngliche Serie neu
+          drawSeries();
         }
       });
       
