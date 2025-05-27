@@ -4196,12 +4196,6 @@ document.addEventListener("DOMContentLoaded", () => {
                   <button class="clef-btn active" data-clef="treble">Violinschlüssel</button>
                   <button class="clef-btn" data-clef="bass">Bassschlüssel</button>
                 </div>
-                <div class="staff-container">
-                  <div id="staffWrapper">
-                    <canvas id="staffCanvas"></canvas>
-                    <div id="noteOverlay"></div>
-                  </div>
-                </div>
                 <div class="octave-selector">
                   <button id="prevOctave">◀ Oktave tiefer</button>
                   <span id="currentOctave">Eingestrichene Oktave</span>
@@ -4233,57 +4227,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 background: white;
                 z-index: 1000;
                 position: relative;
-              }
-
-              .staff-container {
-                position: relative;
-                height: 300px;
-                background: white;
-                border: 1px solid #ccc;
-                margin: 20px 0;
-              }
-
-              #staffWrapper {
-                width: 100%;
-                height: 100%;
-                position: relative;
-              }
-
-              #staffCanvas {
-                width: 100%;
-                height: 100%;
-                display: block;
-              }
-
-              #noteOverlay {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                pointer-events: none;
-              }
-
-              .note-spot {
-                position: absolute;
-                width: 20px;
-                height: 20px;
-                border-radius: 50%;
-                background: transparent;
-                border: 2px solid #666;
-                cursor: pointer;
-                pointer-events: auto;
-                transition: all 0.2s;
-              }
-
-              .note-spot:hover {
-                transform: scale(1.2);
-                border-color: #000;
-              }
-
-              .note-spot.selected {
-                background: #4CAF50;
-                border-color: #4CAF50;
               }
 
               .octave-selector {
@@ -4336,12 +4279,47 @@ document.addEventListener("DOMContentLoaded", () => {
                 cursor: pointer;
                 padding: 0 5px;
               }
+
+              #notation.clickable-notes {
+                position: relative;
+              }
+
+              .note-click-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+              }
+
+              .note-click-spot {
+                position: absolute;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: transparent;
+                border: 2px solid rgba(0, 0, 0, 0.3);
+                cursor: pointer;
+                pointer-events: auto;
+                transition: all 0.2s;
+              }
+
+              .note-click-spot:hover {
+                transform: scale(1.2);
+                border-color: rgba(0, 0, 0, 0.8);
+              }
+
+              .note-click-spot.selected {
+                background: rgba(76, 175, 80, 0.3);
+                border-color: #4CAF50;
+              }
             `;
             document.head.appendChild(style);
 
             // Zustandsvariablen
             let currentClef = 'treble';
-            let currentOctave = 4; // Eingestrichene Oktave
+            let currentOctave = 4;
             const selectedNotes = new Set();
             
             // Notendefinitionen
@@ -4353,54 +4331,58 @@ document.addEventListener("DOMContentLoaded", () => {
               5: 'Zweigestrichene Oktave'
             };
 
-            function drawStaff() {
-              const canvas = document.getElementById('staffCanvas');
-              const ctx = canvas.getContext('2d');
+            // Funktion zum Aktivieren des Klick-Modus
+            function enableNoteClickMode() {
+              const notation = document.getElementById('notation');
+              notation.classList.add('clickable-notes');
               
-              // Canvas-Größe setzen
-              canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-              canvas.height = canvas.offsetHeight * window.devicePixelRatio;
-              canvas.style.width = canvas.offsetWidth + 'px';
-              canvas.style.height = canvas.offsetHeight + 'px';
-              
-              // VexFlow Setup
-              const renderer = new Vex.Flow.Renderer(canvas, Vex.Flow.Renderer.Backends.CANVAS);
-              renderer.resize(canvas.width, canvas.height);
-              const context = renderer.getContext();
-              context.scale(window.devicePixelRatio, window.devicePixelRatio);
-              context.clearRect(0, 0, canvas.width, canvas.height);
-              
-              // Notensystem erstellen
-              const stave = new Vex.Flow.Stave(10, canvas.height/4, canvas.width/window.devicePixelRatio - 20);
-              stave.addClef(currentClef);
-              stave.setContext(context).draw();
+              // Overlay für klickbare Bereiche erstellen
+              const overlay = document.createElement('div');
+              overlay.className = 'note-click-overlay';
+              notation.appendChild(overlay);
 
-              // Klickbare Notenpositionen erstellen
-              createNoteSpots(stave);
-            }
-
-            function createNoteSpots(stave) {
-              const overlay = document.getElementById('noteOverlay');
-              overlay.innerHTML = '';
-              
-              const lineHeight = stave.getHeight() / 4;
-              const startX = 100; // Nach dem Schlüssel
-              
-              notePositions.forEach((note, index) => {
-                const y = stave.getY() + lineHeight * (6 - index);
-                const spot = document.createElement('div');
-                spot.className = 'note-spot';
-                if (selectedNotes.has(`${note}${currentOctave}`)) {
-                  spot.classList.add('selected');
-                }
-                spot.style.left = `${startX}px`;
-                spot.style.top = `${y}px`;
-                spot.dataset.note = note;
-                spot.dataset.octave = currentOctave;
+              // Notenpositionen aus dem bestehenden Notensystem ermitteln
+              const staveNotes = notation.querySelectorAll('.vf-stavenote');
+              staveNotes.forEach(note => {
+                const rect = note.getBoundingClientRect();
+                const notationRect = notation.getBoundingClientRect();
                 
-                spot.addEventListener('click', () => toggleNote(spot));
+                const spot = document.createElement('div');
+                spot.className = 'note-click-spot';
+                spot.style.left = (rect.left - notationRect.left) + 'px';
+                spot.style.top = (rect.top - notationRect.top) + 'px';
+                
+                // Note aus dem data-attribute oder Position ermitteln
+                const noteInfo = getNoteInfo(note);
+                if (noteInfo) {
+                  spot.dataset.note = noteInfo.note;
+                  spot.dataset.octave = noteInfo.octave;
+                  
+                  if (selectedNotes.has(`${noteInfo.note}${noteInfo.octave}`)) {
+                    spot.classList.add('selected');
+                  }
+                  
+                  spot.addEventListener('click', () => toggleNote(spot));
+                }
+                
                 overlay.appendChild(spot);
               });
+            }
+
+            function getNoteInfo(noteElement) {
+              // Diese Funktion muss an Ihre bestehende Notenstruktur angepasst werden
+              // Hier ein Beispiel, wie man die Note aus dem Element extrahieren könnte
+              const noteData = noteElement.getAttribute('data-note');
+              if (noteData) {
+                const match = noteData.match(/([a-h])(\\d)/i);
+                if (match) {
+                  return {
+                    note: match[1].toLowerCase(),
+                    octave: parseInt(match[2])
+                  };
+                }
+              }
+              return null;
             }
 
             function toggleNote(noteSpot) {
@@ -4438,7 +4420,11 @@ document.addEventListener("DOMContentLoaded", () => {
             window.removeNote = function(noteId) {
               selectedNotes.delete(noteId);
               updateSelectedNotesList();
-              drawStaff(); // Aktualisiert die visuellen Markierungen
+              document.querySelectorAll('.note-click-spot').forEach(spot => {
+                if (`${spot.dataset.note}${spot.dataset.octave}` === noteId) {
+                  spot.classList.remove('selected');
+                }
+              });
               updateCustomModeSettings();
             };
 
@@ -4456,7 +4442,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.querySelectorAll('.clef-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 currentClef = btn.dataset.clef;
-                drawStaff();
+                // Hier können Sie Ihre bestehende Funktion zum Aktualisieren des Notensystems aufrufen
+                // drawStaff();
               });
             });
 
@@ -4464,7 +4451,7 @@ document.addEventListener("DOMContentLoaded", () => {
               if (currentOctave > 2) {
                 currentOctave--;
                 document.getElementById('currentOctave').textContent = octaveNames[currentOctave];
-                drawStaff();
+                // Hier Ihr bestehendes Notensystem aktualisieren
               }
             });
 
@@ -4472,23 +4459,12 @@ document.addEventListener("DOMContentLoaded", () => {
               if (currentOctave < 5) {
                 currentOctave++;
                 document.getElementById('currentOctave').textContent = octaveNames[currentOctave];
-                drawStaff();
+                // Hier Ihr bestehendes Notensystem aktualisieren
               }
             });
 
             // Initialisierung
-            setTimeout(() => {
-              if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
-                drawStaff();
-              }
-            }, 500);
-
-            // Größenanpassung
-            window.addEventListener('resize', () => {
-              if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
-                drawStaff();
-              }
-            });
+            setTimeout(enableNoteClickMode, 500);
           }
         });
     </script>
