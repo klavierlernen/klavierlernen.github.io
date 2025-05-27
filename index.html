@@ -4159,119 +4159,339 @@ document.addEventListener("DOMContentLoaded", () => {
     <script>
       
         
-        // Neuer Custom Mode JS (vereinfachte Version)
+        // Neuer Custom Mode JS (visuelle Version)
         document.addEventListener('DOMContentLoaded', function() {
           const modal = document.getElementById('customModeModal');
           if (!modal) return;
 
-          // 1. Neue Mapping-Struktur für Kombination von Schlüssel + Lage
-          const clefRangeMapping = {
-            bass: {
-              C: ["C", "D", "E", "F", "G", "A", "H"],
-              D: ["d", "e", "f#", "g", "a"],
-              F: ["f", "g", "a", "bb", "c"],
-              G: ["g", "a", "h", "c", "d"],
-              MC: ["c", "d", "e", "f", "g"]
-            },
-            treble: {
-              C: ["c'", "d'", "e'", "f'", "g'", "a'", "h'"],
-              D: ["d'", "e'", "f#'", "g'", "a'"],
-              F: ["f'", "g'", "a'", "bb'", "c''"],
-              G: ["g'", "a'", "h'", "c''", "d''"],
-              MC: ["c'", "d'", "e'", "f'", "g'"]
-            }
+          // Notendefinitionen für beide Schlüssel
+          const noteDefinitions = {
+            treble: [
+              {note: "c''", position: 1},
+              {note: "h'", position: 2},
+              {note: "a'", position: 3},
+              {note: "g'", position: 4},
+              {note: "f'", position: 5},
+              {note: "e'", position: 6},
+              {note: "d'", position: 7},
+              {note: "c'", position: 8}
+            ],
+            bass: [
+              {note: "b", position: 1},
+              {note: "a", position: 2},
+              {note: "g", position: 3},
+              {note: "f", position: 4},
+              {note: "e", position: 5},
+              {note: "d", position: 6},
+              {note: "c", position: 7}
+            ]
           };
 
-          // 2. Neue globale Variablen
-          let selectedClef = null;
-          let selectedRange = null;
-
-          // 3. Statische Oktaven und Noten-Checkboxen beim Laden/erstmaligem Öffnen
+          // Erstelle das neue visuelle Interface
           const content = document.getElementById('customModeContent');
           if (content) {
-            content.innerHTML = '';
-            const octaves = {
-              "große Oktave": ["C", "D", "E", "F", "G", "A", "H"],
-              "kleine Oktave": ["c", "d", "e", "f", "g", "a", "h"],
-              "eingestrichene Oktave": ["c'", "d'", "e'", "f'", "g'", "a'", "h'"],
-              "zweigestrichene Oktave": ["c''", "d''", "e''", "f''", "g''", "a''", "h''"],
-            };
-            Object.entries(octaves).forEach(([octaveName, notes]) => {
-              const headline = document.createElement('div');
-              headline.textContent = octaveName;
-              headline.style.fontWeight = "bold";
-              headline.style.marginTop = "10px";
-              content.appendChild(headline);
-              notes.forEach(note => {
-                const label = document.createElement('label');
-                label.style.marginRight = "8px";
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.value = note;
-                checkbox.checked = false;
-                label.appendChild(checkbox);
-                label.appendChild(document.createTextNode(note));
-                content.appendChild(label);
+            content.innerHTML = `
+              <div class="visual-note-selector">
+                <div class="clef-selector">
+                  <button class="clef-btn active" data-clef="treble">Violinschlüssel</button>
+                  <button class="clef-btn" data-clef="bass">Bassschlüssel</button>
+                </div>
+                <div class="staff-container">
+                  <canvas id="staffCanvas"></canvas>
+                  <div class="range-controls">
+                    <button id="upperRangeUp">↑</button>
+                    <button id="upperRangeDown">↓</button>
+                    <button id="lowerRangeUp">↑</button>
+                    <button id="lowerRangeDown">↓</button>
+                  </div>
+                </div>
+                <div class="note-value-selector">
+                  <label>Notenwert:</label>
+                  <select name="noteValue">
+                    <option value="4">Viertelnoten</option>
+                    <option value="8">Achtelnoten</option>
+                    <option value="16">Sechzehntelnoten</option>
+                  </select>
+                </div>
+                <div class="save-controls">
+                  <button id="saveRangeBtn" class="save-btn">Bereich speichern</button>
+                  <div id="savedRangesList"></div>
+                </div>
+              </div>
+            `;
+
+            // Styles für das neue Interface
+            const style = document.createElement('style');
+            style.textContent = `
+              .visual-note-selector {
+                padding: 20px;
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+              }
+
+              .clef-selector {
+                display: flex;
+                gap: 10px;
+                justify-content: center;
+              }
+
+              .clef-btn {
+                padding: 10px 20px;
+                border: 2px solid #000;
+                background: #fff;
+                border-radius: 5px;
+                cursor: pointer;
+              }
+
+              .clef-btn.active {
+                background: #000;
+                color: #fff;
+              }
+
+              .staff-container {
+                position: relative;
+                height: 200px;
+                border: 1px solid #ccc;
+                margin: 20px 0;
+                display: flex;
+                align-items: center;
+              }
+
+              #staffCanvas {
+                width: 100%;
+                height: 100%;
+              }
+
+              .range-controls {
+                position: absolute;
+                right: 10px;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-around;
+              }
+
+              .range-controls button {
+                padding: 5px 10px;
+                background: #fff;
+                border: 1px solid #000;
+                border-radius: 3px;
+                cursor: pointer;
+              }
+
+              .note-value-selector {
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                justify-content: center;
+              }
+
+              .save-controls {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+              }
+
+              .save-btn {
+                padding: 10px;
+                background: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+              }
+
+              #savedRangesList {
+                display: flex;
+                flex-direction: column;
+                gap: 5px;
+              }
+
+              .saved-range-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 8px;
+                background: #f5f5f5;
+                border-radius: 4px;
+              }
+            `;
+            document.head.appendChild(style);
+
+            // Zustandsvariablen
+            let currentClef = 'treble';
+            let upperNoteIndex = 2; // Start mit a'
+            let lowerNoteIndex = 6; // Start mit d'
+            let savedRanges = JSON.parse(localStorage.getItem('savedNoteRanges') || '[]');
+
+            // Canvas-Setup
+            const canvas = document.getElementById('staffCanvas');
+            const ctx = canvas.getContext('2d');
+
+            function drawStaff() {
+              const width = canvas.width;
+              const height = canvas.height;
+              const lineSpacing = height / 16;
+
+              ctx.clearRect(0, 0, width, height);
+              
+              // Zeichne Notenlinien
+              ctx.beginPath();
+              for (let i = 4; i < 9; i++) {
+                const y = i * lineSpacing;
+                ctx.moveTo(0, y);
+                ctx.lineTo(width - 60, y);
+              }
+              ctx.strokeStyle = '#000';
+              ctx.stroke();
+
+              // Zeichne Schlüssel
+              ctx.font = `${lineSpacing * 4}px serif`;
+              ctx.fillText(currentClef === 'treble' ? 'G' : 'F', 10, lineSpacing * 7);
+
+              // Zeichne Noten
+              const notes = noteDefinitions[currentClef];
+              ctx.beginPath();
+              ctx.fillStyle = '#000';
+              
+              // Obere Grenze
+              const upperY = (notes[upperNoteIndex].position + 3) * lineSpacing;
+              ctx.arc(width / 2, upperY, lineSpacing / 2, 0, Math.PI * 2);
+              
+              // Untere Grenze
+              const lowerY = (notes[lowerNoteIndex].position + 3) * lineSpacing;
+              ctx.arc(width / 2 + 50, lowerY, lineSpacing / 2, 0, Math.PI * 2);
+              
+              ctx.fill();
+            }
+
+            // Event Listeners
+            document.querySelectorAll('.clef-btn').forEach(btn => {
+              btn.addEventListener('click', () => {
+                document.querySelectorAll('.clef-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentClef = btn.dataset.clef;
+                upperNoteIndex = 2;
+                lowerNoteIndex = 6;
+                drawStaff();
               });
             });
-          }
 
-          // 4. Zentrale Aktualisierungsfunktion für Checkboxen
-          function updateCustomModeCheckboxes() {
-            if (!selectedClef || !selectedRange) return;
-            const notesToActivate = clefRangeMapping[selectedClef][selectedRange] || [];
-            const checkboxes = document.querySelectorAll('#customModeContent input[type=checkbox]');
-            checkboxes.forEach(cb => {
-              cb.checked = notesToActivate.includes(cb.value);
-            });
-          }
-
-          // 5. Eventlistener für Lagen-Auswahl (Range)
-          document.querySelectorAll('.custom-mode-range-option').forEach(el => {
-            el.addEventListener('click', () => {
-              document.querySelectorAll('.custom-mode-range-option').forEach(opt => opt.classList.remove('active'));
-              el.classList.add('active');
-              selectedRange = el.getAttribute('data-range');
-              updateCustomModeCheckboxes();
-            });
-          });
-
-          // 6. Eventlistener für Schlüsselauswahl (Clef)
-          document.querySelectorAll('.custom-mode-clef-option').forEach(el => {
-            el.addEventListener('click', () => {
-              document.querySelectorAll('.custom-mode-clef-option').forEach(opt => opt.classList.remove('active'));
-              el.classList.add('active');
-              selectedClef = el.getAttribute('data-clef');
-              updateCustomModeCheckboxes();
-            });
-          });
-
-          // 7. Speichern-Button
-          const saveBtn = document.getElementById('custom-mode-save-button');
-          if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
-              const content = document.getElementById('customModeContent');
-              if (!selectedClef || !selectedRange || !content) return;
-              const selected = Array.from(content.querySelectorAll('input[type=checkbox]'))
-                .filter(cb => cb.checked)
-                .map(cb => cb.value);
-              // Notenwert-Checkbox
-              const noteValueCheckbox = document.getElementById('noteValueCheckbox');
-              const noteValue = noteValueCheckbox && noteValueCheckbox.checked ? "8" : "q";
-              window.customModeSettings = {
-                clef: selectedClef,
-                range: selectedRange,
-                selectedNotes: selected.map(n => n.replace(/'/g, "").toLowerCase()),
-                noteValue: noteValue
-              };
-              // clefTitle aktualisieren
-              const clefTitle = document.getElementById("clefTitle");
-              if (clefTitle && selectedRange) {
-                clefTitle.textContent = selectedRange + "-Lage";
+            document.getElementById('upperRangeUp').addEventListener('click', () => {
+              if (upperNoteIndex > 0) {
+                upperNoteIndex--;
+                drawStaff();
               }
-              generateSeries();
-              modal.classList.add('hidden');
             });
+
+            document.getElementById('upperRangeDown').addEventListener('click', () => {
+              if (upperNoteIndex < lowerNoteIndex - 1) {
+                upperNoteIndex++;
+                drawStaff();
+              }
+            });
+
+            document.getElementById('lowerRangeUp').addEventListener('click', () => {
+              if (lowerNoteIndex > upperNoteIndex + 1) {
+                lowerNoteIndex--;
+                drawStaff();
+              }
+            });
+
+            document.getElementById('lowerRangeDown').addEventListener('click', () => {
+              if (lowerNoteIndex < noteDefinitions[currentClef].length - 1) {
+                lowerNoteIndex++;
+                drawStaff();
+              }
+            });
+
+            document.getElementById('saveRangeBtn').addEventListener('click', () => {
+              const name = prompt('Name für diesen Bereich:');
+              if (!name) return;
+
+              const notes = noteDefinitions[currentClef];
+              const range = {
+                name,
+                clef: currentClef,
+                upperNote: notes[upperNoteIndex].note,
+                lowerNote: notes[lowerNoteIndex].note,
+                noteValue: document.querySelector('select[name="noteValue"]').value
+              };
+
+              savedRanges.push(range);
+              localStorage.setItem('savedNoteRanges', JSON.stringify(savedRanges));
+              updateSavedRangesList();
+            });
+
+            function updateSavedRangesList() {
+              const list = document.getElementById('savedRangesList');
+              list.innerHTML = '';
+              savedRanges.forEach((range, index) => {
+                const item = document.createElement('div');
+                item.className = 'saved-range-item';
+                item.innerHTML = `
+                  <span>${range.name} (${range.upperNote} - ${range.lowerNote})</span>
+                  <div>
+                    <button onclick="loadRange(${index})">Laden</button>
+                    <button onclick="deleteRange(${index})">❌</button>
+                  </div>
+                `;
+                list.appendChild(item);
+              });
+            }
+
+            // Globale Funktionen für Laden und Löschen
+            window.loadRange = function(index) {
+              const range = savedRanges[index];
+              if (!range) return;
+
+              currentClef = range.clef;
+              document.querySelectorAll('.clef-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.clef === currentClef);
+              });
+
+              const notes = noteDefinitions[currentClef];
+              upperNoteIndex = notes.findIndex(n => n.note === range.upperNote);
+              lowerNoteIndex = notes.findIndex(n => n.note === range.lowerNote);
+              
+              document.querySelector('select[name="noteValue"]').value = range.noteValue;
+              drawStaff();
+            };
+
+            window.deleteRange = function(index) {
+              if (!confirm('Diesen Bereich wirklich löschen?')) return;
+              savedRanges.splice(index, 1);
+              localStorage.setItem('savedNoteRanges', JSON.stringify(savedRanges));
+              updateSavedRangesList();
+            };
+
+            // Initialisierung
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            drawStaff();
+            updateSavedRangesList();
+
+            // Aktualisiere customModeSettings beim Speichern
+            function updateCustomModeSettings() {
+              const notes = noteDefinitions[currentClef];
+              const selectedNotes = [];
+              for (let i = upperNoteIndex; i <= lowerNoteIndex; i++) {
+                selectedNotes.push(notes[i].note);
+              }
+              
+              window.customModeSettings = {
+                clef: currentClef,
+                notes: selectedNotes,
+                noteValue: document.querySelector('select[name="noteValue"]').value
+              };
+            }
+
+            // Event Listener für alle Änderungen
+            ['upperRangeUp', 'upperRangeDown', 'lowerRangeUp', 'lowerRangeDown'].forEach(id => {
+              document.getElementById(id).addEventListener('click', updateCustomModeSettings);
+            });
+            document.querySelector('select[name="noteValue"]').addEventListener('change', updateCustomModeSettings);
           }
         });
     </script>
