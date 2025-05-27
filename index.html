@@ -4330,43 +4330,70 @@ document.addEventListener("DOMContentLoaded", () => {
             const ctx = canvas.getContext('2d');
 
             function drawStaff() {
-              const width = canvas.width;
-              const height = canvas.height;
-              const lineSpacing = height / 16;
-
-              ctx.clearRect(0, 0, width, height);
+              // Canvas-Größe an Container anpassen
+              canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+              canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+              canvas.style.width = canvas.offsetWidth + 'px';
+              canvas.style.height = canvas.offsetHeight + 'px';
               
-              // Zeichne Notenlinien
-              ctx.beginPath();
-              for (let i = 4; i < 9; i++) {
-                const y = i * lineSpacing;
-                ctx.moveTo(0, y);
-                ctx.lineTo(width - 60, y);
-              }
-              ctx.strokeStyle = '#000';
-              ctx.stroke();
+              // VexFlow Renderer erstellen
+              const renderer = new Vex.Flow.Renderer(canvas, Vex.Flow.Renderer.Backends.CANVAS);
+              renderer.resize(canvas.width, canvas.height);
+              const context = renderer.getContext();
+              context.scale(window.devicePixelRatio, window.devicePixelRatio);
+              context.clearRect(0, 0, canvas.width, canvas.height);
+              
+              // Notensystem erstellen
+              const stave = new Vex.Flow.Stave(10, 40, canvas.width / window.devicePixelRatio - 100);
+              stave.addClef(currentClef);
+              stave.setContext(context).draw();
 
-              // Zeichne Schlüssel
-              ctx.font = `${lineSpacing * 4}px serif`;
-              ctx.fillText(currentClef === 'treble' ? 'G' : 'F', 10, lineSpacing * 7);
-
-              // Zeichne Noten
+              // Noten erstellen
               const notes = noteDefinitions[currentClef];
-              ctx.beginPath();
-              ctx.fillStyle = '#000';
-              
-              // Obere Grenze
-              const upperY = (notes[upperNoteIndex].position + 3) * lineSpacing;
-              ctx.arc(width / 2, upperY, lineSpacing / 2, 0, Math.PI * 2);
-              
-              // Untere Grenze
-              const lowerY = (notes[lowerNoteIndex].position + 3) * lineSpacing;
-              ctx.arc(width / 2 + 50, lowerY, lineSpacing / 2, 0, Math.PI * 2);
-              
-              ctx.fill();
+              const upperNote = notes[upperNoteIndex];
+              const lowerNote = notes[lowerNoteIndex];
+
+              // Noten für VexFlow vorbereiten
+              const staveNotes = [
+                new Vex.Flow.StaveNote({
+                  clef: currentClef,
+                  keys: [`${upperNote.note.replace(/'/g, "/")}/${currentClef === "treble" ? "4" : "3"}`],
+                  duration: "w"
+                }),
+                new Vex.Flow.StaveNote({
+                  clef: currentClef,
+                  keys: [`${lowerNote.note.replace(/'/g, "/")}/${currentClef === "treble" ? "4" : "3"}`],
+                  duration: "w"
+                })
+              ];
+
+              // Noten zeichnen
+              const voice = new Vex.Flow.Voice({num_beats: 8, beat_value: 4});
+              voice.addTickables(staveNotes);
+              new Vex.Flow.Formatter().joinVoices([voice]).format([voice], canvas.width - 100);
+              voice.draw(context, stave);
+
+              // Bereich zwischen den Noten markieren
+              const startY = (upperNote.position + 3) * (canvas.height / 16);
+              const endY = (lowerNote.position + 3) * (canvas.height / 16);
+              context.fillStyle = 'rgba(200, 200, 255, 0.3)';
+              context.fillRect(60, startY, canvas.width - 160, endY - startY);
             }
 
-            // Event Listeners
+            // Größenanpassung bei Fensteränderung
+            window.addEventListener('resize', () => {
+              canvas.width = canvas.offsetWidth;
+              canvas.height = canvas.offsetHeight;
+              drawStaff();
+            });
+
+            // Initialisierung
+            setTimeout(() => {
+              canvas.width = canvas.offsetWidth;
+              canvas.height = canvas.offsetHeight;
+              drawStaff();
+            }, 100);
+
             document.querySelectorAll('.clef-btn').forEach(btn => {
               btn.addEventListener('click', () => {
                 document.querySelectorAll('.clef-btn').forEach(b => b.classList.remove('active'));
