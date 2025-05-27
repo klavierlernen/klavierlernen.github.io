@@ -2820,6 +2820,7 @@ if (window.innerWidth > window.innerHeight) {
 window.addEventListener("resize", checkOrientation);
 checkOrientation();
 
+
 // Initialisiere MIDI-Zugriff (Web MIDI API)
 function initMIDIAccess() {
 if (!navigator.requestMIDIAccess) {
