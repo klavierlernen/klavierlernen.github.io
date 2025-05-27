@@ -293,7 +293,7 @@
       border: 2px solid black;         /* Passender Randton */
       border-radius: 10px;
       box-shadow:
-        0 6px 0 black,                 /* „fester“ Schatten für die 3D-Kante */
+        0 6px 0 black,                 /* „fester" Schatten für die 3D-Kante */
         0 6px 6px rgba(0, 0, 0, 0.2);    /* Weicher Schlagschatten */
       padding: 15px 24px;                /* Innenabstand */
       margin: 8px;                       /* Außenabstand */
@@ -2956,7 +2956,7 @@ let melodyContext = {
   direction: 1, // 1 = aufwärts, -1 = abwärts
   scale: ["c", "d", "e", "f", "g", "a", "b"], // C-Dur
 };
-// Füge am Anfang des Skripts (z. B. direkt vor der Funktion generateSeries) hinzu:
+// Füge am Anfang des Skripts (z. B. direkt vor der Funktion generateSeries) hinzu:
 let notesInCurrentPhase = 0;
                                             
 const generateSeries = () => {
@@ -3592,7 +3592,7 @@ function scheduleReverseAnimation() {
         }
       };
     });
-    // Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
+    // Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
     midiAccess.onstatechange = (event) => {
       const port = event.port;
       console.log("MIDI-Gerätestatus hat sich geändert:", port.name, port.state);
@@ -3664,7 +3664,7 @@ function scheduleReverseAnimation() {
         handleMIDIMessage(status, data1, data2);
       };
     });
-    // Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
+    // Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
     midiAccess.onstatechange = (event) => {
       const port = event.port;
       console.log("MIDI-Gerätestatus hat sich geändert:", port.name, port.state);
