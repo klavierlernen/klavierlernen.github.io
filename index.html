@@ -4353,24 +4353,35 @@ document.addEventListener("DOMContentLoaded", () => {
               const upperNote = notes[upperNoteIndex];
               const lowerNote = notes[lowerNoteIndex];
 
+              // Hilfsfunktion zum Konvertieren der Notennamen
+              function convertNoteNameToVexFlow(noteName) {
+                // Entferne Apostrophe und ersetze sie durch Oktavzahl
+                let note = noteName.replace(/'/g, "");
+                // Konvertiere deutsche in englische Notation
+                note = note.replace(/h/i, "b");
+                // Standardisiere die Oktave
+                const octave = currentClef === "treble" ? "4" : "3";
+                return note + "/" + octave;
+              }
+
               // Noten für VexFlow vorbereiten
               const staveNotes = [
                 new Vex.Flow.StaveNote({
                   clef: currentClef,
-                  keys: [`${upperNote.note.replace(/'/g, "/")}/${currentClef === "treble" ? "4" : "3"}`],
-                  duration: "w"
+                  keys: [convertNoteNameToVexFlow(upperNote.note)],
+                  duration: "q"
                 }),
                 new Vex.Flow.StaveNote({
                   clef: currentClef,
-                  keys: [`${lowerNote.note.replace(/'/g, "/")}/${currentClef === "treble" ? "4" : "3"}`],
-                  duration: "w"
+                  keys: [convertNoteNameToVexFlow(lowerNote.note)],
+                  duration: "q"
                 })
               ];
 
               // Noten zeichnen
-              const voice = new Vex.Flow.Voice({num_beats: 8, beat_value: 4});
+              const voice = new Vex.Flow.Voice({num_beats: 2, beat_value: 4});
               voice.addTickables(staveNotes);
-              new Vex.Flow.Formatter().joinVoices([voice]).format([voice], canvas.width - 100);
+              new Vex.Flow.Formatter().joinVoices([voice]).format([voice], 200);
               voice.draw(context, stave);
 
               // Bereich zwischen den Noten markieren
@@ -4382,17 +4393,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Größenanpassung bei Fensteränderung
             window.addEventListener('resize', () => {
-              canvas.width = canvas.offsetWidth;
-              canvas.height = canvas.offsetHeight;
-              drawStaff();
+              if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+                drawStaff();
+              }
             });
 
-            // Initialisierung
+            // Initialisierung mit Verzögerung, um sicherzustellen, dass VexFlow geladen ist
             setTimeout(() => {
-              canvas.width = canvas.offsetWidth;
-              canvas.height = canvas.offsetHeight;
-              drawStaff();
-            }, 100);
+              if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+                drawStaff();
+              }
+            }, 500);
 
             document.querySelectorAll('.clef-btn').forEach(btn => {
               btn.addEventListener('click', () => {
