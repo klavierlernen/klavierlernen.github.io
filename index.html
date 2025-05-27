@@ -2,9 +2,8 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com; connect-src 'self' https://apis.google.com; style-src 'self' 'unsafe-inline';">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Piano Learning App</title>
+  <title>Klavier</title>
   <!-- VexFlow laden -->
   <link rel="manifest" href="https://raw.githubusercontent.com/JP0024/piano.github.io/main/manifest.json">
   <meta name="theme-color" content="#000000">
@@ -294,7 +293,7 @@
       border: 2px solid black;         /* Passender Randton */
       border-radius: 10px;
       box-shadow:
-        0 6px 0 black,                 /* „fester" Schatten für die 3D-Kante */
+        0 6px 0 black,                 /* „fester“ Schatten für die 3D-Kante */
         0 6px 6px rgba(0, 0, 0, 0.2);    /* Weicher Schlagschatten */
       padding: 15px 24px;                /* Innenabstand */
       margin: 8px;                       /* Außenabstand */
@@ -2560,167 +2559,73 @@ metronomeToggle.addEventListener("click", () => {
       customModeToggle.style.marginTop = "10px";
       settingsPanel.appendChild(customModeToggle);
       customModeToggle.addEventListener("click", () => {
-        // Speichere die aktuelle seriesLength
-        const originalSeriesLength = seriesLength;
-        // Temporär die Serienlänge erhöhen für alle Noten
-        seriesLength = 14; // 7 Noten pro Oktave * 2 Oktaven
+        const modal = document.getElementById("customModeModal");
+        modal.classList.toggle("hidden");
+        // Erweiterung: Checkboxen für Custom-Notenauswahl
+        if (!modal.querySelector("#customModeContent")) {
+          const container = document.createElement("div");
+          container.id = "customModeContent";
+          container.style.marginTop = "10px";
 
-        // Speichere den aktuellen Zustand
-        let originalSeries = currentSeriesSingle.slice(); // Kopie erstellen
-        const originalCounter = seriesCounter;
-        
-        // Erstelle den Speichern-Button, wenn er noch nicht existiert
-        let saveButton = document.getElementById("custom-mode-save-button");
-        if (!saveButton) {
-          saveButton = document.createElement("button");
-          saveButton.id = "custom-mode-save-button";
-          saveButton.textContent = "Speichern";
-          saveButton.style.position = "fixed";
-          saveButton.style.bottom = "20px";
-          saveButton.style.right = "20px";
-          saveButton.style.zIndex = "1000";
-          saveButton.style.padding = "10px 20px";
-          saveButton.style.backgroundColor = "#4CAF50";
-          saveButton.style.color = "white";
-          saveButton.style.border = "none";
-          saveButton.style.borderRadius = "5px";
-          saveButton.style.cursor = "pointer";
-          saveButton.style.display = "none";
-          document.body.appendChild(saveButton);
-        }
-        
-        // Toggle Custom Mode
-        const isCustomMode = customModeToggle.style.opacity !== "1";
-        customModeToggle.style.opacity = isCustomMode ? "1" : "0.5";
-        saveButton.style.display = isCustomMode ? "block" : "none";
-        
-        if (isCustomMode) {
-          // Custom Mode wurde aktiviert
-          const selectedNotes = new Set();
-          
-          // Generiere alle möglichen Noten
-          currentSeriesSingle.length = 0; // Array leeren statt neu zuweisen
-          
-          if (currentClef === "treble") {
-            // Eingestrichene Oktave (c4-h4)
-            ['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(note => {
-              currentSeriesSingle.push({
-                note: note,
-                octave: 4,
-                clef: 'treble',
-                color: 'black'
+          const octaves = {
+            "große Oktave": ["C", "D", "E", "F", "G", "A", "H"],
+            "kleine Oktave": ["c", "d", "e", "f", "g", "a", "h"],
+            "eingestrichene Oktave": ["c'", "d'", "e'", "f'", "g'", "a'", "h'"],
+            "zweigestrichene Oktave": ["c''", "d''", "e''", "f''", "g''", "a''", "h''"],
+          };
+
+          Object.entries(octaves).forEach(([octaveName, notes]) => {
+            // 1. Oktaven-Label als Button statt div
+            const octaveLabel = document.createElement("button");
+            octaveLabel.textContent = octaveName;
+            octaveLabel.style.marginTop = "10px";
+            octaveLabel.style.fontWeight = "bold";
+            octaveLabel.style.cursor = "pointer";
+            container.appendChild(octaveLabel);
+
+            notes.forEach(note => {
+              const label = document.createElement("label");
+              label.style.marginRight = "8px";
+              const checkbox = document.createElement("input");
+              checkbox.type = "checkbox";
+              checkbox.value = note;
+              checkbox.disabled = true;
+              label.appendChild(checkbox);
+              label.appendChild(document.createTextNode(note));
+              container.appendChild(label);
+            });
+
+            // 2. Klick auf Oktaven-Button aktiviert zugehörige Checkboxen
+            octaveLabel.addEventListener("click", () => {
+              notes.forEach(note => {
+                const checkbox = container.querySelector(`input[value="${note}"]`);
+                if (checkbox) {
+                  checkbox.disabled = false;
+                  checkbox.checked = true;
+                }
               });
             });
-            // Zweigestrichene Oktave (c5-h5)
-            ['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(note => {
-              currentSeriesSingle.push({
-                note: note,
-                octave: 5,
-                clef: 'treble',
-                color: 'black'
-              });
-            });
-          } else {
-            // Große Oktave (C2-H2)
-            ['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(note => {
-              currentSeriesSingle.push({
-                note: note,
-                octave: 2,
-                clef: 'bass',
-                color: 'black'
-              });
-            });
-            // Kleine Oktave (c3-h3)
-            ['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(note => {
-              currentSeriesSingle.push({
-                note: note,
-                octave: 3,
-                clef: 'bass',
-                color: 'black'
-              });
+          });
+
+          // Verwende existierenden Save-Button im .custom-mode-save Bereich
+          modal.appendChild(container);
+          // Suche den Speichern-Button im Custom-Mode-Bereich und setze Listener
+          const saveBtn = document.querySelector(".custom-mode-save button");
+          if (saveBtn) {
+            // 3. Nur noch eine Auswahl, keine Unterscheidung mehr zwischen linker und rechter Hand
+            saveBtn.addEventListener("click", () => {
+              const selectedNotes = Array.from(container.querySelectorAll("input[type=checkbox]"))
+                .filter(cb => cb.checked && !cb.disabled)
+                .map(cb => cb.value);
+
+              window.customModeSettings = {
+                clef: "bass",
+                range: "MC",
+                selectedNotes: selectedNotes.map(n => n.replace(/'/g, "").toLowerCase())
+              };
+              generateSeries();
             });
           }
-          
-          // Zeichne alle Noten
-          drawSeries();
-          
-          // Mache Noten anklickbar
-          const notation = document.getElementById("notation");
-          notation.style.cursor = "pointer";
-          
-          // Click-Handler für die Noten
-          notation.onclick = function(event) {
-            if (!isCustomMode) return; // Nur im Custom Mode aktiv
-            
-            const rect = notation.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-            
-            const notes = notation.querySelectorAll('.vf-stavenote');
-            notes.forEach((note, index) => {
-              const bbox = note.getBoundingClientRect();
-              if (x >= bbox.left - rect.left && x <= bbox.right - rect.left &&
-                  y >= bbox.top - rect.top && y <= bbox.bottom - rect.top) {
-                const noteInfo = currentSeriesSingle[index];
-                const noteId = `${noteInfo.note}${noteInfo.octave}`;
-                
-                if (selectedNotes.has(noteId)) {
-                  selectedNotes.delete(noteId);
-                  noteInfo.color = 'black';
-                } else {
-                  selectedNotes.add(noteId);
-                  noteInfo.color = '#4CAF50';
-                }
-                drawSeries();
-              }
-            });
-          };
-          
-          // Speichern-Button Event Handler
-          saveButton.onclick = function() {
-            // Speichere die ausgewählten Noten
-            window.customModeSettings = {
-              clef: currentClef,
-              notes: Array.from(selectedNotes),
-              noteValue: "4" // Standard: Viertelnoten
-            };
-            
-            // Deaktiviere Custom Mode
-            customModeToggle.style.opacity = "0.5";
-            saveButton.style.display = "none";
-            
-            // Stelle den ursprünglichen Zustand wieder her
-            seriesLength = originalSeriesLength;
-            currentSeriesSingle.length = 0; // Array leeren
-            originalSeries.forEach(note => currentSeriesSingle.push(note)); // Originalnoten wiederherstellen
-            seriesCounter = originalCounter;
-            
-            // Entferne den Click-Handler
-            const notation = document.getElementById("notation");
-            notation.onclick = null;
-            notation.style.cursor = "default";
-            
-            // Zeichne die ursprüngliche Serie neu
-            drawSeries();
-            
-            // Generiere neue Serie mit den ausgewählten Noten
-            generateSeries();
-          };
-        } else {
-          // Custom Mode wurde deaktiviert
-          // Stelle den ursprünglichen Zustand wieder her
-          seriesLength = originalSeriesLength;
-          currentSeriesSingle.length = 0; // Array leeren
-          originalSeries.forEach(note => currentSeriesSingle.push(note)); // Originalnoten wiederherstellen
-          seriesCounter = originalCounter;
-          
-          // Entferne den Click-Handler
-          const notation = document.getElementById("notation");
-          notation.onclick = null;
-          notation.style.cursor = "default";
-          
-          // Zeichne die ursprüngliche Serie neu
-          drawSeries();
         }
       });
       
@@ -3051,7 +2956,7 @@ let melodyContext = {
   direction: 1, // 1 = aufwärts, -1 = abwärts
   scale: ["c", "d", "e", "f", "g", "a", "b"], // C-Dur
 };
-// Füge am Anfang des Skripts (z. B. direkt vor der Funktion generateSeries) hinzu:
+// Füge am Anfang des Skripts (z. B. direkt vor der Funktion generateSeries) hinzu:
 let notesInCurrentPhase = 0;
                                             
 const generateSeries = () => {
@@ -3687,7 +3592,7 @@ function scheduleReverseAnimation() {
         }
       };
     });
-    // Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
+    // Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
     midiAccess.onstatechange = (event) => {
       const port = event.port;
       console.log("MIDI-Gerätestatus hat sich geändert:", port.name, port.state);
@@ -3759,7 +3664,7 @@ function scheduleReverseAnimation() {
         handleMIDIMessage(status, data1, data2);
       };
     });
-    // Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
+    // Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
     midiAccess.onstatechange = (event) => {
       const port = event.port;
       console.log("MIDI-Gerätestatus hat sich geändert:", port.name, port.state);
@@ -4254,262 +4159,118 @@ document.addEventListener("DOMContentLoaded", () => {
     <script>
       
         
-        // Neuer Custom Mode JS (visuelle Version)
+        // Neuer Custom Mode JS (vereinfachte Version)
         document.addEventListener('DOMContentLoaded', function() {
           const modal = document.getElementById('customModeModal');
           if (!modal) return;
 
-          // Notendefinitionen für beide Schlüssel
-          const noteDefinitions = {
-            treble: [
-              {note: "c''", position: 1},
-              {note: "h'", position: 2},
-              {note: "a'", position: 3},
-              {note: "g'", position: 4},
-              {note: "f'", position: 5},
-              {note: "e'", position: 6},
-              {note: "d'", position: 7},
-              {note: "c'", position: 8}
-            ],
-            bass: [
-              {note: "b", position: 1},
-              {note: "a", position: 2},
-              {note: "g", position: 3},
-              {note: "f", position: 4},
-              {note: "e", position: 5},
-              {note: "d", position: 6},
-              {note: "c", position: 7}
-            ]
+          // 1. Neue Mapping-Struktur für Kombination von Schlüssel + Lage
+          const clefRangeMapping = {
+            bass: {
+              C: ["C", "D", "E", "F", "G", "A", "H"],
+              D: ["d", "e", "f#", "g", "a"],
+              F: ["f", "g", "a", "bb", "c"],
+              G: ["g", "a", "h", "c", "d"],
+              MC: ["c", "d", "e", "f", "g"]
+            },
+            treble: {
+              C: ["c'", "d'", "e'", "f'", "g'", "a'", "h'"],
+              D: ["d'", "e'", "f#'", "g'", "a'"],
+              F: ["f'", "g'", "a'", "bb'", "c''"],
+              G: ["g'", "a'", "h'", "c''", "d''"],
+              MC: ["c'", "d'", "e'", "f'", "g'"]
+            }
           };
 
-          // Erstelle das neue visuelle Interface
+          // 2. Neue globale Variablen
+          let selectedClef = null;
+          let selectedRange = null;
+
+          // 3. Statische Oktaven und Noten-Checkboxen beim Laden/erstmaligem Öffnen
           const content = document.getElementById('customModeContent');
           if (content) {
-            content.innerHTML = `
-              <div class="visual-note-selector">
-                <div class="clef-selector">
-                  <button class="clef-btn active" data-clef="treble">Violinschlüssel</button>
-                  <button class="clef-btn" data-clef="bass">Bassschlüssel</button>
-                </div>
-                <div id="notation"></div>
-                <div class="note-value-selector">
-                  <label>Notenwert:</label>
-                  <select name="noteValue">
-                    <option value="4">Viertelnoten</option>
-                    <option value="8">Achtelnoten</option>
-                    <option value="16">Sechzehntelnoten</option>
-                  </select>
-                </div>
-                <div class="selected-notes">
-                  <h3>Ausgewählte Noten:</h3>
-                  <div id="selectedNotesList"></div>
-                </div>
-              </div>
-            `;
-
-            // Styles für das neue Interface
-            const style = document.createElement('style');
-            style.textContent = `
-              .visual-note-selector {
-                padding: 20px;
-                display: flex;
-                flex-direction: column;
-                gap: 20px;
-                background: white;
-                z-index: 1000;
-                position: relative;
-              }
-
-              #notation {
-                background: white;
-                border: 1px solid #ccc;
-                margin: 20px 0;
-                min-height: 200px;
-              }
-
-              .selected-notes {
-                border: 1px solid #ccc;
-                padding: 10px;
-                border-radius: 5px;
-              }
-
-              #selectedNotesList {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 5px;
-                margin-top: 10px;
-              }
-
-              .selected-note-tag {
-                background: #4CAF50;
-                color: white;
-                padding: 5px 10px;
-                border-radius: 15px;
-                display: flex;
-                align-items: center;
-                gap: 5px;
-              }
-
-              .selected-note-tag button {
-                background: none;
-                border: none;
-                color: white;
-                cursor: pointer;
-                padding: 0 5px;
-              }
-
-              .vf-stavenote {
-                cursor: pointer;
-                transition: opacity 0.2s;
-              }
-
-              .vf-stavenote:hover {
-                opacity: 0.7;
-              }
-
-              .vf-stavenote.selected {
-                fill: #4CAF50;
-                stroke: #4CAF50;
-              }
-            `;
-            document.head.appendChild(style);
-
-            // Zustandsvariablen
-            let currentClef = 'treble';
-            const selectedNotes = new Set();
-            
-            // Temporäre Serie für die Notenauswahl
-            let currentSeriesSingle = [];
-
-            function setupCustomNotes() {
-              // Noten für die aktuelle Auswahl generieren
-              currentSeriesSingle = [];
-              
-              // Noten für Violinschlüssel
-              if (currentClef === 'treble') {
-                // Eingestrichene Oktave (c4-h4)
-                ['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(note => {
-                  currentSeriesSingle.push({
-                    note: note,
-                    octave: 4,
-                    clef: 'treble',
-                    color: selectedNotes.has(`${note}4`) ? '#4CAF50' : 'black'
-                  });
-                });
-                // Zweigestrichene Oktave (c5-h5)
-                ['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(note => {
-                  currentSeriesSingle.push({
-                    note: note,
-                    octave: 5,
-                    clef: 'treble',
-                    color: selectedNotes.has(`${note}5`) ? '#4CAF50' : 'black'
-                  });
-                });
-              } else {
-                // Große Oktave (C2-H2)
-                ['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(note => {
-                  currentSeriesSingle.push({
-                    note: note,
-                    octave: 2,
-                    clef: 'bass',
-                    color: selectedNotes.has(`${note}2`) ? '#4CAF50' : 'black'
-                  });
-                });
-                // Kleine Oktave (c3-h3)
-                ['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(note => {
-                  currentSeriesSingle.push({
-                    note: note,
-                    octave: 3,
-                    clef: 'bass',
-                    color: selectedNotes.has(`${note}3`) ? '#4CAF50' : 'black'
-                  });
-                });
-              }
-              
-              // Zeichne die Noten mit der bestehenden drawSeries Funktion
-              drawSeries();
-
-              // Click-Handler für die Noten hinzufügen
-              const notation = document.getElementById('notation');
-              notation.onclick = function(event) {
-                const rect = notation.getBoundingClientRect();
-                const x = event.clientX - rect.left;
-                const y = event.clientY - rect.top;
-                
-                // Finde die angeklickte Note
-                const notes = notation.querySelectorAll('.vf-stavenote');
-                notes.forEach((note, index) => {
-                  const bbox = note.getBoundingClientRect();
-                  if (x >= bbox.left - rect.left && x <= bbox.right - rect.left &&
-                      y >= bbox.top - rect.top && y <= bbox.bottom - rect.top) {
-                    toggleNote(currentSeriesSingle[index]);
-                  }
-                });
-              };
-            }
-
-            function toggleNote(noteInfo) {
-              const noteId = `${noteInfo.note}${noteInfo.octave}`;
-              if (selectedNotes.has(noteId)) {
-                selectedNotes.delete(noteId);
-              } else {
-                selectedNotes.add(noteId);
-              }
-              updateSelectedNotesList();
-              updateCustomModeSettings();
-              setupCustomNotes(); // Aktualisiere die Notenansicht
-            }
-
-            function updateSelectedNotesList() {
-              const list = document.getElementById('selectedNotesList');
-              list.innerHTML = '';
-              
-              [...selectedNotes].sort().forEach(noteId => {
-                const tag = document.createElement('div');
-                tag.className = 'selected-note-tag';
-                tag.innerHTML = `
-                  ${noteId}
-                  <button onclick="removeNote('${noteId}')">×</button>
-                `;
-                list.appendChild(tag);
-              });
-            }
-
-            window.removeNote = function(noteId) {
-              selectedNotes.delete(noteId);
-              updateSelectedNotesList();
-              setupCustomNotes();
-              updateCustomModeSettings();
+            content.innerHTML = '';
+            const octaves = {
+              "große Oktave": ["C", "D", "E", "F", "G", "A", "H"],
+              "kleine Oktave": ["c", "d", "e", "f", "g", "a", "h"],
+              "eingestrichene Oktave": ["c'", "d'", "e'", "f'", "g'", "a'", "h'"],
+              "zweigestrichene Oktave": ["c''", "d''", "e''", "f''", "g''", "a''", "h''"],
             };
-
-            function updateCustomModeSettings() {
-              window.customModeSettings = {
-                clef: currentClef,
-                notes: Array.from(selectedNotes),
-                noteValue: document.querySelector('select[name="noteValue"]').value
-              };
-            }
-
-            // Event Listeners
-            document.querySelectorAll('.clef-btn').forEach(btn => {
-              btn.addEventListener('click', () => {
-                document.querySelectorAll('.clef-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentClef = btn.dataset.clef;
-                selectedNotes.clear();
-                updateSelectedNotesList();
-                setupCustomNotes();
+            Object.entries(octaves).forEach(([octaveName, notes]) => {
+              const headline = document.createElement('div');
+              headline.textContent = octaveName;
+              headline.style.fontWeight = "bold";
+              headline.style.marginTop = "10px";
+              content.appendChild(headline);
+              notes.forEach(note => {
+                const label = document.createElement('label');
+                label.style.marginRight = "8px";
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = note;
+                checkbox.checked = false;
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(note));
+                content.appendChild(label);
               });
             });
+          }
 
-            // Initialisierung
-            setTimeout(setupCustomNotes, 100);
+          // 4. Zentrale Aktualisierungsfunktion für Checkboxen
+          function updateCustomModeCheckboxes() {
+            if (!selectedClef || !selectedRange) return;
+            const notesToActivate = clefRangeMapping[selectedClef][selectedRange] || [];
+            const checkboxes = document.querySelectorAll('#customModeContent input[type=checkbox]');
+            checkboxes.forEach(cb => {
+              cb.checked = notesToActivate.includes(cb.value);
+            });
+          }
 
-            // Größenanpassung
-            window.addEventListener('resize', () => {
-              if (document.getElementById('notation')) {
-                setupCustomNotes();
+          // 5. Eventlistener für Lagen-Auswahl (Range)
+          document.querySelectorAll('.custom-mode-range-option').forEach(el => {
+            el.addEventListener('click', () => {
+              document.querySelectorAll('.custom-mode-range-option').forEach(opt => opt.classList.remove('active'));
+              el.classList.add('active');
+              selectedRange = el.getAttribute('data-range');
+              updateCustomModeCheckboxes();
+            });
+          });
+
+          // 6. Eventlistener für Schlüsselauswahl (Clef)
+          document.querySelectorAll('.custom-mode-clef-option').forEach(el => {
+            el.addEventListener('click', () => {
+              document.querySelectorAll('.custom-mode-clef-option').forEach(opt => opt.classList.remove('active'));
+              el.classList.add('active');
+              selectedClef = el.getAttribute('data-clef');
+              updateCustomModeCheckboxes();
+            });
+          });
+
+          // 7. Speichern-Button
+          const saveBtn = document.getElementById('custom-mode-save-button');
+          if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+              const content = document.getElementById('customModeContent');
+              if (!selectedClef || !selectedRange || !content) return;
+              const selected = Array.from(content.querySelectorAll('input[type=checkbox]'))
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+              // Notenwert-Checkbox
+              const noteValueCheckbox = document.getElementById('noteValueCheckbox');
+              const noteValue = noteValueCheckbox && noteValueCheckbox.checked ? "8" : "q";
+              window.customModeSettings = {
+                clef: selectedClef,
+                range: selectedRange,
+                selectedNotes: selected.map(n => n.replace(/'/g, "").toLowerCase()),
+                noteValue: noteValue
+              };
+              // clefTitle aktualisieren
+              const clefTitle = document.getElementById("clefTitle");
+              if (clefTitle && selectedRange) {
+                clefTitle.textContent = selectedRange + "-Lage";
               }
+              generateSeries();
+              modal.classList.add('hidden');
             });
           }
         });
