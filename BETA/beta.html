@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Klavier</title>
   <!-- VexFlow laden -->
   <link rel="manifest" href="https://raw.githubusercontent.com/JP0024/piano.github.io/main/manifest.json">
@@ -17,6 +17,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
       
+      <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+      
   <style>
     /* Grundlayout */
     html, body {
@@ -28,6 +31,9 @@
       text-align: center;
       transition: background-color 0.3s, color 0.3s;
       overflow: hidden;
+      position: fixed;
+      width: 100%;
+      height: 100%;
     }
 
     body.dark-mode {
@@ -47,18 +53,31 @@
       pointer-events: none;
     }
     /* Einhand-Notation (normaler Modus) */
-    #notation {
-      display: none;
-      position: fixed;
-      top: 80%;
-      left: 65%;
-      transform: translate(-50%, -50%);
-      width: 100%;
-      max-width: calc(100% - 10px);
-      padding: 10px;
-      box-sizing: border-box;
-      z-index: 1;
-    }
+    /* Absolute Mitte mit minimalen Rändern */
+      #notation {
+        display: none;              /* bleibt durch JS gesteuert */
+        position: fixed;
+        top: 85%;
+        left: 65%;
+        transform: translate(-50%, -50%);
+        transform-origin: center center;
+        width: auto;
+        max-width: calc(100% - 10px); /* 5 px Rand links/rechts */
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+        z-index: 1;
+      }
+
+      @media screen and (max-width: 600px) {
+        #notation {
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          max-width: 90%;   /* 5 % Rand mobil */
+          padding: 0;
+        }
+      }
     #notation svg {
       width: 100%;
       height: auto;
@@ -286,12 +305,6 @@
       /* Animation/Übergänge beim Drücken */
       transition: transform 0.2s, box-shadow 0.2s, opacity 0.5s ease;
     }
-    #settingsPanel:active {
-      transform: translateY(6px);
-      box-shadow:
-        0 0 0 #abc9ab,
-        0 6px 6px rgba(0,0,0,0.2);
-    }
 
     /* ================================= */
     /* 3D-Stil für das Lagen-Rechteck    */
@@ -494,7 +507,7 @@
         z-index: 50;
       }
       
-@media screen and (max-width: 600px) {
+    @media screen and (max-width: 600px) {
   
   /* Notensystem kürzen: Notation-Container anpassen */
   #notation {
@@ -520,9 +533,9 @@
      /* Custom Mode Modal Styles */
      #customModeModal {
          position: fixed;
-         top: 35%;
+         top: 15%;
          right: 90px; /* ca. 10px links vom Menü */
-         width: 300px;
+         width: 400px;
          background: white;
          border: 2px solid black;
          border-radius: 10px;
@@ -586,10 +599,308 @@
      .hidden {
          display: none !important;
      }
+    /* Carousel Hint Speech Bubble */
+    .speech-bubble {
+      position: fixed;
+      width: 180px;
+      padding: 10px;
+      background: #fff;
+      border: 2px solid #000;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      font-size: 0.9em;
+      z-index: 1001;
+    }
+    .speech-bubble::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 10px 10px 0;
+      border-style: solid;
+      border-color: #fff transparent;
+    }
+    .speech-bubble .close-btn {
+      position: absolute;
+      top: 2px;
+      right: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    /* Carousel container and track */
+    #carouselContainer {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      overflow: hidden;
+      margin: 0 auto;
+    }
+    #carouselTrack {
+      display: flex;
+      height: 100%;
+      transition: transform 0.3s ease;
+    }
+    .carouselItem {
+      flex: 0 0 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+      
+      @keyframes flyOutRight {
+        to { opacity: 0; transform: translateX(100%); }
+      }
+      @keyframes flyOutLeft {
+        to { opacity: 0; transform: translateX(-100%); }
+      }
+      .fly-out-right {
+        animation: flyOutRight 0.5s forwards;
+      }
+      .fly-out-left {
+        animation: flyOutLeft 0.5s forwards;
+        
+      }
+      
+      #virtualKeyboard {
+        position: fixed;
+        top: 150%;
+        left: 30px;
+        right: 30px;
+        width: auto;
+        max-width: calc(100% - 60px);
+        height: 100px;
+        transform-origin: top center; /* Für skalierte Darstellung */
+      }
+
+      /* Real Piano Key Sizes */
+      #virtualKeyboard .white-key, #virtualKeyboard .white {
+        width: 23px !important;
+        height: 560px !important;
+      }
+
+      #virtualKeyboard .black-key, #virtualKeyboard .black {
+        width: 14px !important;
+        height: 80px !important;
+        margin-left: -7px;
+        margin-right: -7px;
+      }
+
+      /* Nur Touch-Interaktionen für die virtuelle Klaviatur erlauben */
+      @media (pointer: fine) {
+        #virtualKeyboard {
+          pointer-events: none;
+        }
+      }
+      @media (pointer: coarse) {
+        #virtualKeyboard {
+          pointer-events: auto;
+          margin: 0 20px; /* Abstand zu den Bildschirmrändern */
+        }
+      }
+      
+      /* Solange vk-active, behalten diese Elemente immer ihre Top-Position */
+      body.vk-active #timerContainer,
+      body.vk-active #streakDisplay,
+      body.vk-active #buttonContainer {
+        top: 30px !important;
+        bottom: auto !important;
+      }
+
+      /* Fehler-/Korrektur-Overlay ebenfalls immer von oben einblenden */
+      body.vk-active #pauseOverlay,
+      body.vk-active .correction {
+        top: 20px !important;
+        bottom: auto !important;
+      }
+      
+      #correctionBox {
+        position: fixed;
+        bottom: 20%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #fff;
+        border: 3px solid #000;
+        padding: 15px 30px;
+        border-radius: 15px;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+
+      #correctionChoices {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        font-size: 2em;
+      }
+
+      #correctionChoices button,
+      #confirmNoteBtn {
+        font-size: 1.5em;
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+      
+      
+        .correction-choice {
+          opacity: 0.5;
+          margin: 5px;
+          cursor: pointer;
+          display: inline-block;
+          padding: 5px;
+          border: 1px solid #000;
+          border-radius: 4px;
+        }
+    
+      
   </style>
   <script>
-   
+      
+      let twoHandMode = false;
+      let seriesCounterLeft = 0;
+      let seriesCounterRight = 0;
+      let currentSeriesLeft = [];
+      let currentSeriesRight = [];
+      let articulationMode = null; // null, "staccato" oder "legato"
 
+        // Initialize global homeworkData from storage
+        window.homeworkData = JSON.parse(localStorage.getItem("homeworkData") || "null");
+        // … der restliche bisherige Script-Code …
+      
+      let homeworkData = JSON.parse(localStorage.getItem("homeworkData") || "null");
+      
+      
+      // (hwToggle click event listener will be added later in DOMContentLoaded after settingsPanel.appendChild(hwToggle))
+
+      // Camera-based QR scanning
+      async function openCameraScan() {
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        } catch (err) {
+          alert("Kamerazugriff fehlgeschlagen: " + err.message);
+          return null;
+        }
+        // Create modal overlay
+        const scanOverlay = document.createElement("div");
+        scanOverlay.id = "scanOverlay";
+        Object.assign(scanOverlay.style, {
+          position: "fixed", top:0, left:0, width:"100%", height:"100%",
+          background:"rgba(0,0,0,0.8)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:"2000"
+        });
+        const video = document.createElement("video");
+        video.style.maxWidth = "90%";
+        video.style.maxHeight = "80%";
+        video.autoplay = true;
+        video.srcObject = stream;
+        scanOverlay.appendChild(video);
+        const captureBtn = document.createElement("button");
+        captureBtn.textContent = "Scannen";
+        Object.assign(captureBtn.style, { position:"absolute", bottom:"20px", fontSize:"1.2em", padding:"10px" });
+        scanOverlay.appendChild(captureBtn);
+        document.body.appendChild(scanOverlay);
+        return new Promise(resolve => {
+          captureBtn.addEventListener("click", () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext("2d").drawImage(video, 0, 0);
+            const code = jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
+            stream.getTracks().forEach(t => t.stop());
+            document.body.removeChild(scanOverlay);
+            resolve(code);
+          });
+        });
+      }
+      
+    // Disable any scrolling
+    window.addEventListener('scroll', function(e) {
+      e.preventDefault();
+      window.scrollTo(0, 0);
+    }, { passive: false });
+  
+  // Oben im Skript
+  let customModeSettings = null;
+  const octaveDefinitions = {
+    grosse:   { notes: ["c","d","e","f","g","a","b"], baseOctave: 3 },
+    kleine:   { notes: ["c","d","e","f","g","a","b"], baseOctave: 4 },
+    eingestr: { notes: ["c","d","e","f","g","a","b"], baseOctave: 5 },
+    zweigestr:{ notes: ["c","d","e","f","g","a","b"], baseOctave: 6 },
+  };
+  
+let wizardMode = true;
+   let correctionActive = false;
+   let availableNotes = [];
+   let selectedNoteIndex = 0;
+   let expectedNote = "";
+   
+   
+      
+// === Touch‐based positioning for the notation crosshair ===
+document.addEventListener('DOMContentLoaded', () => {
+  const notation = document.getElementById('notation');
+  if (!notation) return;
+
+  // Load or set default transform
+  let saved = localStorage.getItem('notationTransform');
+  if (!saved) {
+    saved = 'translate(-50%, -50%)';
+    localStorage.setItem('notationTransform', saved);
+  }
+  notation.style.transform = saved;
+
+  // Prepare variables for touch dragging
+  let startX = 0, startY = 0;
+  let initX = 0, initY = 0;
+  let dragging = false;
+
+  notation.addEventListener('touchstart', e => {
+    // Only allow dragging if the Geodreieck-Button ("geometryToggle") is active
+    const toggle = document.getElementById('geometryToggle');
+    const isActive = toggle && (toggle.classList.contains('active') || toggle.dataset.active === 'true');
+    if (!isActive) return;
+    e.preventDefault();
+    dragging = true;
+    const touch = e.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+    const style = window.getComputedStyle(notation);
+    const matrix = new DOMMatrix(style.transform);
+    initX = matrix.m41;
+    initY = matrix.m42;
+  }, { passive: false });
+
+  notation.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    const newX = initX + dx;
+    const newY = initY + dy;
+    // Calculate the position of the center of notation in viewport
+    // The transform is relative to (left:50%, top:50%)
+    const newLeft = newX + window.innerWidth / 2;
+    const newTop = newY + window.innerHeight / 2;
+    if (
+      newLeft > 0 &&
+      newLeft < window.innerWidth &&
+      newTop > 0 &&
+      newTop < window.innerHeight
+    ) {
+      notation.style.transform = `translate(${newX}px, ${newY}px)`;
+    }
+  }, { passive: false });
+
+  notation.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    localStorage.setItem('notationTransform', notation.style.transform);
+  });
+});
     
       
       document.addEventListener("DOMContentLoaded", () => {
@@ -603,6 +914,7 @@
       });
       let elapsedTimer = 0;
       let cachedUserRank = null;
+      let kidsMode = false;
       
       function updateUserPlacement(valueElem, data) {
         const sorted = data.sort((a, b) => {
@@ -657,6 +969,7 @@
       let metronomeInterval = 0;
       let metronomeTimer = null;
       let lastTickTime = 0;
+      let metronomeTolerance = 100; // ms Toleranz für MIDI-Übertragung
       // Tick-Sound (bitte ggf. die URL anpassen)
       const tickSound = new Audio("https://raw.githubusercontent.com/JP0024/piano.github.io/main/tick.mp3");
     
@@ -837,12 +1150,87 @@
       const settingsPanel = document.getElementById("settingsPanel");
       const pauseButton = document.createElement("span");
       pauseButton.id = "pauseButton";
-      pauseButton.textContent = "🛟";
+      pauseButton.textContent = "🎹";
       settingsPanel.appendChild(pauseButton);
 
       pauseButton.addEventListener("click", () => {
-        openHelpWindow();
+        const notationElem = document.getElementById("notation");
+        const vk = document.getElementById("virtualKeyboard");
+        if (vk) {
+          const isHidden = vk.style.visibility === "hidden";
+          vk.style.visibility = isHidden ? "visible" : "hidden";
+          // Neu: Klasse setzen/removen
+          if (isHidden) {
+            document.body.classList.add("vk-active");
+          } else {
+            document.body.classList.remove("vk-active");
+          }
+          if (notationElem) {
+            if (isHidden) {
+              // Keyboard wird aktiviert: Notation etwas höher positionieren
+              notationElem.style.top = "55%";
+            } else {
+              // Keyboard wird deaktiviert: gespeicherte Position wiederherstellen
+              const saved = localStorage.getItem("notationTransform");
+              if (saved) notationElem.style.transform = saved;
+              // Entferne inline-top, damit CSS-Default (85%) greift
+              notationElem.style.top = "";
+            }
+          }
+        }
       });
+
+      // ---- Virtual Keyboard below notation ----
+      // Find the button container
+      const bc = document.getElementById("buttonContainer");
+      if (bc) {
+        // Create a virtual keyboard element
+        const vk = document.createElement("div");
+        vk.id = "virtualKeyboard";
+        vk.textContent = "Virtuelles Keyboard";
+        // Keyboard initially hidden
+        vk.style.visibility = "hidden";
+        vk.style.position = "fixed";
+        vk.style.top = "10%";
+        vk.style.transform = "translateY(210%) scale(0.7, 1.5)"; // Uniform Zoom: both axes the same scale
+        vk.style.zIndex = "100";
+        vk.style.background = "#eee";
+        vk.style.padding = "100px";
+        // Initially place it just above the button container
+        // We'll update its position on window resize and DOMContentLoaded
+        function positionVK() {
+          const bcRect = bc.getBoundingClientRect();
+          const vkHeight = vk.offsetHeight || 200;
+          // Place it above the button container, but not out of screen
+          let top = bcRect.top - vkHeight - 5;
+          if (top < 0) top = 0;
+          vk.style.top = `${top}px`;
+        }
+        // Append first so offsetHeight is available
+        document.body.appendChild(vk);
+        // --- Override key dimensions after rendering ---
+        setTimeout(() => {
+          const whiteKeys = vk.querySelectorAll('.white-key, .white');
+          whiteKeys.forEach(key => {
+            key.style.width = '23px';
+            key.style.height = '260px';
+          });
+          const blackKeys = vk.querySelectorAll('.black-key, .black');
+          blackKeys.forEach(key => {
+            key.style.width = '14px';
+            key.style.height = '80px';
+            key.style.marginLeft = '-7px';
+            key.style.marginRight = '-7px';
+          });
+        }, 100);
+        // Position after appending
+        positionVK();
+        // Update position on window resize and orientation change
+        window.addEventListener("resize", positionVK);
+        window.addEventListener("orientationchange", positionVK);
+        // The virtual keyboard layout and input is now handled only by QwertyHancock or other dedicated code.
+        // No manual <button> elements are created here.
+      }
     });
       
     /************** Globale Variablen & Konstanten **************/
@@ -881,7 +1269,7 @@
     let responseTimes = [];
     let lastNoteTimestamp = Date.now();
     let appStartTime = Date.now();
-    let sessionCounter = 5; // 5 korrekte Noten erforderlich
+    let sessionCounter = Number(localStorage.getItem("sessionCounter")) || 5; // 5 korrekte Noten erforderlich
     let sessionPaused = false;
     let scoreRecorded = false;
     let sessionCount = 0;
@@ -1433,6 +1821,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       }
     };
     const cycleRange = () => {
+      window.customModeSettings = null;
       currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
       currentRange = rangeArray[currentRangeIndex];
       document.getElementById("clefTitle").textContent = currentRange + "-Lage";
@@ -1460,6 +1849,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       }
     };
     /* Animation (Hintergrund-Kreise) */
+    let blobsEnabled = true;
     let circles = [];
     const gradients = {
       "green": ["rgba(0,255,0,1)", "rgba(0,255,0,0.3)", "rgba(255,255,255,0)"],
@@ -1474,6 +1864,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
     const positiveColors = ["green", "blue", "pink", "yellow"];
     const negativeColors = ["orange", "violet", "crimson"];
     function addCircle(type) {
+      if (!blobsEnabled) return;
       const canvas = document.getElementById("animationCanvas");
       if (!canvas) return;
       const ctx = canvas.getContext("2d");
@@ -1563,6 +1954,17 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
     }
     document.addEventListener("DOMContentLoaded", () => {
       let canvas = document.getElementById("animationCanvas");
+      // --- Apply saved notation position from localStorage ---
+      const savedTransform = localStorage.getItem("notationTransform");
+      if (savedTransform) {
+        const notation = document.getElementById("notation");
+        if (notation) {
+          notation.style.position = "fixed";
+          notation.style.top = "50%";
+          notation.style.left = "50%";
+          notation.style.transform = savedTransform;
+        }
+      }
       if (!canvas) {
         canvas = document.createElement("canvas");
         canvas.id = "animationCanvas";
@@ -1576,18 +1978,202 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       window.addEventListener("resize", resizeCanvas);
       animateCircles();
       resetInactivityTimer();
-      const now = new Date();
-      const hour = now.getHours();
+      const storedName = localStorage.getItem("userName");
+      const welcomeMessage = document.getElementById("welcomeMessage");
+      const hour = new Date().getHours();
       let greeting;
       if (hour >= 6 && hour < 12) {
-        greeting = "Guten Morgen!";
+        greeting = "Guten Morgen";
       } else if (hour >= 12 && hour < 17) {
-        greeting = "Guten Tag!";
+        greeting = "Guten Tag";
       } else {
-        greeting = "Guten Abend!";
+        greeting = "Guten Abend";
       }
-      document.getElementById("welcomeMessage").innerHTML = greeting + "<br>Schön, dass du da bist!";
-      setTimeout(proceedToMainScreen, 5000);
+
+      if (storedName !== null) {
+        welcomeMessage.innerHTML = `${greeting}, ${storedName || ""}<br> Willkommen zurück.<br>`;
+        welcomeMessage.style.cursor = "pointer";
+        welcomeMessage.addEventListener("click", () => {
+          const storedName = localStorage.getItem("userName");
+          if (storedName !== null) {
+            const nameOverlay = document.createElement("div");
+            nameOverlay.id = "nameOverlay";
+            nameOverlay.style.position = "fixed";
+            nameOverlay.style.top = "0";
+            nameOverlay.style.left = "0";
+            nameOverlay.style.width = "100%";
+            nameOverlay.style.height = "100%";
+            nameOverlay.style.backgroundColor = "rgba(255,255,255,0.95)";
+            nameOverlay.style.display = "flex";
+            nameOverlay.style.justifyContent = "center";
+            nameOverlay.style.alignItems = "center";
+            nameOverlay.style.zIndex = "9999";
+            nameOverlay.style.pointerEvents = "auto";
+
+            const modal = document.createElement("div");
+            modal.style.background = "#fff";
+            modal.style.padding = "20px";
+            modal.style.border = "2px solid #000";
+            modal.style.borderRadius = "10px";
+            modal.style.textAlign = "center";
+
+            const label = document.createElement("label");
+            label.textContent = "Wie heißt du?";
+            label.style.fontSize = "1.5em";
+
+            const input = document.createElement("input");
+            input.type = "text";
+            input.value = storedName;
+            input.style.display = "block";
+            input.style.margin = "15px auto";
+            input.style.fontSize = "1.2em";
+            input.style.padding = "5px";
+            input.style.pointerEvents = "auto";
+            input.tabIndex = 0;
+            // Prevent typing in name input from affecting the game
+            input.addEventListener('keydown', e => e.stopPropagation());
+            input.addEventListener('keyup',   e => e.stopPropagation());
+            input.addEventListener('keypress',e => e.stopPropagation());
+            input.addEventListener('input',   e => e.stopPropagation());
+
+            const button = document.createElement("button");
+            button.textContent = "Speichern";
+            button.style.padding = "10px 20px";
+            button.style.border = "2px solid #000";
+            button.style.borderRadius = "5px";
+            button.style.backgroundColor = "#fff";
+            button.style.color = "#000";
+            button.style.cursor = "pointer";
+
+            const skip = document.createElement("button");
+            skip.textContent = "Keinen Namen anzeigen";
+            skip.style.padding = "10px 20px";
+            skip.style.border = "2px solid #000";
+            skip.style.borderRadius = "5px";
+            skip.style.backgroundColor = "#fff";
+            skip.style.color = "#000";
+            skip.style.cursor = "pointer";
+
+            button.addEventListener("click", () => {
+              localStorage.setItem("userName", input.value.trim());
+              document.body.removeChild(nameOverlay);
+              location.reload();
+            });
+
+            skip.addEventListener("click", () => {
+              localStorage.setItem("userName", "");
+              document.body.removeChild(nameOverlay);
+              location.reload();
+            });
+
+            modal.appendChild(label);
+            modal.appendChild(input);
+            modal.appendChild(button);
+            modal.appendChild(skip);
+            nameOverlay.appendChild(modal);
+            document.body.appendChild(nameOverlay);
+          }
+        });
+        welcomeMessage.style.fontSize = "2em";
+        setTimeout(proceedToMainScreen, 5000);
+      } else {
+        document.getElementById("mainContent").style.opacity = "0";
+        document.getElementById("timerContainer").style.opacity = "0";
+        document.getElementById("settingsPanel").style.opacity = "0";
+
+        const nameOverlay = document.createElement("div");
+        nameOverlay.id = "nameOverlay";
+        nameOverlay.style.position = "fixed";
+        nameOverlay.style.top = "0";
+        nameOverlay.style.left = "0";
+        nameOverlay.style.width = "100%";
+        nameOverlay.style.height = "100%";
+        nameOverlay.style.backgroundColor = "rgba(255,255,255,0.95)";
+        nameOverlay.style.display = "flex";
+        nameOverlay.style.justifyContent = "center";
+        nameOverlay.style.alignItems = "center";
+        nameOverlay.style.zIndex = "9999";
+        nameOverlay.style.pointerEvents = "auto";
+
+        const modal = document.createElement("div");
+        modal.style.background = "#fff";
+        modal.style.padding = "20px";
+        modal.style.border = "2px solid #000";
+        modal.style.borderRadius = "10px";
+        modal.style.textAlign = "center";
+
+        const label = document.createElement("label");
+        label.textContent = "Wie heißt du?";
+        label.style.fontSize = "1.5em";
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.style.display = "block";
+        input.style.margin = "15px auto";
+        input.style.fontSize = "1.2em";
+        input.style.padding = "5px";
+        input.style.pointerEvents = "auto";
+        input.tabIndex = 0;
+        // Prevent typing in name input from affecting the game
+        input.addEventListener('keydown', e => e.stopPropagation());
+        input.addEventListener('keyup',   e => e.stopPropagation());
+        input.addEventListener('keypress',e => e.stopPropagation());
+        input.addEventListener('input',   e => e.stopPropagation());
+
+        const button = document.createElement("button");
+        button.textContent = "Weiter";
+        button.style.fontSize = "1em";
+        button.style.marginRight = "10px";
+        button.style.padding = "10px 20px";
+        button.style.border = "none";
+        button.style.borderRadius = "5px";
+        button.style.backgroundColor = "#fff";
+        button.style.color = "#000";
+        button.style.border = "2px solid #000";
+        button.disabled = true;
+        button.style.opacity = "0.8";
+        
+        input.addEventListener("input", () => {
+          const hasText = input.value.trim().length > 0;
+          button.disabled = !hasText;
+          button.style.opacity = hasText ? "1" : "0.8";
+        });
+
+        const skip = document.createElement("button");
+        skip.textContent = "Keinen Namen angeben";
+        skip.style.fontSize = "1em";
+        skip.style.padding = "10px 20px";
+        skip.style.border = "none";
+        skip.style.borderRadius = "5px";
+        skip.style.backgroundColor = "#fff";
+        skip.style.color = "#000";
+        skip.style.border = "2px solid #000";
+
+        button.addEventListener("click", () => {
+          localStorage.setItem("userName", input.value.trim());
+          document.body.removeChild(nameOverlay);
+          proceedToMainScreen();
+          document.getElementById("mainContent").style.opacity = "1";
+          document.getElementById("timerContainer").style.opacity = "1";
+          document.getElementById("settingsPanel").style.opacity = "1";
+        });
+
+        skip.addEventListener("click", () => {
+          localStorage.setItem("userName", "");
+          document.body.removeChild(nameOverlay);
+          proceedToMainScreen();
+          document.getElementById("mainContent").style.opacity = "1";
+          document.getElementById("timerContainer").style.opacity = "1";
+          document.getElementById("settingsPanel").style.opacity = "1";
+        });
+
+        modal.appendChild(label);
+        modal.appendChild(input);
+        modal.appendChild(button);
+        modal.appendChild(skip);
+        nameOverlay.appendChild(modal);
+        document.body.appendChild(nameOverlay);
+      }
       
       const settingsPanel = document.getElementById("settingsPanel");
       // Handtoggle
@@ -1602,6 +2188,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
           selectedMode = handOptions[currentHandIndex].mode;
           handToggle.textContent = handOptions[currentHandIndex].symbol;
           handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
+          window.customModeSettings = null;
           generateSeries();
         }
       });
@@ -1616,6 +2203,207 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
         generateSeries();
       });
       
+
+      
+      function showHomework() {
+        let modal = document.getElementById("homeworkModal");
+        if (!modal) {
+          modal = document.createElement("div");
+          modal.id = "homeworkModal";
+          Object.assign(modal.style, {
+            position: "fixed", top:"35%", right:"90px", width:"300px",
+            background:"white", border:"2px solid black", borderRadius:"10px",
+            padding:"20px", zIndex:"150"
+          });
+          document.body.appendChild(modal);
+        }
+        // Dynamisch Titel/Beschreibung wählen
+        // Automatischer Scan bei leerer Hausaufgabe
+        if (!homeworkData) {
+          openCameraScan().then(code => {
+            if (code && code.data) {
+              try {
+                homeworkData = JSON.parse(code.data);
+                localStorage.setItem("homeworkData", JSON.stringify(homeworkData));
+              } catch {
+                alert("Ungültiger QR-Code");
+              }
+            }
+            showHomework();
+          }).catch(() => {
+            // Scan abgebrochen oder Fehler – trotzdem das Modal anzeigen
+            showHomework();
+          });
+          return;
+        }
+        const title = homeworkData?.HA || "Keine HA";
+        const desc  = homeworkData?.Beschreibung || "";
+        modal.innerHTML = `
+          <h2>Hausaufgabe</h2>
+          <p><strong>Titel:</strong> ${title}</p>
+          <p><strong>Beschreibung:</strong> ${desc}</p>
+          <button id="hwReceive">HA erhalten</button>
+          <button id="hwSend">HA senden</button>
+        `;
+        // Button-Listener
+        document.getElementById("hwReceive").addEventListener("click", () => {
+          openCameraScan().then(code => {
+            if (code && code.data) {
+              try {
+                homeworkData = JSON.parse(code.data);
+                localStorage.setItem("homeworkData", JSON.stringify(homeworkData));
+              } catch {
+                alert("Ungültiger QR-Code");
+              }
+            }
+            showHomework();
+          });
+        });
+      // Overlay Camera Scan: openCameraScan implementation
+      function openCameraScan() {
+        return new Promise((resolve, reject) => {
+          // Create overlay
+          let scanOverlay = document.createElement("div");
+          Object.assign(scanOverlay.style, {
+            position: "fixed", top:"20%", left:"10%", width:"80%", height:"60%",
+            background:"rgba(0,0,0,0.8)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:"2000"
+          });
+          scanOverlay.id = "scanOverlay";
+          // Create video element
+          let video = document.createElement("video");
+          video.setAttribute("autoplay", true);
+          video.setAttribute("playsinline", true);
+          video.style.width = "100%";
+          video.style.height = "100%";
+          video.style.objectFit = "cover";
+          // Add close button
+          let closeBtn = document.createElement("button");
+          closeBtn.textContent = "Abbrechen";
+          closeBtn.style.position = "absolute";
+          closeBtn.style.top = "10px";
+          closeBtn.style.right = "10px";
+          closeBtn.style.zIndex = "2100";
+          closeBtn.style.padding = "8px 16px";
+          closeBtn.style.background = "white";
+          closeBtn.style.border = "1px solid #000";
+          closeBtn.style.borderRadius = "6px";
+          closeBtn.style.cursor = "pointer";
+          closeBtn.addEventListener("click", () => {
+            if (video.srcObject) {
+              video.srcObject.getTracks().forEach(track => track.stop());
+            }
+            document.body.removeChild(scanOverlay);
+            reject(new Error("Scan cancelled"));
+          });
+          scanOverlay.appendChild(video);
+          scanOverlay.appendChild(closeBtn);
+          document.body.appendChild(scanOverlay);
+          // Access camera
+          navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(stream => {
+            video.srcObject = stream;
+            // Use a QR scanner library or implement simple scanning
+            // For now, simulate scan after 3 seconds
+            // In real code, integrate a QR code library such as jsQR or html5-qrcode
+            setTimeout(() => {
+              // Stop camera
+              stream.getTracks().forEach(track => track.stop());
+              document.body.removeChild(scanOverlay);
+              // Simulate a QR result object
+              resolve({ data: '{"HA":"Beispiel","Beschreibung":"Test"}' });
+            }, 3000);
+          }).catch(err => {
+            document.body.removeChild(scanOverlay);
+            alert("Kamera konnte nicht geöffnet werden: " + err);
+            reject(err);
+          });
+        });
+      }
+        document.getElementById("hwSend").addEventListener("click", () => {
+          modal.innerHTML = `
+            <h2>Hausaufgabe erstellen</h2>
+            <label>Titel:<br><input id="newHA" value="${homeworkData?.HA||""}"></label><br>
+            <label>Beschreibung:<br><textarea id="newDesc">${homeworkData?.Beschreibung||""}</textarea></label><br>
+            <button id="generateQR">QR-Code erstellen</button>
+          `;
+          // Prevent HA input from affecting the notation/game
+          const haInput = document.getElementById("newHA");
+          const descInput = document.getElementById("newDesc");
+          [haInput, descInput].forEach(el => {
+            el.addEventListener('keydown', e => e.stopPropagation());
+            el.addEventListener('keyup',   e => e.stopPropagation());
+            el.addEventListener('keypress',e => e.stopPropagation());
+            el.addEventListener('input',   e => e.stopPropagation());
+          });
+          document.getElementById("generateQR").addEventListener("click", () => {
+            const obj = { HA: document.getElementById("newHA").value, Beschreibung: document.getElementById("newDesc").value };
+            modal.innerHTML = `<div id="qrContainer"></div>`;
+            new QRCode(document.getElementById("qrContainer"), { text: JSON.stringify(obj), width:200, height:200 });
+            localStorage.setItem("homeworkData", JSON.stringify(obj));
+          });
+        });
+      }
+
+      // Called by Swift after scanning QR code
+      function handleIncomingHomework() {
+        console.log("🏠 Received homeworkData from Swift:", window.homeworkData);
+        // Speichere es noch einmal ab – so verhält sich auch der Fallback-Mechanismus
+        localStorage.setItem("homeworkData", JSON.stringify(window.homeworkData));
+        // Öffne oder aktualisiere das Modal
+        showHomework();
+      }
+
+      // 🧙🏼 Wizard-Modus Toggle im Karussell
+      const wizardToggle = document.createElement("span");
+      wizardToggle.id = "wizardToggle";
+      wizardToggle.textContent = "🧙🏼";
+      wizardToggle.style.cursor = "pointer";
+      wizardToggle.style.opacity = "1";
+      settingsPanel.appendChild(wizardToggle);
+      let wizardMode = true;
+      // --- resetArticulationMode helper ---
+      function resetArticulationMode() {
+        articulationMode = null;
+        const clefTitle = document.getElementById("clefTitle");
+        if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
+        const notation = document.getElementById("notation");
+        if (notation) notation.style.display = "block";
+      }
+      wizardToggle.addEventListener("click", () => {
+        resetArticulationMode();
+        wizardMode = !wizardMode;
+        wizardToggle.style.opacity = wizardMode ? "1" : "0.5";
+      });
+      
+      const staccatoToggle = document.createElement("span");
+      staccatoToggle.id = "staccatoToggle";
+      staccatoToggle.textContent = "🥁";
+      staccatoToggle.style.cursor = "pointer";
+      staccatoToggle.style.opacity = "0.5";
+      settingsPanel.appendChild(staccatoToggle);
+
+      let staccatoModeActive = false;
+
+      staccatoToggle.addEventListener("click", () => {
+        staccatoModeActive = !staccatoModeActive;
+        articulationMode = staccatoModeActive ? "staccato" : null;
+        staccatoToggle.style.opacity = staccatoModeActive ? "1" : "0.5";
+        const clefTitle = document.getElementById("clefTitle");
+        if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
+        const notation = document.getElementById("notation");
+        if (notation) notation.style.display = staccatoModeActive ? "none" : "block";
+      });
+      
+      const blobToggle = document.createElement("span");
+      blobToggle.id = "blobToggle";
+      blobToggle.textContent = "🔆";
+      blobToggle.style.cursor = "pointer";
+      settingsPanel.appendChild(blobToggle);
+
+      blobToggle.addEventListener("click", () => {
+        resetArticulationMode();
+        blobsEnabled = !blobsEnabled;
+        blobToggle.textContent = blobsEnabled ? "🔆" : "🔅";
+      });
       
       // Pausen-Button
       function blinkGreenBackground() {
@@ -1639,17 +2427,104 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       
       
       
+      // Metronom-Ton (tick.mp3)
+      const metronomeSound = new Audio('tick.mp3');
       // Metronom-Toggle
+      // Metronom-Setup: Zustandsvariablen und Steuerfunktionen
+      let metronomeOn = false;
+      let metronomeInterval = 60000;         // Millisekunden pro Schlag, wird bei BPM-Änderung angepasst
+      let lastTickTime = Date.now();         // Zeitstempel des letzten Metronom-Schlags
+      let metronomeTimer;                    // Intervall-Timer für Metronom
+      let metronomeTolerance = 0;            // Fehlertoleranz (wird noch gesetzt)
+
+      // Startet das Metronom: aktualisiert lastTickTime bei jedem Schlag und spielt Ton ab
+      function startMetronome() {
+        if (metronomeTimer) clearInterval(metronomeTimer);
+        metronomeOn = true;
+        lastTickTime = Date.now();
+        metronomeTimer = setInterval(() => {
+          // Metronom-Ton abspielen
+          metronomeSound.currentTime = 0;
+          metronomeSound.play();
+          lastTickTime = Date.now();
+        }, metronomeInterval);
+      }
+
+      // Stoppt das Metronom
+      function stopMetronome() {
+        metronomeOn = false;
+        if (metronomeTimer) {
+          clearInterval(metronomeTimer);
+          metronomeTimer = null;
+        }
+      }
+
+      // Metronom-Container mit Emoji und BPM-Anzeige
+      const metronomeContainer = document.createElement("div");
+      metronomeContainer.style.display = "inline-block";
+      metronomeContainer.style.textAlign = "center";
+      settingsPanel.appendChild(metronomeContainer);
+
       const metronomeToggle = document.createElement("span");
       metronomeToggle.id = "metronomeToggle";
       metronomeToggle.textContent = "⏲️";
-      metronomeToggle.style.opacity = "0.5"; // an/off Anzeige: 0.5 = aus, 1 = an
-      settingsPanel.appendChild(metronomeToggle);
+      metronomeToggle.style.opacity = "0.5";
+      metronomeContainer.appendChild(metronomeToggle);
+
+      const bpmDisplay = document.createElement("span");
+      bpmDisplay.id = "bpmDisplay";
+      bpmDisplay.style.display = "block";
+      // const emojiWidth = metronomeToggle.getBoundingClientRect().width;
+      bpmDisplay.style.fontSize = "14px"; // feste Schriftgröße, frei anpassbar
+      bpmDisplay.style.fontWeight = "bold";
+      bpmDisplay.textContent = metronomeBPM > 0 ? metronomeBPM + " BPM" : "";
+      metronomeContainer.appendChild(bpmDisplay);
+      bpmDisplay.addEventListener("click", () => {
+        let existingInput = document.getElementById("bpmInput");
+        if (!existingInput) {
+          const input = document.createElement("input");
+          input.id = "bpmInput";
+          input.type = "number";
+          input.min = "1";
+          input.placeholder = metronomeBPM > 0 ? metronomeBPM : "";
+          Object.assign(input.style, {
+            backgroundColor: "white",
+            border: "1px solid #000",
+            width: "60px",
+            fontSize: "1em",
+            borderRadius: "5px",
+            outline: "none",
+            marginLeft: "5px"
+          });
+          metronomeContainer.appendChild(input);
+          input.focus();
+          input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+              const bpm = Number(input.value);
+              if (bpm > 0) {
+                metronomeBPM = bpm;
+                metronomeInterval = 60000 / bpm;
+                document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
+                metronomeTolerance = metronomeInterval * 0.3;
+                if (metronomeOn) startMetronome();
+                startMetronome();
+                metronomeToggle.style.opacity = "1";
+                metronomeOn = true;
+              }
+              input.remove();
+            }
+          });
+          input.addEventListener("blur", () => {
+            input.remove();
+          });
+        }
+      });
 metronomeToggle.addEventListener("click", () => {
   if (metronomeOn) {
     stopMetronome();
     metronomeOn = false;
     metronomeToggle.style.opacity = "0.5";
+    document.getElementById("bpmDisplay").textContent = "";
   } else {
     let existingInput = document.getElementById("bpmInput");
     if (!existingInput) {
@@ -1675,6 +2550,9 @@ metronomeToggle.addEventListener("click", () => {
           if (bpm > 0) {
             metronomeBPM = bpm;
             metronomeInterval = 60000 / bpm;
+            document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
+            metronomeTolerance = metronomeInterval * 0.3;
+            if (metronomeOn) startMetronome();
             startMetronome();
             metronomeToggle.style.opacity = "1";
             metronomeOn = true;
@@ -1690,7 +2568,22 @@ metronomeToggle.addEventListener("click", () => {
   }
 });
 
+      const kidsModeToggle = document.createElement("span");
+      kidsModeToggle.id = "kidsModeToggle";
+      kidsModeToggle.textContent = "🐝";
+      kidsModeToggle.style.cursor = "pointer";
+      kidsModeToggle.style.opacity = "0.5";
+      settingsPanel.appendChild(kidsModeToggle);
 
+      kidsModeToggle.addEventListener("click", () => {
+        deactivateStaccatoMode();
+        resetArticulationMode();
+        kidsMode = !kidsMode;
+        kidsModeToggle.style.opacity = kidsMode ? "1" : "0.5";
+        drawSeries();
+      });
+      
+      
       const customModeToggle = document.createElement("span");
       customModeToggle.id = "customModeToggle";
       customModeToggle.textContent = "🖍️";
@@ -1698,7 +2591,188 @@ metronomeToggle.addEventListener("click", () => {
       customModeToggle.style.marginTop = "10px";
       settingsPanel.appendChild(customModeToggle);
       customModeToggle.addEventListener("click", () => {
-        document.getElementById("customModeModal").classList.remove("hidden");
+        deactivateStaccatoMode();
+        resetArticulationMode();
+        const modal = document.getElementById("customModeModal");
+        modal.classList.toggle("hidden");
+
+        if (!modal.querySelector("#customModeContent")) {
+          const container = document.createElement("div");
+          container.id = "customModeContent";
+          container.style.marginTop = "10px";
+          modal.appendChild(container);
+
+          populateCustomNotes(); // Container existiert nun sicher
+        }
+      });
+      
+
+      // Move Notation Toggle
+      const moveNotationToggle = document.createElement("span");
+      moveNotationToggle.id = "moveNotationToggle";
+      moveNotationToggle.textContent = "📐";
+      settingsPanel.appendChild(moveNotationToggle);
+
+      let moveModeActive = false;
+      let currentX = 0, currentY = 0; // Persist position for storage
+      let startX = 0, startY = 0;
+      let isDragging = false;
+      let xGuide, yGuide, xLabel, yLabel;
+      let duringDrag, endDrag; // For removal of listeners
+
+      moveNotationToggle.addEventListener("click", () => {
+        deactivateStaccatoMode();
+        resetArticulationMode();
+        const notation = document.getElementById("notation");
+        // Drag-Cursor für Notation
+        notation.style.cursor = "grab";
+        // Ensure startX, startY are declared only once at top-level
+        if (!moveModeActive) {
+          moveModeActive = true;
+          // Show notation zoom controls in move mode
+          zoomInBtn.style.display = 'inline';
+          zoomOutBtn.style.display = 'inline';
+
+          // --- Add dynamic guide lines with percentage labels ---
+          xGuide = document.createElement("div");
+          xGuide.style.position = "fixed";
+          xGuide.style.top = "0";
+          xGuide.style.height = "100%";
+          xGuide.style.width = "1px";
+          xGuide.style.background = "blue";
+          xGuide.style.zIndex = "1999";
+          xGuide.style.left = "50%";
+          xGuide.style.transform = `translateX(${currentX}px)`;
+
+          yGuide = document.createElement("div");
+          yGuide.style.position = "fixed";
+          yGuide.style.left = "0";
+          yGuide.style.width = "100%";
+          yGuide.style.height = "1px";
+          yGuide.style.background = "blue";
+          yGuide.style.zIndex = "1999";
+          yGuide.style.top = "50%";
+          yGuide.style.transform = `translateY(${currentY}px)`;
+
+          xLabel = document.createElement("div");
+          xLabel.style.position = "fixed";
+          xLabel.style.top = "0";
+          xLabel.style.left = `calc(50% + ${currentX}px + 5px)`;
+          xLabel.style.color = "blue";
+          xLabel.style.fontSize = "12px";
+          xLabel.style.zIndex = "1999";
+          xLabel.textContent = `${Math.round((currentX / window.innerWidth) * 100)}%`;
+
+          yLabel = document.createElement("div");
+          yLabel.style.position = "fixed";
+          yLabel.style.left = "0";
+          yLabel.style.top = `calc(50% + ${currentY}px + 5px)`;
+          yLabel.style.color = "blue";
+          yLabel.style.fontSize = "12px";
+          yLabel.style.zIndex = "1999";
+          yLabel.textContent = `${Math.round((currentY / window.innerHeight) * 100)}%`;
+
+          document.body.appendChild(xGuide);
+          document.body.appendChild(yGuide);
+          document.body.appendChild(xLabel);
+          document.body.appendChild(yLabel);
+
+          // Save references for later removal
+          window._notationGuides = [xGuide, yGuide, xLabel, yLabel];
+
+          // --- Pointer-based drag functionality ---
+          startX = 0;
+          startY = 0;
+          // Try to restore from localStorage if exists
+          let saved = localStorage.getItem("notationTransform");
+          if (saved && saved.includes("translate(-50%, -50%) translate(")) {
+            // Try to extract px values
+            let match = saved.match(/translate\(-50%, -50%\)\s*translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
+            if (match) {
+              currentX = parseFloat(match[1]);
+              currentY = parseFloat(match[2]);
+            }
+          }
+          xGuide.style.transform = `translateX(${currentX}px)`;
+          yGuide.style.transform = `translateY(${currentY}px)`;
+          xLabel.style.left = `calc(50% + ${currentX}px + 5px)`;
+          xLabel.textContent = `${Math.round((currentX / window.innerWidth) * 100)}%`;
+          yLabel.style.top = `calc(50% + ${currentY}px + 5px)`;
+          yLabel.textContent = `${Math.round((currentY / window.innerHeight) * 100)}%`;
+          notation.style.position = "fixed";
+          notation.style.top = "50%";
+          notation.style.left = "50%";
+          notation.style.transform = `translate(-50%, -50%) translate(${currentX}px, ${currentY}px)`;
+
+          // Drag logic
+          const startDrag = (e) => {
+            isDragging = true;
+            notation.style.cursor = "grabbing";
+            const evt = e.touches ? e.touches[0] : e;
+            startX = evt.clientX;
+            startY = evt.clientY;
+            e.preventDefault();
+          };
+          duringDrag = (e) => {
+            if (!isDragging) return;
+            const evt = e.touches ? e.touches[0] : e;
+            const dx = evt.clientX - startX;
+            const dy = evt.clientY - startY;
+            currentX += dx;
+            currentY += dy;
+            startX = evt.clientX;
+            startY = evt.clientY;
+
+            xGuide.style.transform = `translateX(${currentX}px)`;
+            yGuide.style.transform = `translateY(${currentY}px)`;
+            xLabel.style.left = `calc(50% + ${currentX}px + 5px)`;
+            xLabel.textContent = `${Math.round((currentX / window.innerWidth) * 100)}%`;
+            yLabel.style.top = `calc(50% + ${currentY}px + 5px)`;
+            yLabel.textContent = `${Math.round((currentY / window.innerHeight) * 100)}%`;
+
+            notation.style.position = "fixed";
+            notation.style.top = "50%";
+            notation.style.left = "50%";
+            notation.style.transform = `translate(-50%, -50%) translate(${currentX}px, ${currentY}px)`;
+          };
+          endDrag = () => {
+            isDragging = false;
+            notation.style.cursor = "grab";
+          };
+
+          [xGuide, yGuide, xLabel, yLabel].forEach(el => {
+            el.style.touchAction = "none";
+            el.addEventListener("mousedown", startDrag);
+            el.addEventListener("touchstart", startDrag);
+          });
+          // Erlaube Ziehen direkt am Notations-DIV
+          notation.addEventListener("mousedown", startDrag);
+          notation.addEventListener("touchstart", startDrag, { passive: false });
+          window.addEventListener("mousemove", duringDrag);
+          window.addEventListener("touchmove", duringDrag);
+          window.addEventListener("mouseup", endDrag);
+          window.addEventListener("touchend", endDrag);
+
+        } else {
+          moveModeActive = false;
+          // Hide notation zoom controls when exiting move mode
+          zoomInBtn.style.display = 'none';
+          zoomOutBtn.style.display = 'none';
+          // Persist the final position when move mode is disabled
+          localStorage.setItem("notationTransform", `translate(-50%, -50%) translate(${currentX}px, ${currentY}px)`);
+          // Store the final position and clean up listeners and guides
+          if (window._notationGuides) {
+            [xGuide, yGuide, xLabel, yLabel] = window._notationGuides;
+            [xGuide, yGuide, xLabel, yLabel].forEach(el => {
+              if (el && el.parentElement) el.parentElement.removeChild(el);
+            });
+            window._notationGuides = null;
+          }
+          window.removeEventListener("mousemove", duringDrag);
+          window.removeEventListener("touchmove", duringDrag);
+          window.removeEventListener("mouseup", endDrag);
+          window.removeEventListener("touchend", endDrag);
+        }
       });
       
 document.getElementById("timerContainer").addEventListener("click", () => {
@@ -1731,6 +2805,7 @@ document.getElementById("timerContainer").addEventListener("click", () => {
         const num = parseInt(input.value, 10);
         if (!isNaN(num) && num > 0) {
           sessionCounter = num;
+          localStorage.setItem("sessionCounter", sessionCounter);
           updateTimer();
           if (sessionCounter === 0 && !sessionPaused) {
             startPauseCountdown();
@@ -1753,11 +2828,117 @@ document.getElementById("timerContainer").addEventListener("click", () => {
       darkModeToggle.id = "darkModeToggle";
       darkModeToggle.textContent = "🌙";
       settingsPanel.appendChild(darkModeToggle);
-      darkModeToggle.addEventListener("click", toggleDarkMode);
+      darkModeToggle.addEventListener("click", () => {
+        deactivateStaccatoMode();
+        resetArticulationMode();
+        toggleDarkMode();
+      });
+      blobToggle.addEventListener("click", () => {
+        deactivateStaccatoMode();
+        resetArticulationMode();
+        blobMode = !blobMode;
+        blobToggle.style.opacity = blobMode ? "1" : "0.5";
+        drawSeries();
+      });
+
+      wizardToggle.addEventListener("click", () => {
+        deactivateStaccatoMode();
+        resetArticulationMode();
+        wizardMode = !wizardMode;
+        wizardToggle.style.opacity = wizardMode ? "1" : "0.5";
+        drawSeries();
+      });
+
+      // Animated carousel using a sliding track
+      const carouselContainer = document.createElement('div');
+      carouselContainer.id = 'carouselContainer';
+      const carouselTrack = document.createElement('div');
+      carouselTrack.id = 'carouselTrack';
+      carouselContainer.appendChild(carouselTrack);
+      settingsPanel.appendChild(carouselContainer);
+      // Notation zoom controls
+      let notationZoom = parseFloat(localStorage.getItem('notationZoom')) || 1;
+      const zoomInBtn = document.createElement('span');
+      zoomInBtn.id = 'notationZoomIn';
+      zoomInBtn.textContent = '➕';
+      zoomInBtn.style.cursor = 'pointer';
+      settingsPanel.appendChild(zoomInBtn);
+      const zoomOutBtn = document.createElement('span');
+      zoomOutBtn.id = 'notationZoomOut';
+      zoomOutBtn.textContent = '➖';
+      zoomOutBtn.style.cursor = 'pointer';
+      settingsPanel.appendChild(zoomOutBtn);
+      // Hide zoom buttons by default
+      zoomInBtn.style.display = 'none';
+      zoomOutBtn.style.display = 'none';
+
+      // Zoom factor handlers
+      zoomInBtn.addEventListener('click', () => {
+        notationZoom *= 1.1;
+        localStorage.setItem('notationZoom', notationZoom);
+        drawSeries();
+      });
+      zoomOutBtn.addEventListener('click', () => {
+        notationZoom /= 1.1;
+        localStorage.setItem('notationZoom', notationZoom);
+        drawSeries();
+      });
+      const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle, moveNotationToggle, wizardToggle, staccatoToggle];
+      carouselButtons.forEach(btn => {
+        const item = document.createElement('div');
+        item.className = 'carouselItem';
+        item.appendChild(btn);
+        carouselTrack.appendChild(item);
+      });
+      let currentIndex = 0;
+      function updateCarousel() {
+        carouselTrack.style.transform = `translateX(-${currentIndex * 100}%)`;
+      }
+      updateCarousel();
+      carouselContainer.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX;
+      });
+      carouselContainer.addEventListener('touchend', e => {
+        const endX = e.changedTouches[0].clientX;
+        if (startX !== null) {
+          const deltaX = endX - startX;
+          if (deltaX < -30) {
+            currentIndex = (currentIndex + 1) % carouselButtons.length;
+          } else if (deltaX > 30) {
+            currentIndex = (currentIndex - 1 + carouselButtons.length) % carouselButtons.length;
+          }
+          updateCarousel();
+        }
+        startX = null;
+      });
+
+      // Speech bubble hint for carousel, only once
+      if (!localStorage.getItem('carouselHintShown')) {
+        const bubble = document.createElement('div');
+        bubble.className = 'speech-bubble';
+        bubble.innerHTML = '<span class="close-btn">×</span>Wische hier, um weitere Funktionen zu sehen!';
+        document.body.appendChild(bubble);
+        const pauseBtn = document.getElementById('pauseButton');
+        if (pauseBtn) {
+          // Wait one frame so bubble has its dimensions
+          requestAnimationFrame(() => {
+            const rect = pauseBtn.getBoundingClientRect();
+            const bubbleRect = bubble.getBoundingClientRect();
+            bubble.style.top = `${rect.top - bubbleRect.height - 10}px`;
+            bubble.style.left = `${rect.left + (rect.width - bubbleRect.width) / 2}px`;
+          });
+        }
+        bubble.querySelector('.close-btn').addEventListener('click', () => {
+          localStorage.setItem('carouselHintShown', 'true');
+          bubble.remove();
+        });
+      }
       // Scoreboard-Toggle
       
       autoSelectMode();
       generateSeries();
+      
+      
       
       updateHeartsDisplay();
       document.addEventListener("keydown", (event) => {
@@ -1765,16 +2946,6 @@ document.getElementById("timerContainer").addEventListener("click", () => {
       });
   
       
-      document.getElementById("userIDIcon").addEventListener("click", () => {
-        if (document.getElementById("userIDIcon").textContent === "🔒") {
-          localStorage.removeItem("storedUserID");
-          document.getElementById("userIDInput").value = "";
-          document.getElementById("userIDInput").focus();
-          document.getElementById("userIDIcon").textContent = "🖍️";
-          document.getElementById("createNewID").style.display = "inline";
-          document.getElementById("userIDStatus").textContent = "";
-        }
-      });
     });
                   
 let melodyContext = {
@@ -1794,47 +2965,38 @@ const generateSeries = () => {
   let seriesClef, chooseNote;
 
   // Prüfe, ob benutzerdefinierte Einstellungen aktiv sind
-  if (window.customModeSettings && window.customModeSettings.clef && window.customModeSettings.range) {
-    // Verwende die benutzerdefinierten Einstellungen
-    seriesClef = window.customModeSettings.clef; // z.B. 'treble' oder 'bass'
-    currentRange = window.customModeSettings.range; // Aktualisiere die globale Lage
-    // Wähle die Noten basierend auf der ausgewählten Hand (left/right)
-    let customNotes = (selectedMode === "left") ? window.customModeSettings.leftNotes : window.customModeSettings.rightNotes;
-    // Fallback, falls keine Noten ausgewählt wurden
-    if (!customNotes || customNotes.length === 0) {
-      if (currentRange === "MC") {
-        customNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
-      } else if (currentRange === "D") {
-        customNotes = ["d", "e", "f#", "g", "a"];
-      } else {
-        customNotes = rangeNotes[currentRange];
-      }
-    }
-    
+  if (
+    window.customModeSettings &&
+    window.customModeSettings.selectedNotes &&
+    window.customModeSettings.selectedNotes.length > 0 &&
+    window.customModeSettings.clef
+  ) {
+    // Benutzerdefinierter Modus aktiv
+    seriesClef = window.customModeSettings.clef;
+    currentRange = window.customModeSettings.range;
+    const customNotes = window.customModeSettings.selectedNotes;
+
     chooseNote = () => {
-      if (errorNotes.length > 0 && Math.random() < 0.6) {
-        const idx = errorNotes.findIndex(note => note.clef === seriesClef);
-        if (idx !== -1) {
-          return errorNotes.splice(idx, 1)[0];
-        }
-      }
       const randomIndex = Math.floor(Math.random() * customNotes.length);
-      const chosenNote = customNotes[randomIndex];
-      let noteOctave;
-      if (currentRange === "MC") {
-        noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
-      } else {
-        noteOctave = seriesClef === "bass" ? 3 : 4;
-      }
+      const chosenNoteRaw = customNotes[randomIndex];
+      // Remove apostrophes for base note (e.g. c', c'')
+      let baseNote = chosenNoteRaw.replace(/'+/g, "").toLowerCase();
+      let apostrophes = (chosenNoteRaw.match(/'/g) || []).length;
+      let noteOctave = (seriesClef === "bass") ? 2 : 4;
+      noteOctave += apostrophes;
+
       let accidental = undefined;
       if (["F", "G"].includes(currentRange)) {
-        if (currentRange === "F" && chosenNote.includes("b") && chosenNote !== "b") {
-          accidental = chosenNote;
-        } else if (currentRange === "G" && (chosenNote.includes("#") || (chosenNote.includes("b") && chosenNote !== "b"))) {
-          accidental = chosenNote;
+        if (currentRange === "F" && baseNote === "bb") {
+          accidental = "b";
+        } else if (currentRange === "F" && baseNote.includes("b") && baseNote !== "b") {
+          accidental = baseNote;
+        } else if (currentRange === "G" && (baseNote.includes("#") || (baseNote.includes("b") && baseNote !== "b"))) {
+          accidental = baseNote;
         }
       }
-      return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
+
+      return { note: baseNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
     };
 
   } else {
@@ -1876,23 +3038,28 @@ const generateSeries = () => {
       }
       let defaultNotes;
       if (currentRange === "MC") {
-        defaultNotes = seriesClef === "bass" ? ["f", "g", "a", "b", "c"] : ["c", "d", "e", "f", "g"];
+        defaultNotes = seriesClef === "bass"
+          ? ["f", "g", "a", "b", "c"]
+          : ["c", "d", "e", "f", "g"];
       } else if (currentRange === "D") {
         defaultNotes = ["d", "e", "f#", "g", "a"];
+      } else if (currentRange === "F") {
+        defaultNotes = ["f", "g", "a", "bb", "c"];
       } else {
         defaultNotes = rangeNotes[currentRange];
       }
       const randomIndex = Math.floor(Math.random() * defaultNotes.length);
       const chosenNote = defaultNotes[randomIndex];
-      let noteOctave;
-      if (currentRange === "MC") {
-        noteOctave = seriesClef === "bass" ? (chosenNote === "c" ? 4 : 3) : 4;
-      } else {
-        noteOctave = seriesClef === "bass" ? 3 : 4;
+      let noteOctave = seriesClef === "bass" ? 3 : 4;
+      // F-Lage: ensure C is one octave higher in treble clef
+      if (currentRange === "F" && seriesClef === "treble" && chosenNote.toLowerCase() === "c") {
+        noteOctave = 5;
       }
       let accidental = undefined;
       if (["F", "G"].includes(currentRange)) {
-        if (currentRange === "F" && chosenNote.includes("b") && chosenNote !== "b") {
+        if (currentRange === "F" && chosenNote.toLowerCase() === "bb") {
+          accidental = "b";
+        } else if (currentRange === "F" && chosenNote.includes("b") && chosenNote !== "b") {
           accidental = chosenNote;
         } else if (currentRange === "G" && (chosenNote.includes("#") || (chosenNote.includes("b") && chosenNote !== "b"))) {
           accidental = chosenNote;
@@ -1908,19 +3075,29 @@ const generateSeries = () => {
   }
   drawSeries();
 };
+      
+      
                                             
 const drawSeries = () => {
+  const noteAnimals = {
+    "c": "🐱", "d": "🐳", "e": "🐷", "f": "🐟",
+    "g": "🐤", "a": "🦊", "b": "🐝", "bb": "🦁",
+    "f#": "🐙", "g#": "🐵", "d#": "🐭"
+  };
+
   const notationDiv = document.getElementById("notation");
   const baseWidth = 600;
   const ratio = window.devicePixelRatio || 1;
   const height = 300 * ratio;
   notationDiv.style.display = "block";
   notationDiv.innerHTML = "";
-  
-  // Erzeuge den Renderer und passe Größe an
+
   const renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
-  const zoomFactor = 1.4; // Zoom-Faktor anpassen
+  const baseZoom = 1.4;
+  const userZoom = parseFloat(localStorage.getItem('notationZoom')) || 1;
+  const zoomFactor = baseZoom * userZoom;
   renderer.resize(baseWidth * ratio * zoomFactor, height * zoomFactor);
+
   const svg = notationDiv.querySelector("svg");
   if (svg) {
     svg.setAttribute("width", baseWidth * zoomFactor);
@@ -1928,80 +3105,81 @@ const drawSeries = () => {
     svg.style.transform = `scale(${zoomFactor})`;
     svg.style.transformOrigin = "top left";
   }
+
   const context = renderer.getContext();
-  
-  // Erzeuge den Stave
   const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
   if (currentSeriesSingle.length) {
     stave.addClef(currentSeriesSingle[0].clef);
   }
-  
-  // Füge Key Signature (Vorzeichen) hinzu, je nach aktueller Lage
-  if (currentRange === "D") {
-    stave.addKeySignature("G");
-  } else if (currentRange === "F") {
-    stave.addKeySignature("F");
-  } else if (currentRange === "G") {
-    stave.addKeySignature("G");
-  }
-  
+
+  if (currentRange === "D") stave.addKeySignature("G");
+  else if (currentRange === "F") stave.addKeySignature("F");
+  else if (currentRange === "G") stave.addKeySignature("G");
+
   stave.setContext(context).draw();
-  
-  // Definiere noteDuration aus den benutzerdefinierten Einstellungen (Standard: "q")
-  const noteDuration = (window.customModeSettings && window.customModeSettings.noteValue) || "q";
-  
-  // Erzeuge die StaveNotes für die Serie (Notennamen bleiben unverändert, da die Vorzeichen über die Key Signature definiert werden)
+
+  const noteDuration = (window.customModeSettings && window.customModeSettings.noteValue === "8") ? "8" : "q";
   const noteOrder = ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"];
+
   const staveNotes = currentSeriesSingle.map(item => {
-    let noteName = item.note.toLowerCase();
-    // Falls wir nicht in den speziellen Lagen arbeiten, ersetze Unicode-Vorzeichen durch ASCII
-    if (!("D,F,G".includes(currentRange))) {
-      noteName = noteName.replace(/♯/g, "#").replace(/♭/g, "b");
-    }
+      let noteName = item.note.toLowerCase().replace(/♯/g, "#").replace(/♭/g, "b").replace(/^h$/, "b");
     const key = noteName + "/" + item.octave;
     const staveNote = new Vex.Flow.StaveNote({
       clef: item.clef,
       keys: [key],
       duration: noteDuration
+      
     });
+
     staveNote.setStyle({ fillStyle: item.color, strokeStyle: item.color });
-  
+
     const noteIndex = noteOrder.indexOf(noteName);
     const midiNumber = (item.octave + 1) * 12 + noteIndex;
-    let threshold;
-    if (item.clef === "treble") {
-      threshold = 71;
-    } else if (item.clef === "bass") {
-      threshold = 50;
-    } else {
-      threshold = 71;
-    }
-    if (midiNumber >= threshold) {
-      staveNote.setStemDirection(-1);
-    } else {
-      staveNote.setStemDirection(1);
-    }
-  
+    const threshold = item.clef === "bass" ? 50 : 71;
+    staveNote.setStemDirection(midiNumber >= threshold ? -1 : 1);
+
     return staveNote;
   });
-  
-  // Erstelle den Voice und erlaube unvollständige Stimmen
+
   const voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
   voice.setStrict(false);
   staveNotes.forEach(note => voice.addTickable(note));
   new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
   voice.draw(context, stave);
-  
-  // Dreieck-Indikator für die aktuell abgefragte Note
+
+  // 🐝 Kinder-Modus: Emojis auf die Notenköpfe setzen
+  if (kidsMode) {
+    const svg = notationDiv.querySelector("svg");
+    if (!svg) return;
+
+    svg.querySelectorAll(".note-emoji").forEach(el => el.remove());
+
+    staveNotes.forEach((note, index) => {
+      const coords = note.getModifierStartXY(Vex.Flow.Modifier.Position.LEFT, 0);
+      const emoji = noteAnimals[currentSeriesSingle[index].note.toLowerCase()] || "❓";
+      const centerX = coords.x + 8;
+      const centerY = coords.y - 2;
+
+      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      text.setAttribute("x", centerX);
+      text.setAttribute("y", centerY); // kleiner Feintuning-Wert
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("dominant-baseline", "middle");
+      text.setAttribute("font-size", "30"); // etwas größer als Notenkopf
+      text.setAttribute("class", "note-emoji");
+      text.textContent = emoji;
+      svg.appendChild(text);
+    });
+  }
+
+  // Dreieck-Markierung für aktive Note
   if (seriesCounter < staveNotes.length) {
     const activeNote = staveNotes[seriesCounter];
     if (activeNote && typeof activeNote.getBoundingBox === 'function') {
       const bbox = activeNote.getBoundingBox();
       if (bbox) {
-        // Berechne die Mitte der Note
         const noteX = bbox.getX() + bbox.getW() / 2;
         const triangleHeight = 5;
-        // Positioniere das Dreieck oberhalb des Notensystems mit ca. 20px Abstand
         const noteY = stave.getY() - 1 - triangleHeight;
         const triangleWidth = 10;
         const p1 = `${noteX - triangleWidth / 2},${noteY}`;
@@ -2014,9 +3192,14 @@ const drawSeries = () => {
       }
     }
   }
-  
-  // Falls Achtelnoten gewählt wurden, erzeugen wir Beams
-  if (noteDuration === "8") {
+
+  if (["8", "16", "32"].includes(noteDuration)) {
+    // Erzwinge Balken ohne Fähnchen für alle schnellen Notenwerte
+    staveNotes.forEach(note => {
+      note.setStemDirection(1);
+      // Entferne Flag-Modifikatoren (Fähnchen) aus allen schnellen Noten
+      note.modifiers = note.modifiers.filter(mod => mod.getCategory() !== 'flag');
+    });
     const beams = Vex.Flow.Beam.generateBeams(staveNotes);
     beams.forEach(beam => beam.setContext(context).draw());
   }
@@ -2025,8 +3208,9 @@ const drawSeries = () => {
     const isNoteCorrect = (midiInfo) => {
       const expected = currentSeriesSingle[seriesCounter];
       if (!expected) return false;
-      const playedNote = midiInfo.note.toLowerCase();
-      const expectedNote = expected.note.toLowerCase();
+    const normalizeNote = n => n.replace("♭", "b").replace("♯", "#").toLowerCase();
+    const playedNote = normalizeNote(midiInfo.note);
+    const expectedNote = normalizeNote(expected.note);
       return playedNote === expectedNote && midiInfo.octave === expected.octave;
     };
     const removeFromErrorNotes = (noteObj) => {
@@ -2077,92 +3261,245 @@ const drawSeries = () => {
         resetGame();
       };
       
-    const handleMIDIMessage = (status, data1, data2) => {
-      if (sessionPaused) return;
-      resetInactivityTimer();
-      if ((status & 0xf0) === 0x90 && data2 > 0) {
-        if (seriesCounter >= currentSeriesSingle.length) return;
-        let currentTime = Date.now();
-        let responseTime = currentTime - lastNoteTimestamp;
-        responseTimes.push(responseTime);
-        lastNoteTimestamp = currentTime;
-        const midiInfo = (() => {
-          const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
-          const octave = Math.floor(data1 / 12) - 1;
-          return { note: noteNames[data1 % 12], octave: octave };
-        })();
-        const playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note) + midiInfo.octave;
-        const noteDisplay = document.getElementById("noteNameDisplay");
-        totalAttempts++;
-        
-        if (isNoteCorrect(midiInfo)) {
-          // Standardfarbe für korrekte Noten: grün
-          let displayColor = "green";
-          if (metronomeOn) {
-            const currentTime = Date.now();
-            const actualInterval = currentTime - lastTickTime;
-            const tolerance = metronomeInterval * 0.3;
-            // Wenn zu schnell oder zu langsam gespielt wird, setze die Farbe auf gelb und zeige entsprechende Motivation
-            if (actualInterval < metronomeInterval - tolerance) {
-              displayColor = "orange";
-              showMotivation("Zu schnell! Langsamer spielen.");
-            } else if (actualInterval > metronomeInterval + tolerance) {
-              displayColor = "orange";
-              showMotivation("Zu langsam! Schneller spielen.");
-            } else {
-              clearMotivation();
-              showMotivation("Super! Weiter so!");
-            }
-          } else {
-            // Ohne Metronom: explizit grün
-            clearMotivation();
-            showMotivation("Super! Weiter so!");
-            displayColor = "green";
-          }
-          // Setze die Farbe im Noten-Objekt, damit sie auch beim Zeichnen verwendet wird
-          currentSeriesSingle[seriesCounter].color = displayColor;
-          
-          correctAnswers++;
-          correctNoteCount++;
-          removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
-          addCircle("positive");
-        if (noteDisplay) {
-          noteDisplay.innerHTML = '<span style="color:' + displayColor + ';">' + playedNoteDisplay + '</span>';
+let reverseAnimationTimeout;
+let menusHidden = false;
+function scheduleReverseAnimation() {
+  clearTimeout(reverseAnimationTimeout);
+  reverseAnimationTimeout = setTimeout(() => {
+        const settingsPanel = document.getElementById("settingsPanel");
+        const streakDisplay = document.getElementById("streakDisplay");
+        if (settingsPanel) {
+          settingsPanel.classList.remove("fly-out-right");
+          settingsPanel.classList.add("fly-in-right");
         }
-        sessionCounter--;
-          
+        if (streakDisplay) {
+          streakDisplay.classList.remove("fly-out-left");
+          streakDisplay.classList.add("fly-in-left");
+        }
+        menusHidden = false;
+      }, 2000);
+}
+// Für Staccato-Tracking
+let activeNotes = {};
+
+const handleMIDIMessage = (status, data1, data2) => {
+  if (sessionPaused) return;
+  // Animation beim Anschlagen einer Taste:
+  const settingsPanel = document.getElementById("settingsPanel");
+  const streakDisplay = document.getElementById("streakDisplay");
+  if (!menusHidden) {
+    if (settingsPanel) {
+      settingsPanel.classList.remove("fly-in-right", "fly-out-right");
+      void settingsPanel.offsetWidth;
+      settingsPanel.classList.add("fly-out-right");
+    }
+    if (streakDisplay) {
+      streakDisplay.classList.remove("fly-in-left", "fly-out-left");
+      void streakDisplay.offsetWidth;
+      streakDisplay.classList.add("fly-out-left");
+    }
+    menusHidden = true;
+  }
+  scheduleReverseAnimation();
+  if (metronomeOn) {
+    const now = Date.now();
+    const diff = now - lastTickTime;
+    if (Math.abs(diff) > metronomeTolerance) {
+      console.log(`MIDI außerhalb der Metronom-Toleranz: ${diff}ms`);
+      return;
+    }
+  }
+  resetInactivityTimer();
+
+  // NOTE-OFF für Staccato-Modus (auch NOTE-ON mit Velocity 0)
+  if (
+    (((status & 0xf0) === 0x80) ||
+     ((status & 0xf0) === 0x90 && data2 === 0)) &&
+    articulationMode === "staccato"
+  ) {
+    if (activeNotes[data1]) {
+      const noteData = activeNotes[data1];
+      checkArticulation(noteData.timestamp, Date.now(), noteData.velocity);
+      delete activeNotes[data1];
+    }
+    return;
+  }
+
+  // NOTE-ON
+  if ((status & 0xf0) === 0x90 && data2 > 0) {
+    let currentTime = Date.now();
+
+    if (articulationMode === "staccato") {
+      if (!activeNotes[data1]) {
+        activeNotes[data1] = { timestamp: currentTime, velocity: data2 };
+      }
+      return;
+    }
+
+    // Nur im Nicht-Artikulationsmodus fortfahren
+    if (seriesCounter >= currentSeriesSingle.length) return;
+    let responseTime = currentTime - lastNoteTimestamp;
+    responseTimes.push(responseTime);
+    lastNoteTimestamp = currentTime;
+    const midiInfo = (() => {
+      const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+      const octave = Math.floor(data1 / 12) - 1;
+      const rawNote = noteNames[data1 % 12];
+      const convertedNote = (rawNote === "a#") ? "bb" : rawNote;
+      return { note: convertedNote, octave: octave };
+    })();
+    let playedNoteDisplay;
+    if (kidsMode) {
+      const emojiMap = {
+        "c": "🐱", "d": "🐳", "e": "🐷", "f": "🐟",
+        "g": "🐤", "a": "🦊", "b": "🐝", "bb": "🦁",
+        "f#": "🐙", "g#": "🐵", "d#": "🐭"
+      };
+      playedNoteDisplay = emojiMap[midiInfo.note.toLowerCase()] || "❓";
+    } else {
+      playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note);
+    }
+    const noteDisplay = document.getElementById("noteNameDisplay");
+    totalAttempts++;
+    
+    if (isNoteCorrect(midiInfo)) {
+      // Standardfarbe für korrekte Noten: grün
+      let displayColor = "green";
+      if (metronomeOn) {
+        const currentTime = Date.now();
+        const actualInterval = currentTime - lastTickTime;
+        const tolerance = metronomeInterval * 0.3;
+        // Wenn zu schnell oder zu langsam gespielt wird, setze die Farbe auf gelb und zeige entsprechende Motivation
+        if (actualInterval < metronomeInterval - tolerance) {
+          displayColor = "orange";
+          showMotivation("Zu schnell! Langsamer spielen.");
+        } else if (actualInterval > metronomeInterval + tolerance) {
+          displayColor = "orange";
+          showMotivation("Zu langsam! Schneller spielen.");
         } else {
-          // Falsche Note: rot markieren
-          currentSeriesSingle[seriesCounter].color = "red";
-          errorNotes.push(currentSeriesSingle[seriesCounter]);
-          addCircle("negative");
-          if (noteDisplay) {
-            const correctRaw = currentSeriesSingle[seriesCounter].note;
-            const correctDisplay = (correctRaw === "b" ? "h" : correctRaw) + currentSeriesSingle[seriesCounter].octave;
-            noteDisplay.innerHTML = '<span style="color:red;">' + playedNoteDisplay + '</span> <span style="color:green;">' + correctDisplay + '</span>';
-          }
-          if (!unlimitedLives) {
-            hearts--;
-            updateHeartsDisplay();
-            if (hearts <= 0) { endGame(); return; }
-          }
+          clearMotivation();
+          showMotivation("Super! Weiter so!");
         }
-        
-        if (sessionCounter <= 0 && !sessionPaused) {
-          sessionCounter = 0;
-          updateTimer();
-          startLocalTimer();
+      } else {
+        // Ohne Metronom: explizit grün
+        clearMotivation();
+        showMotivation("Super! Weiter so!");
+        displayColor = "green";
+      }
+      // Setze die Farbe im Noten-Objekt, damit sie auch beim Zeichnen verwendet wird
+      currentSeriesSingle[seriesCounter].color = displayColor;
+      
+      correctAnswers++;
+      correctNoteCount++;
+      removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
+      addCircle("positive");
+    if (noteDisplay) {
+      noteDisplay.innerHTML = '<span style="color:' + displayColor + ';">' + playedNoteDisplay + '</span>';
+    }
+    sessionCounter--;
+      
+    } else {
+      // Falsche Note: rot markieren
+      currentSeriesSingle[seriesCounter].color = "red";
+      errorNotes.push(currentSeriesSingle[seriesCounter]);
+      addCircle("negative");
+    if (noteDisplay) {
+      const correctRaw = currentSeriesSingle[seriesCounter].note;
+      const correctDisplay = (correctRaw === "b" ? "h" : correctRaw);
+      if (kidsMode) {
+        const emojiMap = {
+          "c": "🐱", "d": "🐳", "e": "🐷", "f": "🐟",
+          "g": "🐤", "a": "🦊", "b": "🐝", "bb": "🦁",
+          "f#": "🐙", "g#": "🐵", "d#": "🐭"
+        };
+        const playedEmoji = emojiMap[midiInfo.note.toLowerCase()] || "❓";
+        const correctEmoji = emojiMap[correctRaw.toLowerCase()] || "❓";
+        noteDisplay.innerHTML = '<span style="color:red;">' + playedEmoji + ' hätte ' + correctEmoji + ' sein müssen</span>';
+      } else {
+        noteDisplay.innerHTML = '<span style="color:red;">' + playedNoteDisplay + '</span> <span style="color:black; font-size:1em; margin:0 5px;">&#8594;</span> <span style="color:green;">' + correctDisplay + '</span>';
+        // Wizard-Modus: Inline-Auswahl der Buchstaben anzeigen
+        if (wizardMode) {
+          // Dynamische Auswahl basierend auf Custom Mode Settings für die aktuelle Hand
+          const correctRaw = currentSeriesSingle[seriesCounter].note;
+          const correctLetter = (correctRaw.toUpperCase() === "B" ? "H" : correctRaw.toUpperCase());
+          // Determine available notes for current hand
+          const handNotes = (selectedMode === "left"
+            ? window.customModeSettings?.leftNotes
+            : window.customModeSettings?.rightNotes) || [];
+          const defaultNotes = ["C","D","E","F","G","A","H","C"];
+          const choices = handNotes.length > 0
+            ? handNotes.map(n => n.toUpperCase().replace("B", "H"))
+            : defaultNotes;
+          let html = `<span style="color:red;">${playedNoteDisplay}</span> <span style="color:black;">→</span> <span style="color:black; margin:0 5px;">?</span> <span style="color:black; margin:0 5px;"></span> `;
+          choices.forEach(letter => {
+            html += `<span class="correction-letter" style="opacity:0.5; margin:0 5px; cursor:pointer;">${letter}</span>`;
+          });
+          html += ` <span style="color:black; margin:0 5px;"></span>`;
+          noteDisplay.innerHTML = html;
+          // Klick-Handler für jeden Buchstaben
+          Array.from(noteDisplay.querySelectorAll('.correction-letter')).forEach(el => {
+            el.addEventListener('click', () => {
+              el.style.opacity = '1';
+              const selected = el.textContent;
+              if (selected === correctLetter) {
+                el.style.color = 'green';
+                // Markiere die Note im Notensystem
+                currentSeriesSingle[seriesCounter].color = 'green';
+                drawSeries();
+                // Als korrekte Note zählen
+                correctAnswers++;
+                correctNoteCount++;
+                removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
+                addCircle("positive");
+                // Counter reduzieren und Timer aktualisieren
+                sessionCounter--;
+                updateTimer();
+                // UI schließen und Fortschritt
+                noteDisplay.innerHTML = '';
+                correctionActive = false;
+                seriesCounter++;
+                if (seriesCounter < seriesLength) {
+                  queueRedraw();
+                } else {
+                  generateSeries();
+                }
+              } else {
+                el.style.color = 'red';
+                const correctEl = Array.from(noteDisplay.querySelectorAll('.correction-letter'))
+                  .find(e => e.textContent === correctLetter);
+                if (correctEl) {
+                  correctEl.style.color = 'orange';
+                  correctEl.style.opacity = '1';
+                }
+              }
+            });
+          });
           return;
         }
-        seriesCounter++;
-        if (seriesCounter >= seriesLength) {
-          generateSeries();
-        } else {
-          queueRedraw();
-        }
-        updateTimer();
       }
-    };
+    }
+      if (!unlimitedLives) {
+        hearts--;
+        updateHeartsDisplay();
+        if (hearts <= 0) { endGame(); return; }
+      }
+    }
+    
+    if (sessionCounter <= 0 && !sessionPaused) {
+      sessionCounter = 0;
+      updateTimer();
+      startLocalTimer();
+      return;
+    }
+    seriesCounter++;
+    if (seriesCounter >= seriesLength) {
+      generateSeries();
+    } else {
+      queueRedraw();
+    }
+    updateTimer();
+  }
+};
       const resetGame = () => {
         sessionCounter = 5;      // Counter auf 1000
         totalAttempts = 0;          // Zähler für gespielte Noten auf 0
@@ -2186,6 +3523,41 @@ const drawSeries = () => {
 
   // Funktion, die den Hintergrund für kurze Zeit grün färbt und danach wieder zurücksetzt
   
+  // --- checkArticulation Funktion ---
+  function checkArticulation(startTime, endTime, velocity) {
+    // Nur noch Staccato prüfen, Legato entfällt
+    let correct = false;
+    if (articulationMode === "staccato") {
+      correct = (endTime - startTime) < 350 && velocity > 30;
+    }
+
+  // Hilfsfunktion: Staccato-Modus deaktivieren
+  function deactivateStaccatoMode() {
+    articulationMode = null;
+    const notation = document.getElementById("notation");
+    if (notation) notation.style.display = "block";
+    const clefTitle = document.getElementById("clefTitle");
+    if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
+    const staccatoToggle = document.getElementById("staccatoToggle");
+    if (staccatoToggle) staccatoToggle.style.opacity = "0.5";
+  }
+    // Feedback
+    const clefTitle = document.getElementById("clefTitle");
+    if (correct) {
+      clefTitle.textContent = "Richtig!";
+      setTimeout(() => {
+        document.getElementById("clefTitle").textContent = "🥁 Staccato";
+      }, 700);
+    } else {
+      clefTitle.textContent = "Zu lang! Kürzer spielen.";
+    }
+  }
+  
+  function resetArticulationMode() {
+    articulationMode = null;
+    // ... ggf. weitere Rücksetzungen
+  }
+
   function checkOrientation() {
     const settingsPanel = document.getElementById("settingsPanel");
     if (!settingsPanel) return; // Falls das Element nicht existiert, beende die Funktion
@@ -2222,6 +3594,93 @@ const drawSeries = () => {
       midiAccess.inputs.forEach((input) => {
         console.log("🎹 Eingabegerät erkannt:", input.name);
         input.onmidimessage = ({ data }) => {
+          const vk = document.getElementById("virtualKeyboard");
+          const isVisible = vk && vk.style.display !== "none";
+          if (isVisible) return; // Ignore MIDI cable input when virtual keyboard is active
+
+          const [status, data1, data2] = data;
+          if ((status & 0xf0) === 0x90 && data2 > 0) {
+            handleMIDIMessage(status, data1, data2);
+          }
+        };
+      });
+
+      midiAccess.onstatechange = (event) => {
+        const port = event.port;
+        if (port.type === "input" && port.state === "connected") {
+          console.log("🔌 Neues Gerät verbunden:", port.name);
+          port.onmidimessage = ({ data }) => {
+            const vk = document.getElementById("virtualKeyboard");
+            const isVisible = vk && vk.style.display !== "none";
+            if (isVisible) return;
+            const [status, data1, data2] = data;
+            if ((status & 0xf0) === 0x90 && data2 > 0) {
+              handleMIDIMessage(status, data1, data2);
+            }
+          };
+        }
+      };
+    }).catch((err) => {
+      console.error("❌ MIDI Zugriff fehlgeschlagen:", err);
+    });
+  }
+
+  
+  function onMIDISuccess(midiAccess) {
+    // Alle vorhandenen MIDI-Eingänge initialisieren
+    midiAccess.inputs.forEach((input) => {
+      input.onmidimessage = (msg) => {
+        const vk = document.getElementById("virtualKeyboard");
+        const isVisible = vk && vk.style.display !== "none";
+        if (isVisible) return;
+
+        const [status, data1, data2] = msg.data;
+        if ((status & 0xf0) === 0x90 && data2 > 0) {
+          handleMIDIMessage(status, data1, data2);
+        }
+      };
+    });
+    // Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
+    midiAccess.onstatechange = (event) => {
+      const port = event.port;
+      console.log("MIDI-Gerätestatus hat sich geändert:", port.name, port.state);
+      if (port.state === "connected" && port.type === "input") {
+        port.onmidimessage = (msg) => {
+          const vk = document.getElementById("virtualKeyboard");
+          const isVisible = vk && vk.style.display !== "none";
+          if (isVisible) return;
+          const [status, data1, data2] = msg.data;
+          if ((status & 0xf0) === 0x90 && data2 > 0) {
+            handleMIDIMessage(status, data1, data2);
+          }
+        };
+      }
+    };
+  }
+  
+  function onMIDIFailure(error) {
+    console.error("Zugriff auf MIDI-Geräte fehlgeschlagen:", error);
+  }
+  
+</script>
+
+<script>
+  // Initialisiere MIDI-Zugriff (Web MIDI API)
+  function initMIDIAccess() {
+    if (!navigator.requestMIDIAccess) {
+      console.warn("Web MIDI API wird nicht unterstützt.");
+      return;
+    }
+
+    navigator.requestMIDIAccess({ sysex: false }).then((midiAccess) => {
+      console.log("✅ MIDI Access erfolgreich.");
+      midiAccess.inputs.forEach((input) => {
+        console.log("🎹 Eingabegerät erkannt:", input.name);
+        input.onmidimessage = ({ data }) => {
+          const vk = document.getElementById("virtualKeyboard");
+          const isVisible = vk && vk.style.display !== "none";
+          if (isVisible) return;
+
           const [status, data1, data2] = data;
           handleMIDIMessage(status, data1, data2);
         };
@@ -2232,6 +3691,9 @@ const drawSeries = () => {
         if (port.type === "input" && port.state === "connected") {
           console.log("🔌 Neues Gerät verbunden:", port.name);
           port.onmidimessage = ({ data }) => {
+            const vk = document.getElementById("virtualKeyboard");
+            const isVisible = vk && vk.style.display !== "none";
+            if (isVisible) return;
             const [status, data1, data2] = data;
             handleMIDIMessage(status, data1, data2);
           };
@@ -2242,8 +3704,6 @@ const drawSeries = () => {
     });
   }
 
-  document.addEventListener("DOMContentLoaded", initMIDIAccess);
-  
   function onMIDISuccess(midiAccess) {
     // Alle vorhandenen MIDI-Eingänge initialisieren
     midiAccess.inputs.forEach((input) => {
@@ -2268,23 +3728,20 @@ const drawSeries = () => {
   function onMIDIFailure(error) {
     console.error("Zugriff auf MIDI-Geräte fehlgeschlagen:", error);
   }
-  
-  document.addEventListener("DOMContentLoaded", function() {
-    initMIDIAccess();
-  });
+
+  // Direkt beim Parsen starten
+  initMIDIAccess();
   </script>
-<script>
-  // Versuche, Web Bluetooth zu initialisieren, falls verfügbar und Web MIDI nicht unterstützt wird
-  
-</script>
 <script>
     
     
     function startTutorialSequence() {
+      const savedName = localStorage.getItem("userName") || "";
+      const greeting = savedName ? `Hallo, ${savedName}!` : "Hallo!";
       const steps = [
-        ["Hallo!", "Du scheinst das erste Mal hier zu sein", "Lass uns dir zeigen, wie die App funktioniert"],
-        ["⚙️ Wir überprüfen, ob du zum Spielen startklar bist", "Das MIDI Kabel ist nicht verbunden", "✅ Danke!"],
-        ["Du kannst nun angezeigte Noten im Notensystem spielen.", "Hierzu gibt es folgende Einstellungsmöglichkeiten:", "✋ Auswahl der Hand", "🐇 Zufallsmodus oder 🖍️ Benutzerdefiniert", "🌙 Dark Mode", "⏲️ Metronom"],
+        [greeting, "Du scheinst das erste Mal hier zu sein ...", "...lass uns dir zeigen, wie die App funktioniert!"],
+        ["⚙️ Test: Spiele C4", "Bitte spiele C4 (MIDI-Note 60)", "✅ Super, weiter geht's!"],
+        ["Du kannst nun angezeigte Noten im Notensystem spielen.", "Hierzu gibt es folgende Einstellungsmöglichkeiten...", "✋ Auswahl der Hand", "🐇 Zufallsmodus oder 🖍️ Benutzerdefiniert", "🌙 Dark Mode", "⏲️ Metronom"],
         ["Soweit startklar?", "Viel Spaß beim Spielen!"]
       ];
 
@@ -2295,12 +3752,14 @@ const drawSeries = () => {
       tutorialOverlay.style.left = "0";
       tutorialOverlay.style.width = "100%";
       tutorialOverlay.style.height = "100%";
-      tutorialOverlay.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+      tutorialOverlay.style.backgroundColor = "#000";
       tutorialOverlay.style.zIndex = "3000";
       tutorialOverlay.style.display = "flex";
       tutorialOverlay.style.justifyContent = "center";
       tutorialOverlay.style.alignItems = "center";
       tutorialOverlay.style.color = "#FFF";
+      // Stack vertically
+      tutorialOverlay.style.flexDirection = "column";
 
       const tutorialTextContainer = document.createElement("div");
       tutorialTextContainer.id = "tutorialTextContainer";
@@ -2318,65 +3777,179 @@ const drawSeries = () => {
 
       let phase = 0;
       let index = 0;
+      let skipRequested = false;
+
+      // Wartet, bis das mittlere C (MIDI-Note 60) gespielt wird
+      function waitForMiddleC() {
+        return navigator.requestMIDIAccess({ sysex: false }).then(midiAccess => {
+          return new Promise(resolve => {
+            const handler = (e) => {
+              const [status, data1, data2] = e.data;
+              if ((status & 0xf0) === 0x90 && data2 > 0 && data1 === 60) {
+                resolve();
+                midiAccess.inputs.forEach(input => {
+                  input.removeEventListener('midimessage', handler);
+                });
+              }
+            };
+            midiAccess.inputs.forEach(input => {
+              input.addEventListener('midimessage', handler);
+            });
+          });
+        });
+      }
 
       function showNext() {
         if (phase >= steps.length) {
-          tutorialOverlay.remove();
-          document.getElementById("mainContent").style.display = "block";
-          document.getElementById("timerContainer").style.display = "flex";
-          document.getElementById("settingsPanel").style.display = "flex";
-          localStorage.setItem("tutorialCompleted", "true");
+          // Fade-Übergang zum Hauptscreen
+          tutorialOverlay.style.transition = "opacity 1s";
+          tutorialOverlay.style.opacity = "0";
+          const mainContent = document.getElementById("mainContent");
+          const timerContainer = document.getElementById("timerContainer");
+          const settingsPanel = document.getElementById("settingsPanel");
+          mainContent.style.display = "block";
+          timerContainer.style.display = "flex";
+          settingsPanel.style.display = "flex";
+          mainContent.style.opacity = "0";
+          timerContainer.style.opacity = "0";
+          settingsPanel.style.opacity = "0";
+          setTimeout(() => {
+            mainContent.style.transition = "opacity 1s";
+            timerContainer.style.transition = "opacity 1s";
+            settingsPanel.style.transition = "opacity 1s";
+            mainContent.style.opacity = "1";
+            timerContainer.style.opacity = "1";
+            settingsPanel.style.opacity = "1";
+          }, 50);
+          setTimeout(() => {
+            tutorialOverlay.remove();
+            localStorage.setItem("tutorialCompleted", "true");
+          }, 1050);
           return;
         }
-
         const step = steps[phase];
-        const message = step[index];
-
-        tutorialTextContainer.style.opacity = "0";
-        setTimeout(() => {
-          tutorialTextContainer.textContent = message;
-          tutorialTextContainer.style.opacity = "1";
-        }, 1000);
-
-        index++;
-        if (index < step.length) {
-          setTimeout(() => {
-            tutorialTextContainer.style.opacity = "0";
-            setTimeout(showNext, 1000);
-          }, 3000);
-        } else {
+        // Wenn alle Nachrichten dieser Phase durchlaufen sind, zur nächsten Phase wechseln
+        if (index >= step.length) {
           phase++;
           index = 0;
-          setTimeout(() => {
-            tutorialTextContainer.style.opacity = "0";
-            setTimeout(showNext, 1000);
-          }, 3000);
+          setTimeout(showNext, 500);
+          return;
         }
+        const message = step[index];
+        // Nachricht ausblenden
+        tutorialTextContainer.style.opacity = "0";
+        setTimeout(() => {
+          // Nachricht setzen und einblenden
+          tutorialTextContainer.textContent = message;
+          tutorialTextContainer.style.opacity = "1";
+          // Spezielle Phase 1, Nachricht 2: auf das mittlere C warten
+          if (phase === 1 && index === 1) {
+            // Reset skip flag and show skip button
+            skipRequested = false;
+            const skipBtn = document.createElement("button");
+            skipBtn.id = "tutorialSkipBtn";
+            skipBtn.textContent = "Überspringen";
+            skipBtn.style.marginTop = "20px";
+            // Style the skip button
+            skipBtn.style.backgroundColor = "#000";
+            skipBtn.style.color = "#FFF";
+            skipBtn.style.border = "1px solid #FFF";
+            skipBtn.style.padding = "0.5em 1em";
+            skipBtn.style.cursor = "pointer";
+            skipBtn.style.fontSize = "1em";
+            skipBtn.style.borderRadius = "4px";
+            skipBtn.style.boxShadow = "none";
+            skipBtn.style.backgroundImage = "none";
+            tutorialOverlay.appendChild(skipBtn);
+            skipBtn.addEventListener("click", () => {
+              skipRequested = true;
+              skipBtn.remove();
+              tutorialTextContainer.style.opacity = "0";
+              setTimeout(() => {
+                index++;
+                showNext();
+              }, 1000);
+            });
+            // Wait for middle C or skip
+            waitForMiddleC().then(() => {
+              skipBtn.remove();
+              if (!skipRequested) {
+                tutorialTextContainer.style.opacity = "0";
+                setTimeout(() => {
+                  index++;
+                  showNext();
+                }, 1000);
+              }
+            });
+          } else {
+            // Normales Weiterschalten nach 3 Sekunden
+            index++;
+            setTimeout(() => {
+              tutorialTextContainer.style.opacity = "0";
+              setTimeout(showNext, 1000);
+            }, 3000);
+          }
+        }, 1000);
       }
 
       showNext();
     }
+// Starte das Hilfe-/Tutorial-Fenster beim Laden, falls noch nicht abgeschlossen
+document.addEventListener("DOMContentLoaded", () => {
+  if (!localStorage.getItem('tutorialCompleted')) {
+    startTutorialSequence();
+  }
+});
 </script>
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
-    console.log("--- Schnittstellen-Überprüfung ---");
-    console.log("Web MIDI API: " + (navigator.requestMIDIAccess ? "verfügbar" : "nicht verfügbar"));
-    console.log("Web Bluetooth API: " + (navigator.bluetooth ? "verfügbar" : "nicht verfügbar"));
-    // Optional: Weitere Schnittstellen können hier hinzugefügt werden
-    console.log("Custom Prompt (window.webkit.messageHandlers.customPrompt): " + (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt ? "verfügbar" : "nicht verfügbar"));
-    console.log("---------------------------------");
-  });
-</script>
+<style>
+@keyframes flyOutRight {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(100%); }
+}
+@keyframes flyOutLeft {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-100%); }
+}
+.fly-out-right {
+  animation: flyOutRight 0.5s forwards;
+}
+.fly-out-left {
+  animation: flyOutLeft 0.5s forwards;
+}
+@keyframes flyInRight {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes flyInLeft {
+  from { opacity: 0; transform: translateX(-100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.fly-in-right {
+  animation: flyInRight 0.5s forwards;
+}
+.fly-in-left {
+  animation: flyInLeft 0.5s forwards;
+}
+</style>
+<style>
+  /* Weniger Abstand des Notensystems nach oben */
+  #notation {
+    margin-top: 10px;
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qwerty-hancock/0.7.2/qwerty-hancock.min.js"></script>
 </head>
 <body>
     <div id="streakDisplay"></div>
     <!-- Canvas für Animation (Hintergrund) -->
     <canvas id="animationCanvas"></canvas>
-    <!-- Audio-Element -->
+    <!-- Audio-Element (deaktiviert) -->
+    <!--
     <audio id="backgroundSound" autoplay>
         <source src="https://raw.githubusercontent.com/JP0024/piano.github.io/3d35e0a8d4eb3e018151018e36e225dc7a856ecd/mixkit-relaxing-harp-sweep-2628.wav" type="audio/wav">
             Dein Browser unterstützt das Audio-Element nicht.
     </audio>
+    -->
     <!-- Pause-Overlay -->
     <div id="pauseOverlay">
         <div id="pauseInfo">
@@ -2402,19 +3975,65 @@ const drawSeries = () => {
     <!-- Timer Container -->
     <div id="timerContainer"></div>
     <!-- Hauptinhalt -->
-    <div id="settingsPanel" style="position: fixed; top: 20%; right: 10px; background: rgba(255,255,255,0.8); padding: 10px; border: 1px solid #000; z-index: 200;"></div>
+    <div id="settingsPanel" style="position: fixed; top: 20%; right: 10px; background: rgba(255,255,255,0.8); padding: 10px; border: 1px solid #000; border-radius: 8px; z-index: 200;"></div>
     <div id="mainContent">
+        <div id="staccatoPercentDisplay" style="
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          font-size: 3em;
+          font-weight: bold;
+          z-index: 1000;
+          display: none;
+          color: #333;">
+        </div>
        
         <div id="notation"></div>
-        <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase;"></div>
+        <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase; z-index: 1000; pointer-events: auto;"></div>
+        <div id="correctionBox" class="hidden">
+          <div id="correctionChoices">
+            <button id="prevNoteBtn">&lt;</button>
+            <span id="correctionNoteDisplay">&lt; ? &gt;</span>
+            <button id="nextNoteBtn">&gt;</button>
+          </div>
+          <button id="confirmNoteBtn">OK</button>
+        </div>
         <div id="buttonContainer">
-            <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
+            <div id="clefTitle">C-Lage</div>
             <div id="heartsContainer" style="margin-left:10px;"></div>
         </div>
     </div>
     <!-- Einstellungen-Menü -->
     
     <script>
+        function updateAccuracyMarker(deviationRatio) {
+          const display = document.getElementById("staccatoPercentDisplay");
+          if (!display) return;
+
+          const accuracy = Math.max(0, Math.min(100, 100 - Math.abs(deviationRatio * 100)));
+          display.textContent = `${Math.round(accuracy)}%`;
+          display.style.display = "block";
+
+          clearTimeout(display._hideTimeout);
+          display._hideTimeout = setTimeout(() => {
+            display.style.display = "none";
+          }, 1000);
+        }
+        
+        function checkArticulation(startTime, endTime, velocity) {
+          const expected = 300; // Ziel-Staccato-Zeit in ms
+          const actual = endTime - startTime;
+          const deviation = ((expected - actual) / expected) * 2;
+
+          const correct = actual < 350 && velocity > 30;
+          updateAccuracyMarker(deviation);
+
+          const clefTitle = document.getElementById("clefTitle");
+          if (clefTitle) {
+            clefTitle.textContent = correct ? "Richtig!" : "Zu lang!";
+          }
+        }
         /* Falls im Pause-Modus: Aktualisiere Fortschrittsbalken und verbleibende Zeit (mm:ss) */
         function updatePauseProgress() {
             const progressBar = document.getElementById("pauseProgress");
@@ -2557,104 +4176,188 @@ const drawSeries = () => {
         
     </script>
     <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // 1) Create hidden keyboard container
+      const vk = document.createElement("div");
+      vk.id = "virtualKeyboard";
+      vk.style.position = "fixed";
+      const bc = document.getElementById("buttonContainer");
+      const bottomOffset = bc.offsetHeight + 15;
+      vk.style.bottom = bottomOffset + "px";
+      vk.style.left = "20px";
+      vk.style.width = "calc(100% - 40px)";
+      vk.style.height = "200px";
+      vk.style.display = "none";
+      document.body.appendChild(vk);
+
+      // 2) Helper to convert note name to MIDI number
+      function noteToMidi(note) {
+        const semitones = { c:0, "c#":1, d:2, "d#":3, e:4, f:5, "f#":6, g:7, "g#":8, a:9, "a#":10, b:11 };
+        const m = note.match(/^([a-g]#?)(\d)$/i);
+        if (!m) return 60;
+        const pitch = m[1].toLowerCase();
+        const octave = parseInt(m[2], 10);
+        return (octave + 1) * 12 + semitones[pitch];
+      }
+
+      // 3) Initialize Qwerty Hancock keyboard
+      const keyboard = new QwertyHancock({
+        id: "virtualKeyboard",
+        width: window.innerWidth,
+        height: 200,
+        octaves: 1,
+        startNote: "C4",
+        whiteNotesColour: "#fff",
+        blackNotesColour: "#000",
+        hoverColour: "#f00"
+      });
+      keyboard.keyDown = (note, freq) => {
+        const vk = document.getElementById("virtualKeyboard");
+        const isVisible = vk && vk.style.display !== "none";
+        if (!isVisible) return; // Prevent double trigger when not actively visible
+        handleMIDIMessage(144, noteToMidi(note), 127);
+      };
+      keyboard.keyUp = () => {};
+
+      // 4) Add toggle button to settings panel
+      const btn = document.createElement("span");
+      btn.id = "keyboardToggle";
+      btn.textContent = "";
+      btn.style.cursor = "pointer";
+      const settingsPanel = document.getElementById("settingsPanel");
+      if (settingsPanel) settingsPanel.appendChild(btn);
+      btn.addEventListener("click", () => {
+        if (vk.style.display === "none") {
+          vk.style.display = "block";
+          const kbHeight = vk.offsetHeight;
+          document.getElementById("mainContent").style.marginBottom = kbHeight + "px";
+          const noteDisplay = document.getElementById("noteNameDisplay");
+          if (noteDisplay) noteDisplay.style.bottom = (kbHeight + 110) + "px";
+        } else {
+          vk.style.display = "none";
+          document.getElementById("mainContent").style.marginBottom = "0";
+          const noteDisplay = document.getElementById("noteNameDisplay");
+          if (noteDisplay) noteDisplay.style.bottom = "110px";
+        }
+      });
+    });
+    </script>
+    <script>
       
         
+        // Neuer Custom Mode JS (vereinfachte Version)
         document.addEventListener('DOMContentLoaded', function() {
-            const modal = document.getElementById('customModeModal');
-            if (!modal) return;
-            
-            let selectedCustomClef = null;
-            let selectedCustomRange = null;
-            
-            // Eventlistener für Schlüsselauswahl
-            document.querySelectorAll('.custom-mode-clef-option').forEach(el => {
-                el.addEventListener('click', () => {
-                    document.querySelectorAll('.custom-mode-clef-option').forEach(opt => opt.classList.remove('active'));
-                    el.classList.add('active');
-                    selectedCustomClef = el.getAttribute('data-clef');
-                    populateCustomNotes();
-                });
-            });
-            
-            // Eventlistener für Lagen-Auswahl
-            document.querySelectorAll('.custom-mode-range-option').forEach(el => {
-                el.addEventListener('click', () => {
-                    document.querySelectorAll('.custom-mode-range-option').forEach(opt => opt.classList.remove('active'));
-                    el.classList.add('active');
-                    selectedCustomRange = el.getAttribute('data-range');
-                    populateCustomNotes();
-                });
-            });
-            
-            // Definition der Notenzuordnungen für linke und rechte Hand
-            const customLeftNotesMapping = {
-                "C": ["C", "D", "E", "F", "G", "A"],
-                "D": ["D", "E", "F#", "G", "A", "B"],
-                "F": ["F", "G", "A", "Bb", "C", "D"],
-                "G": ["G", "A", "B", "C", "D", "E"],
-                "MC": ["F", "G", "A", "H", "C"]
-            };
-            const customRightNotesMapping = {
-                "C": ["C", "D", "E", "F", "G", "A"],
-                "D": ["D", "E", "F#", "G", "A", "B"],
-                "F": ["F", "G", "A", "Bb", "C", "D"],
-                "G": ["G", "A", "B", "C", "D", "E"],
-                "MC": ["F", "G", "A", "H", "C"]
-            };
-            
-            // Funktion, die basierend auf der gewählten Lage die Noten für linke und rechte Hand befüllt
-            function populateCustomNotes() {
-                if (!selectedCustomRange) return;
-                const leftContainer = document.getElementById('left-hand-notes');
-                const rightContainer = document.getElementById('right-hand-notes');
-                leftContainer.innerHTML = '';
-                rightContainer.innerHTML = '';
-                
-                customLeftNotesMapping[selectedCustomRange].forEach(note => {
-                    const noteEl = document.createElement('div');
-                    noteEl.className = 'custom-mode-note-option';
-                    noteEl.textContent = note;
-                    noteEl.setAttribute('data-note', note);
-                    noteEl.addEventListener('click', () => {
-                        noteEl.classList.toggle('active');
-                    });
-                    leftContainer.appendChild(noteEl);
-                });
-                
-                customRightNotesMapping[selectedCustomRange].forEach(note => {
-                    const noteEl = document.createElement('div');
-                    noteEl.className = 'custom-mode-note-option';
-                    noteEl.textContent = note;
-                    noteEl.setAttribute('data-note', note);
-                    noteEl.addEventListener('click', () => {
-                        noteEl.classList.toggle('active');
-                    });
-                    rightContainer.appendChild(noteEl);
-                });
+          const modal = document.getElementById('customModeModal');
+          if (!modal) return;
+
+          // 1. Neue Mapping-Struktur für Kombination von Schlüssel + Lage
+          const clefRangeMapping = {
+            bass: {
+              C: ["C", "D", "E", "F", "G", "A", "H"],
+              D: ["d", "e", "f#", "g", "a"],
+              F: ["f", "g", "a", "bb", "c"],
+              G: ["g", "a", "h", "c", "d"],
+              MC: ["c", "d", "e", "f", "g"]
+            },
+            treble: {
+              C: ["c'", "d'", "e'", "f'", "g'", "a'", "h'"],
+              D: ["d'", "e'", "f#'", "g'", "a'"],
+              F: ["f'", "g'", "a'", "bb'", "c''"],
+              G: ["g'", "a'", "h'", "c''", "d''"],
+              MC: ["c'", "d'", "e'", "f'", "g'"]
             }
-            
-            // Eventlistener für den Speichern-Button
-            const saveButton = document.querySelector('.custom-mode-save button');
-            if (saveButton) {
-                saveButton.addEventListener('click', () => {
-                    const activeClef = document.querySelector('.custom-mode-clef-option.active');
-                    const activeRange = document.querySelector('.custom-mode-range-option.active');
-                    const activeLeftNotes = document.querySelectorAll('#left-hand-notes .custom-mode-note-option.active');
-                    const activeRightNotes = document.querySelectorAll('#right-hand-notes .custom-mode-note-option.active');
-                    
-                    const settings = {
-                        clef: activeClef ? activeClef.getAttribute('data-clef') : null,
-                        range: activeRange ? activeRange.getAttribute('data-range') : null,
-                        leftNotes: Array.from(activeLeftNotes).map(el => el.getAttribute('data-note')),
-                        rightNotes: Array.from(activeRightNotes).map(el => el.getAttribute('data-note'))
-                    };
-                    
-                    console.log("Benutzerdefinierte Einstellungen:", settings);
-                    window.customModeSettings = settings;
-                    // Schließe das Modal
-                    modal.classList.add('hidden');
-                });
-            }
+          };
+
+          // 2. Neue globale Variablen
+          let selectedClef = null;
+          let selectedRange = null;
+
+          // 3. Statische Oktaven und Noten-Checkboxen beim Laden/erstmaligem Öffnen
+          const content = document.getElementById('customModeContent');
+          if (content) {
+            content.innerHTML = '';
+            const octaves = {
+              "große Oktave": ["C", "D", "E", "F", "G", "A", "H"],
+              "kleine Oktave": ["c", "d", "e", "f", "g", "a", "h"],
+              "eingestrichene Oktave": ["c'", "d'", "e'", "f'", "g'", "a'", "h'"],
+              "zweigestrichene Oktave": ["c''", "d''", "e''", "f''", "g''", "a''", "h''"],
+            };
+            Object.entries(octaves).forEach(([octaveName, notes]) => {
+              const headline = document.createElement('div');
+              headline.textContent = octaveName;
+              headline.style.fontWeight = "bold";
+              headline.style.marginTop = "10px";
+              content.appendChild(headline);
+              notes.forEach(note => {
+                const label = document.createElement('label');
+                label.style.marginRight = "8px";
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = note;
+                checkbox.checked = false;
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(note));
+                content.appendChild(label);
+              });
+            });
+          }
+
+          // 4. Zentrale Aktualisierungsfunktion für Checkboxen
+          function updateCustomModeCheckboxes() {
+            if (!selectedClef || !selectedRange) return;
+            const notesToActivate = clefRangeMapping[selectedClef][selectedRange] || [];
+            const checkboxes = document.querySelectorAll('#customModeContent input[type=checkbox]');
+            checkboxes.forEach(cb => {
+              cb.checked = notesToActivate.includes(cb.value);
+            });
+          }
+
+          // 5. Eventlistener für Lagen-Auswahl (Range)
+          document.querySelectorAll('.custom-mode-range-option').forEach(el => {
+            el.addEventListener('click', () => {
+              document.querySelectorAll('.custom-mode-range-option').forEach(opt => opt.classList.remove('active'));
+              el.classList.add('active');
+              selectedRange = el.getAttribute('data-range');
+              updateCustomModeCheckboxes();
+            });
+          });
+
+          // 6. Eventlistener für Schlüsselauswahl (Clef)
+          document.querySelectorAll('.custom-mode-clef-option').forEach(el => {
+            el.addEventListener('click', () => {
+              document.querySelectorAll('.custom-mode-clef-option').forEach(opt => opt.classList.remove('active'));
+              el.classList.add('active');
+              selectedClef = el.getAttribute('data-clef');
+              updateCustomModeCheckboxes();
+            });
+          });
+
+          // 7. Speichern-Button
+          const saveBtn = document.getElementById('custom-mode-save-button');
+          if (saveBtn) {
+              saveBtn.addEventListener('click', () => {
+                const content = document.getElementById('customModeContent');
+                if (!selectedClef || !selectedRange || !content) return;
+
+                const selected = Array.from(content.querySelectorAll('input[type=checkbox]'))
+                  .filter(cb => cb.checked)
+                  .map(cb => cb.value);
+
+                window.customModeSettings = {
+                  clef: selectedClef,
+                  range: selectedRange,
+                  selectedNotes: selected.map(n => n.replace(/'/g, "").toLowerCase()) // Achtung: ' entfernen
+                };
+
+                const clefTitle = document.getElementById("clefTitle");
+                if (clefTitle && selectedRange) {
+                  clefTitle.textContent = selectedRange + "-Lage";
+                }
+
+                generateSeries();
+                modal.classList.add('hidden');
+              });
+          }
         });
     </script>
     
@@ -2674,15 +4377,8 @@ const drawSeries = () => {
                 <div class="custom-mode-range-option" data-range="MC">MC</div>
             </div>
         </div>
-        <div class="custom-mode-row">
-            <div class="custom-mode-hand-label">Linke Hand</div>
-            <div class="custom-mode-note-set" id="left-hand-notes">
-                <!-- Noten werden dynamisch basierend auf der gewählten Lage eingefügt -->\n    </div>
-        </div>
-        <div class="custom-mode-row">
-            <div class="custom-mode-hand-label">Rechte Hand</div>
-            <div class="custom-mode-note-set" id="right-hand-notes">
-                <!-- Noten werden dynamisch basierend auf der gewählten Lage eingefügt -->\n    </div>
+        <div id="customModeContent" style="margin-top: 10px;">
+          <!-- Hier werden dynamisch Oktavennamen und Checkboxen eingefügt -->
         </div>
         <div class="custom-mode-row">
             <label for="noteValueCheckbox" style="font-weight: bold;">Wertvariation</label>
@@ -2728,14 +4424,14 @@ const drawSeries = () => {
             const customLeftNotesMapping = {
                 "C": ["C", "D", "E", "F", "G", "A"],
                 "D": ["D", "E", "F#", "G", "A", "B"],
-                "F": ["F", "G", "A", "Bb", "C", "D"],
+                "F": ["F", "G", "A", "Bb", "C"],
                 "G": ["G", "A", "B", "C", "D", "E"],
                 "MC": ["F", "G", "A", "B", "C"]
             };
             const customRightNotesMapping = {
                 "C": ["C", "D", "E", "F", "G", "A"],
                 "D": ["D", "E", "F#", "G", "A", "B"],
-                "F": ["F", "G", "A", "Bb", "C", "D"],
+                "F": ["F", "G", "A", "Bb", "C"],
                 "G": ["G", "A", "B", "C", "D", "E"],
                 "MC": ["F", "G", "A", "B", "C"]
             };
@@ -2811,9 +4507,140 @@ const drawSeries = () => {
             }
         });
         
+        function showCorrection(note, choices) {
+          correctionActive = true;
+          expectedNote = note;
+          availableNotes = choices;
+          selectedNoteIndex = 0;
+          updateCorrectionDisplay();
+          document.getElementById("correctionBox").classList.remove("hidden");
+        }
+
+        function updateCorrectionDisplay(result) {
+          const display = document.getElementById("correctionNoteDisplay");
+          const confirm = document.getElementById("confirmNoteBtn");
+          if (result === "correct") {
+            confirm.textContent = "🥳";
+          } else if (result === "wrong") {
+            confirm.textContent = "❌";
+          } else {
+            confirm.textContent = "OK";
+          }
+          display.textContent = `< ${availableNotes[selectedNoteIndex] || "?"} >`;
+        }
+
+        document.getElementById("prevNoteBtn").addEventListener("click", () => {
+          selectedNoteIndex = (selectedNoteIndex - 1 + availableNotes.length) % availableNotes.length;
+          updateCorrectionDisplay();
+        });
+
+        document.getElementById("nextNoteBtn").addEventListener("click", () => {
+          selectedNoteIndex = (selectedNoteIndex + 1) % availableNotes.length;
+          updateCorrectionDisplay();
+        });
+
+        document.getElementById("confirmNoteBtn").addEventListener("click", () => {
+          const selected = availableNotes[selectedNoteIndex];
+          if (selected === expectedNote) {
+            updateCorrectionDisplay("correct");
+            setTimeout(() => {
+              document.getElementById("correctionBox").classList.add("hidden");
+              correctionActive = false;
+              resetGame(); // oder nächster Schritt
+            }, 1000);
+          } else {
+            updateCorrectionDisplay("wrong");
+          }
+        });
+
+        function handleCorrectionInput(notePlayed) {
+          if (!correctionActive) return;
+          if (notePlayed === expectedNote) {
+            updateCorrectionDisplay("correct");
+            setTimeout(() => {
+              document.getElementById("correctionBox").classList.add("hidden");
+              correctionActive = false;
+              resetGame();
+            }, 1000);
+          } else {
+            updateCorrectionDisplay("wrong");
+          }
+        }
+        
+          function showCorrection(note, choices) {
+            correctionActive = true;
+            expectedNote = note;
+            availableNotes = choices;
+
+            let container = document.getElementById('correctionContainer');
+            if (!container) {
+              container = document.createElement('div');
+              container.id = 'correctionContainer';
+              Object.assign(container.style, {
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                background: '#fff',
+                padding: '20px',
+                border: '2px solid #000',
+                zIndex: '1000'
+              });
+              document.body.appendChild(container);
+            }
+            container.innerHTML = '';
+
+            choices.forEach(choice => {
+              const btn = document.createElement('div');
+              btn.textContent = choice.toUpperCase();
+              btn.className = 'correction-choice';
+              btn.addEventListener('click', () => {
+                if (btn.textContent === expectedNote.toUpperCase()) {
+                  btn.style.opacity = '1';
+                  btn.style.backgroundColor = 'green';
+                } else {
+                  btn.style.opacity = '1';
+                  btn.style.backgroundColor = 'red';
+                  const correctBtn = Array.from(container.children)
+                    .find(child => child.textContent === expectedNote.toUpperCase());
+                  if (correctBtn) correctBtn.style.backgroundColor = 'yellow';
+                }
+                setTimeout(() => {
+                  container.remove();
+                  correctionActive = false;
+                  resetGame();
+                }, 1000);
+              });
+              container.appendChild(btn);
+            });
+          }
+        
+        function checkArticulation(noteOnTime, noteOffTime, velocity) {
+          if (!articulationMode) return;
+
+          const duration = noteOffTime - noteOnTime;
+          let correct = false;
+
+          if (articulationMode === "staccato") {
+            correct = duration < 250 && velocity > 50;
+          } else if (articulationMode === "legato") {
+            correct = duration > 500 && velocity > 30;
+          }
+
+          if (correct) {
+            showMotivation("✅ Artikulation korrekt");
+          } else {
+            showMotivation("❌ Falsche Artikulation");
+          }
+        }
+        
+    
     </script>
     
 </body>
+</script>
+</head>
+<body>
 </html>
 
         
