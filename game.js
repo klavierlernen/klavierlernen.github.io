@@ -4,60 +4,78 @@ export const gameModule = {
     score: 0,
     streak: 0,
     hearts: 3,
-    twoHandMode: false,
-    articulationMode: null,
+    isGameActive: false,
+    currentNote: null,
     
-    // Series tracking
-    seriesCounterLeft: 0,
-    seriesCounterRight: 0,
-    currentSeriesLeft: [],
-    currentSeriesRight: [],
-
-    // Game Functions
-    updateScore(points) {
-        this.score += points;
-        this.updateStreak();
-        this.updateScoreboard();
+    // Game Settings
+    maxHearts: 3,
+    streakThreshold: 5,
+    
+    init(audioModule, uiModule) {
+        this.audio = audioModule;
+        this.ui = uiModule;
+        
+        // MIDI Handlers überschreiben
+        this.audio.onNoteOn = this.handleNoteOn.bind(this);
+        this.audio.onNoteOff = this.handleNoteOff.bind(this);
     },
 
-    updateStreak() {
-        // Implementation of streak logic
-    },
-
-    updateScoreboard() {
-        // Implementation of scoreboard update
+    startGame() {
+        this.resetGame();
+        this.isGameActive = true;
+        this.generateNewNote();
     },
 
     resetGame() {
         this.score = 0;
         this.streak = 0;
-        this.hearts = 3;
-        this.seriesCounterLeft = 0;
-        this.seriesCounterRight = 0;
-        this.currentSeriesLeft = [];
-        this.currentSeriesRight = [];
+        this.hearts = this.maxHearts;
+        this.isGameActive = false;
+        this.currentNote = null;
+        this.ui.updateDisplay(this);
     },
 
-    // Game Mode Functions
-    setTwoHandMode(enabled) {
-        this.twoHandMode = enabled;
+    handleNoteOn(note, velocity) {
+        if (!this.isGameActive || !this.currentNote) return;
+        
+        if (note === this.currentNote) {
+            this.score += 10;
+            this.streak++;
+            if (this.streak >= this.streakThreshold) {
+                this.ui.showMotivation("Großartig!");
+            }
+            this.generateNewNote();
+        } else {
+            this.hearts--;
+            this.streak = 0;
+            if (this.hearts <= 0) {
+                this.endGame();
+            }
+        }
+        
+        this.ui.updateDisplay(this);
     },
 
-    setArticulationMode(mode) {
-        this.articulationMode = mode;
+    handleNoteOff(note) {
+        // Optional: Implementiere Note-Off Logik
     },
 
-    // Statistics and Progress
-    saveStatistics() {
-        const statistics = {
-            score: this.score,
-            streak: this.streak,
-            date: new Date().toISOString()
-        };
-        // Implementation of statistics saving
+    generateNewNote() {
+        // Generiere eine zufällige Note (C4-C5)
+        this.currentNote = Math.floor(Math.random() * 13) + 60; // MIDI notes 60-72
+        this.ui.displayNote(this.currentNote);
     },
 
-    loadStatistics() {
-        // Implementation of statistics loading
+    endGame() {
+        this.isGameActive = false;
+        this.saveHighScore();
+        this.ui.showGameOver(this.score);
+    },
+
+    saveHighScore() {
+        const currentHighScore = localStorage.getItem('highScore') || 0;
+        if (this.score > currentHighScore) {
+            localStorage.setItem('highScore', this.score);
+        }
     }
 }; 

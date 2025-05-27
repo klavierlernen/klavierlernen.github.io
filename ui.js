@@ -1,78 +1,91 @@
 // UI Module
 export const uiModule = {
-    // UI State
-    isDarkMode: false,
-    isScoreboardVisible: false,
-
-    // UI Elements Cache
+    // UI Elements
     elements: {
-        canvas: null,
-        scoreboard: null,
+        score: null,
+        streak: null,
         hearts: null,
-        timer: null
+        noteDisplay: null,
+        gameOver: null,
+        motivation: null
     },
 
-    // Initialize UI
     init() {
         this.cacheElements();
         this.setupEventListeners();
-        this.setupFadeEffects();
     },
 
     cacheElements() {
-        this.elements.canvas = document.getElementById('gameCanvas');
-        this.elements.scoreboard = document.getElementById('scoreboard');
-        this.elements.hearts = document.getElementById('hearts');
-        this.elements.timer = document.getElementById('timer');
+        this.elements.score = document.getElementById('scoreboardOverlay');
+        this.elements.streak = document.getElementById('streakDisplay');
+        this.elements.hearts = document.getElementById('heartsContainer');
+        this.elements.noteDisplay = document.getElementById('noteNameDisplay');
+        this.elements.gameOver = document.getElementById('gameOverOverlay');
+        this.elements.motivation = document.getElementById('motivationOverlay');
     },
 
-    // UI Update Functions
-    updateHeartsDisplay() {
-        // Implementation of hearts display update
+    setupEventListeners() {
+        // Event Listener für UI-Interaktionen
     },
 
-    updateTimer() {
-        // Implementation of timer update
+    updateDisplay(gameState) {
+        this.updateScore(gameState.score);
+        this.updateStreak(gameState.streak);
+        this.updateHearts(gameState.hearts);
     },
 
-    showMotivation(message) {
-        // Implementation of motivation message display
-    },
-
-    clearMotivation() {
-        // Implementation of motivation message clearing
-    },
-
-    // Canvas Functions
-    resizeCanvas() {
-        if (this.elements.canvas) {
-            this.elements.canvas.width = window.innerWidth;
-            this.elements.canvas.height = window.innerHeight;
+    updateScore(score) {
+        if (this.elements.score) {
+            this.elements.score.textContent = `Score: ${score}`;
         }
     },
 
-    // Animation Functions
-    addCircle(type) {
-        // Implementation of circle animation
+    updateStreak(streak) {
+        if (this.elements.streak) {
+            this.elements.streak.textContent = `Streak: ${streak}`;
+        }
     },
 
-    animateCircles() {
-        // Implementation of circle animations
+    updateHearts(hearts) {
+        if (this.elements.hearts) {
+            this.elements.hearts.innerHTML = '❤️'.repeat(hearts);
+        }
     },
 
-    // Dark Mode Toggle
-    toggleDarkMode() {
-        this.isDarkMode = !this.isDarkMode;
-        document.body.classList.toggle('dark-mode', this.isDarkMode);
+    displayNote(midiNote) {
+        if (this.elements.noteDisplay) {
+            const noteName = this.getMIDINoteName(midiNote);
+            this.elements.noteDisplay.textContent = noteName;
+        }
     },
 
-    // Event Listeners
-    setupEventListeners() {
-        window.addEventListener('resize', () => this.resizeCanvas());
-        // Add other event listeners
+    getMIDINoteName(midiNote) {
+        const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const noteName = noteNames[midiNote % 12];
+        const octave = Math.floor(midiNote / 12) - 1;
+        return `${noteName}${octave}`;
     },
 
-    setupFadeEffects() {
-        // Implementation of fade effects
+    showGameOver(finalScore) {
+        if (this.elements.gameOver) {
+            this.elements.gameOver.innerHTML = `
+                <div class="gameOverContent">
+                    <h2>Game Over!</h2>
+                    <p>Final Score: ${finalScore}</p>
+                    <button onclick="location.reload()">Play Again</button>
+                </div>
+            `;
+            this.elements.gameOver.style.display = 'flex';
+        }
+    },
+
+    showMotivation(message) {
+        if (this.elements.motivation) {
+            this.elements.motivation.textContent = message;
+            this.elements.motivation.style.display = 'block';
+            setTimeout(() => {
+                this.elements.motivation.style.display = 'none';
+            }, 2000);
+        }
     }
 }; 
