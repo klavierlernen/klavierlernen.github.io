@@ -2,32 +2,762 @@
 <html>
 <head>
    
-  <!-- Allgemeine Metadaten -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Klavier</title>
+  <!-- VexFlow laden -->
+  <link rel="manifest" href="https://raw.githubusercontent.com/JP0024/piano.github.io/main/manifest.json">
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <title>Klavier</title>
-  
-  <!-- GitHub Dateien laden -->
-  <link rel="manifest" href="https://raw.githubusercontent.com/JP0024/piano.github.io/main/manifest.json">
-  <link rel="stylesheet" href="/piano.github.io/style.css">
-  <script src="/piano.github.io/module_allscripts.js"></script>
-  <!-- Externe Skripte laden -->
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+  <!-- canvas-confetti laden -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qwerty-hancock/0.7.2/qwerty-hancock.min.js"></script>
-
-  <!-- Schriften laden -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
       
-     
+      <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
       
+  <style>
+    /* Grundlayout */
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: #F8F8FF;
+      font-family: "Inter", sans-serif;
+      text-align: center;
+      transition: background-color 0.3s, color 0.3s;
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+    }
+
+    body.dark-mode {
+      background-color: #0A0A0A;
+      color: #e0e0e0;
+    }
+    /* Vollbild-Canvas für Animation (Hintergrund) */
+    #animationCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 5; /* niedriger als Menüs */
+      filter: blur(20px);
+      opacity: 0.2;
+      pointer-events: none;
+    }
+    /* Einhand-Notation (normaler Modus) */
+    /* Absolute Mitte mit minimalen Rändern */
+      #notation {
+        display: none;              /* bleibt durch JS gesteuert */
+        position: fixed;
+        top: 85%;
+        left: 65%;
+        transform: translate(-50%, -50%);
+        transform-origin: center center;
+        width: auto;
+        max-width: calc(100% - 10px); /* 5 px Rand links/rechts */
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+        z-index: 1;
+      }
+
+      @media screen and (max-width: 600px) {
+        #notation {
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          max-width: 90%;   /* 5 % Rand mobil */
+          padding: 0;
+        }
+      }
+    #notation svg {
+      width: 100%;
+      height: auto;
+      shape-rendering: crispEdges;
+      display: block;
+      margin: 0 auto;
+    }
+    #notation svg * {
+      vector-effect: non-scaling-stroke;
+    }
+    body.dark-mode #notation svg * {
+      stroke: #fff;
+      fill: #fff;
+    }
+    /* Motivationsfenster */
+    #motivationOverlay {
+      position: fixed;
+      top: 20%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 15;
+      pointer-events: none;
+      opacity: 0;
+      font-size: 2em;
+      color: #000;
+      text-shadow: none;
+    }
+    @keyframes floatFade {
+      0% { transform: translate(-50%, -50%) translateY(20px); opacity: 0; }
+      20% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translate(-50%, -50%) translateY(-20px); opacity: 0; }
+    }
+    .animate-motivation {
+      animation: floatFade 2.5s ease-out forwards;
+    }
+    /* Pause-Overlay */
+    #pauseOverlay {
+      position: fixed;
+      top: 15px;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #fff;
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+    }
+    /* Obere Info-Leiste im Pausenmodus */
+    #pauseInfo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #pauseHeader {
+      font-size: 2em;
+      font-weight: bold;
+      color: #000;
+      white-space: nowrap;
+    }
+    /* Fortschrittsbalken */
+    #pauseProgressContainer {
+      flex-grow: 1;
+      height: 20px;
+      border: 3px solid #000;
+      border-radius: 20px;
+      position: relative;
+      background: #fff;
+    }
+    #pauseProgress {
+      height: 100%;
+      width: 0%;
+      background: red;
+      border-radius: 20px;
+      transition: width 1s linear;
+    }
+    /* Verbleibende Zeit im Format mm:ss */
+    #pauseTime {
+      font-size: 14px;
+      color: #000;
+      white-space: nowrap;
+      margin-left: 10px;
+      font-weight: bold;
+    }
+    /* Kachelwand im Pausenmodus – Füllt den restlichen Raum wie eine Tapete */
+    #pauseTiles {
+      flex-grow: 1;
+      width: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      grid-auto-rows: 230px;
+      gap: 12px;
+      overflow-y: auto;
+    }
+    /* Variierende Kacheln (Mauerstein-Effekt) */
+    .tile:nth-child(3n) {
+      grid-row: span 2;
+    }
+    .tile:nth-child(4n) {
+      grid-column: span 2;
+    }
+    .tile {
+      background: #fff;
+      border: 3px solid #000;
+      border-radius: 20px;
+      padding: 15px;
+      font-size: 14px;
+      color: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+    .tileIcon {
+      font-size: 5em;
+      margin-bottom: 8px;
+    }
+    .tileTitle {
+      font-size: 3em;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .tileValue {
+      font-size: 2.5em;
+      font-weight: normal;
+    }
+    .barChart {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      width: 100%;
+      margin-top: 5px;
+      gap: 5px;
+    }
+    .bar {
+      width: 10%;
+      background-color: #007aff;
+      border-radius: 4px 4px 0 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      color: #fff;
+      font-size: 0.8em;
+    }
+    /* Game Over Overlay */
+    #gameOverOverlay {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      padding: 30px;
+      border-radius: 15px;
+      font-size: 2em;
+      white-space: pre-line;
+      display: none;
+    }
+    body.dark-mode #gameOverOverlay {
+      border: 3px solid #fff;
+    }
+    .hidden {
+      display: none !important;
+    }
+    /* Timer Container */
+    /* Timer Container */
+        #timerContainer {
+            font-weight: bold;
+          position: fixed;
+          right: 10px;
+          bottom: 48px;
+          font-size: 1.5em;
+          z-index: 100;
+          display: flex; /* Versteckt, bis der Intro-Modus beendet ist */
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          background: rgba(255, 255, 255, 0.8);
+          padding: 5px 10px;
+          border-radius: 5px;
+        }
+    /* Hauptinhalt */
+    #mainContent {
+      display: none;
+      position: relative;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.5s ease-in;
+      padding-bottom: 50px;
+    }
+    /* Einstellungen-Menü */
+    #settingsPanel {
+      /* Behalte deine Positionierung bei */
+      position: fixed;
+      top: 150%;
+      right: 20px;
+      display: none; /* wird später per JS auf 'flex' gesetzt */
+      flex-direction: column;
+      align-items: center;
+      z-index: 10;
+      border-radius: 10px;
+      width: 60px;
+
+      /* 3D-Optik */
+      background: white;               /* Heller Pastellton */
+      border: 2px solid black;         /* Passender Randton */
+      border-radius: 10px;
+      box-shadow:
+        0 6px 0 black,                 /* „fester“ Schatten für die 3D-Kante */
+        0 6px 6px rgba(0, 0, 0, 0.2);    /* Weicher Schlagschatten */
+      padding: 15px 24px;                /* Innenabstand */
+      margin: 8px;                       /* Außenabstand */
+      font-size: 1.2em;                  /* Schriftgröße */
+      text-align: center;
+      color: black;
+      box-sizing: border-box;
+
+      /* Animation/Übergänge beim Drücken */
+      transition: transform 0.2s, box-shadow 0.2s, opacity 0.5s ease;
+    }
+
+    /* ================================= */
+    /* 3D-Stil für das Lagen-Rechteck    */
+    /* ================================= */
+    #clefTitle {
+        text-transform: uppercase;
+        font-weight: bold;
+      background: #d0e8d0;
+      border: 2px solid #b7d3b7;
+      border-radius: 8px;
+      box-shadow:
+        0 6px 0 black,
+        0 6px 6px rgba(0, 0, 0, 0.2);
+      padding: 16px 24px;
+      margin: 8px;
+      font-size: 1.2em;
+      text-align: center;
+      color: #333;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    #clefTitle:active {
+      transform: translateY(6px);
+      box-shadow:
+        0 0 0 #abc9ab,
+        0 6px 6px rgba(0, 0, 0, 0.2);
+    }
+    body.dark-mode #settingsPanel {
+      background: #000;
+      border-color: #fff;
+    }
+    #settingsPanel span {
+      display: block;
+      cursor: pointer;
+      font-size: 1.8em;
+      margin: 8px 0;
+      padding: 2px;
+      text-align: center;
+      background: none;
+      border: none;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    #settingsPanel span:hover {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 10px;
+    }
+    @keyframes float {
+      0% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+      100% { transform: translateY(0); }
+    }
+    
+    /* Lagewechsel-Button */
+    #clefTitle {
+      display: inline-block;
+      background: #fff;
+      border: 3px solid #000;
+      border-radius: 20px;
+      padding: 10px 20px;
+      font-size: 1.5em;
+      color: #000;
+      cursor: pointer;
+      transition: all 0.5s ease;
+      animation: float 3s ease-in-out infinite;
+    }
+    body.dark-mode #clefTitle {
+      background: #000;
+      border-color: #fff;
+      color: #fff;
+    }
+    /* Neuer Pausen-Button im Menü */
+    #pauseButton {
+      display: inline-block;
+      background: #fff;
+      border: 3px solid #000;
+      border-radius: 20px;
+      padding: 10px 20px;
+      font-size: 1.5em;
+      color: #000;
+      cursor: pointer;
+      transition: all 0.5s ease;
+      margin-top: 10px;
+    }
+    body.dark-mode #pauseButton {
+      background: #000;
+      border-color: #fff;
+      color: #fff;
+    }
+    /* Container für Button & Herzen */
+    #buttonContainer {
+      position: fixed;
+      left: 50%;
+      bottom: 30px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      z-index: 50;
+    }
+    #heartsContainer {
+      display: inline-block;
+      margin-left: 10px;
+      vertical-align: middle;
+      font-size: 1.5em;
+    }
+    /* Notenname-Anzeige (normaler Modus) */
+    #noteNameDisplay {
+      margin-top: 10px;
+      font-size: 24px;
+      color: #000;
+      text-transform: uppercase;
+    }
+    body.dark-mode #noteNameDisplay { color: #e0e0e0; }
+    /* Welcome Overlay */
+    #welcomeOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1000;
+      transition: opacity 0.5s ease-out;
+      background-color: transparent;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-image: url("https://raw.githubusercontent.com/jp0024/piano.github.io/main/hintergrund.svg");
+      background-size: cover;
+      background-position: center;
+    }
+    #welcomeMessage {
+      font-size: 2.5em;
+      color: white;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+    body.dark-mode #welcomeMessage { color: #e0e0e0; }
+    
+    .bar-chart-container {
+      display: flex;
+      justify-content: space-between;
+      gap: 4px;
+      width: 100%;
+      padding: 10px;
+      height: 120px; /* Gesamthöhe inkl. Label */
+    }
+
+    .bar-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+    }
+
+    .bar {
+      width: 100%;
+      background: linear-gradient(to top, black, grey);
+      border-radius: 4px 4px 0 0;
+      transition: height 0.5s ease-in-out;
+    }
+
+    .bar-label {
+      margin-top: 4px;
+      font-size: 0.9em;
+      text-align: center;
+      color: #000;
+    }
+      
+      /* Beispiel: Klasse für eine breite, aber nur 1 Zeile hohe Kachel */
+      .tile.span-2 {
+        grid-column: span 2;
+        /* Falls eine andere Regel (nth-child(3n)) sie hochskalieren würde, überschreiben wir das: */
+        grid-row: span 1 !important;
+      }
+      
+      body.dark-mode #pauseOverlay {
+        background: #121212; /* dunkler Hintergrund */
+      }
+
+      body.dark-mode #pauseHeader,
+      body.dark-mode #pauseTime {
+        color: white; /* helle Schrift */
+      }
+
+      body.dark-mode #pauseProgressContainer {
+        background: black; /* evtl. noch dunklerer Hintergrund für den Fortschrittsbalken */
+        border-color: white;
+      }
+      
+      .tile.span-2 {
+        grid-column: span 2;
+        grid-row: span 1 !important;
+      }
+      
+      #streakDisplay {
+        position: fixed;
+        left: 20px;
+        bottom: 30px;
+        font-size: 1.5em;
+        z-index: 50;
+      }
+      
+    @media screen and (max-width: 600px) {
   
+  /* Notensystem kürzen: Notation-Container anpassen */
+  #notation {
+    top: 60%;
+    max-width: 90%;
+    padding: 5px;
+  }
+  
+  /* Passe die Notenanzeige an (falls nötig) */
+  #noteNameDisplay {
+    font-size: 3em;
+    bottom: 80px; /* leicht nach oben verschieben, wenn nötig */
+  }
+  
+  /* Optional: Passe den Button-Container an, falls er zu groß ist */
+  #buttonContainer {
+    flex-direction: column;
+    bottom: 20px;
+  }
+}
+
+     
+     /* Custom Mode Modal Styles */
+     #customModeModal {
+         position: fixed;
+         top: 15%;
+         right: 90px; /* ca. 10px links vom Menü */
+         width: 400px;
+         background: white;
+         border: 2px solid black;
+         border-radius: 10px;
+         padding: 20px;
+         z-index: 150;
+     }
+     #customModeModal h2 {
+         margin-top: 0;
+         text-align: center;
+     }
+     .custom-mode-row {
+         display: flex;
+         justify-content: space-around;
+         margin-bottom: 15px;
+         flex-wrap: wrap;
+     }
+     .custom-mode-clef-container, .custom-mode-range-container, .custom-mode-note-set {
+         display: flex;
+         gap: 5px;
+     }
+.custom-mode-clef-option, .custom-mode-range-option, .custom-mode-note-option {
+    padding: 5px 10px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.3s;
+    font-weight: bold;
+}
+     .custom-mode-clef-option.active, .custom-mode-range-option.active, .custom-mode-note-option.active {
+         opacity: 1;
+     }
+     .custom-mode-hand-label {
+         align-self: center;
+         margin-right: 10px;
+         font-weight: bold;
+     }
+     .custom-mode-save {
+         text-align: center;
+         margin-top: 20px;
+     }
+     
+     .custom-mode-save button {
+         background: white;
+         border: 2px solid black;
+         border-radius: 8px;
+         padding: 10px 20px;
+         font-weight: bold;
+         cursor: pointer;
+         font-size: 1em;
+         color: #000;
+         transition: transform 0.2s, box-shadow 0.2s;
+     }
+     
+     .custom-mode-save button:active {
+         transform: translateY(6px);
+         box-shadow:
+           0 0 0 #abc9ab,
+           0 6px 6px rgba(0,0,0,0.2);
+     }
+     .hidden {
+         display: none !important;
+     }
+    /* Carousel Hint Speech Bubble */
+    .speech-bubble {
+      position: fixed;
+      width: 180px;
+      padding: 10px;
+      background: #fff;
+      border: 2px solid #000;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      font-size: 0.9em;
+      z-index: 1001;
+    }
+    .speech-bubble::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 10px 10px 0;
+      border-style: solid;
+      border-color: #fff transparent;
+    }
+    .speech-bubble .close-btn {
+      position: absolute;
+      top: 2px;
+      right: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    /* Carousel container and track */
+    #carouselContainer {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      overflow: hidden;
+      margin: 0 auto;
+    }
+    #carouselTrack {
+      display: flex;
+      height: 100%;
+      transition: transform 0.3s ease;
+    }
+    .carouselItem {
+      flex: 0 0 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+      
+      @keyframes flyOutRight {
+        to { opacity: 0; transform: translateX(100%); }
+      }
+      @keyframes flyOutLeft {
+        to { opacity: 0; transform: translateX(-100%); }
+      }
+      .fly-out-right {
+        animation: flyOutRight 0.5s forwards;
+      }
+      .fly-out-left {
+        animation: flyOutLeft 0.5s forwards;
+        
+      }
+      
+      #virtualKeyboard {
+        position: fixed;
+        top: 150%;
+        left: 30px;
+        right: 30px;
+        width: auto;
+        max-width: calc(100% - 60px);
+        height: 100px;
+        transform-origin: top center; /* Für skalierte Darstellung */
+      }
+
+      /* Real Piano Key Sizes */
+      #virtualKeyboard .white-key, #virtualKeyboard .white {
+        width: 23px !important;
+        height: 560px !important;
+      }
+
+      #virtualKeyboard .black-key, #virtualKeyboard .black {
+        width: 14px !important;
+        height: 80px !important;
+        margin-left: -7px;
+        margin-right: -7px;
+      }
+
+      /* Nur Touch-Interaktionen für die virtuelle Klaviatur erlauben */
+      @media (pointer: fine) {
+        #virtualKeyboard {
+          pointer-events: none;
+        }
+      }
+      @media (pointer: coarse) {
+        #virtualKeyboard {
+          pointer-events: auto;
+          margin: 0 20px; /* Abstand zu den Bildschirmrändern */
+        }
+      }
+      
+      /* Solange vk-active, behalten diese Elemente immer ihre Top-Position */
+      body.vk-active #timerContainer,
+      body.vk-active #streakDisplay,
+      body.vk-active #buttonContainer {
+        top: 30px !important;
+        bottom: auto !important;
+      }
+
+      /* Fehler-/Korrektur-Overlay ebenfalls immer von oben einblenden */
+      body.vk-active #pauseOverlay,
+      body.vk-active .correction {
+        top: 20px !important;
+        bottom: auto !important;
+      }
+      
+      #correctionBox {
+        position: fixed;
+        bottom: 20%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #fff;
+        border: 3px solid #000;
+        padding: 15px 30px;
+        border-radius: 15px;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+
+      #correctionChoices {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        font-size: 2em;
+      }
+
+      #correctionChoices button,
+      #confirmNoteBtn {
+        font-size: 1.5em;
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+      
+      
+        .correction-choice {
+          opacity: 0.5;
+          margin: 5px;
+          cursor: pointer;
+          display: inline-block;
+          padding: 5px;
+          border: 1px solid #000;
+          border-radius: 4px;
+        }
+    
+      
+  </style>
   <script>
       
       let twoHandMode = false;
@@ -1748,7 +2478,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       // const emojiWidth = metronomeToggle.getBoundingClientRect().width;
       bpmDisplay.style.fontSize = "14px"; // feste Schriftgröße, frei anpassbar
       bpmDisplay.style.fontWeight = "bold";
-      bpmDisplay.textContent = metronomeBPM > 0 ? metronomeBPM + " BPM" : "";
+      bpmDisplay.textContent = metronomeBPM > 0 ? metronomeBPM + " BPM" : "";
       metronomeContainer.appendChild(bpmDisplay);
       bpmDisplay.addEventListener("click", () => {
         let existingInput = document.getElementById("bpmInput");
@@ -1775,7 +2505,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
               if (bpm > 0) {
                 metronomeBPM = bpm;
                 metronomeInterval = 60000 / bpm;
-                document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
+                document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
                 metronomeTolerance = metronomeInterval * 0.3;
                 if (metronomeOn) startMetronome();
                 startMetronome();
@@ -1821,7 +2551,7 @@ metronomeToggle.addEventListener("click", () => {
           if (bpm > 0) {
             metronomeBPM = bpm;
             metronomeInterval = 60000 / bpm;
-            document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
+            document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
             metronomeTolerance = metronomeInterval * 0.3;
             if (metronomeOn) startMetronome();
             startMetronome();
@@ -2803,7 +3533,7 @@ const handleMIDIMessage = (status, data1, data2) => {
     }
 
   // Hilfsfunktion: Staccato-Modus deaktivieren
-  /* function deactivateStaccatoMode() {
+  function deactivateStaccatoMode() {
     articulationMode = null;
     const notation = document.getElementById("notation");
     if (notation) notation.style.display = "block";
@@ -2811,7 +3541,7 @@ const handleMIDIMessage = (status, data1, data2) => {
     if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
     const staccatoToggle = document.getElementById("staccatoToggle");
     if (staccatoToggle) staccatoToggle.style.opacity = "0.5";
-  } */
+  }
     // Feedback
     const clefTitle = document.getElementById("clefTitle");
     if (correct) {
@@ -3172,7 +3902,112 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 </script>
-<script>
+<style>
+@keyframes flyOutRight {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(100%); }
+}
+@keyframes flyOutLeft {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-100%); }
+}
+.fly-out-right {
+  animation: flyOutRight 0.5s forwards;
+}
+.fly-out-left {
+  animation: flyOutLeft 0.5s forwards;
+}
+@keyframes flyInRight {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes flyInLeft {
+  from { opacity: 0; transform: translateX(-100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.fly-in-right {
+  animation: flyInRight 0.5s forwards;
+}
+.fly-in-left {
+  animation: flyInLeft 0.5s forwards;
+}
+</style>
+<style>
+  /* Weniger Abstand des Notensystems nach oben */
+  #notation {
+    margin-top: 10px;
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qwerty-hancock/0.7.2/qwerty-hancock.min.js"></script>
+</head>
+<body>
+    <div id="streakDisplay"></div>
+    <!-- Canvas für Animation (Hintergrund) -->
+    <canvas id="animationCanvas"></canvas>
+    <!-- Audio-Element (deaktiviert) -->
+    <!--
+    <audio id="backgroundSound" autoplay>
+        <source src="https://raw.githubusercontent.com/JP0024/piano.github.io/3d35e0a8d4eb3e018151018e36e225dc7a856ecd/mixkit-relaxing-harp-sweep-2628.wav" type="audio/wav">
+            Dein Browser unterstützt das Audio-Element nicht.
+    </audio>
+    -->
+    <!-- Pause-Overlay -->
+    <div id="pauseOverlay">
+        <div id="pauseInfo">
+            <div id="pauseHeader">SESSION PAUSIERT</div>
+            <div id="pauseProgressContainer">
+                <div id="pauseProgress"></div>
+                <div id="pauseTime" style="position:absolute; left:0; top:0; font-size:14px; color:#000; padding:0 5px;"></div>
+            </div>
+        </div>
+        <!-- Kachelwand -->
+        <div id="pauseTiles"></div>
+    </div>
+    <!-- Welcome Overlay -->
+    <div id="welcomeOverlay">
+        <div id="welcomeMessage"><br>Schön, dass du da bist!<br></div>
+    </div>
+    <!-- Game Over Overlay -->
+    <div id="gameOverOverlay"></div>
+    <!-- Scoreboard Overlay -->
+    <div id="scoreboardOverlay" class="hidden"></div>
+    <!-- Motivationsfenster -->
+    <div id="motivationOverlay"></div>
+    <!-- Timer Container -->
+    <div id="timerContainer"></div>
+    <!-- Hauptinhalt -->
+    <div id="settingsPanel" style="position: fixed; top: 20%; right: 10px; background: rgba(255,255,255,0.8); padding: 10px; border: 1px solid #000; border-radius: 8px; z-index: 200;"></div>
+    <div id="mainContent">
+        <div id="staccatoPercentDisplay" style="
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          font-size: 3em;
+          font-weight: bold;
+          z-index: 1000;
+          display: none;
+          color: #333;">
+        </div>
+       
+        <div id="notation"></div>
+        <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase; z-index: 1000; pointer-events: auto;"></div>
+        <div id="correctionBox" class="hidden">
+          <div id="correctionChoices">
+            <button id="prevNoteBtn">&lt;</button>
+            <span id="correctionNoteDisplay">&lt; ? &gt;</span>
+            <button id="nextNoteBtn">&gt;</button>
+          </div>
+          <button id="confirmNoteBtn">OK</button>
+        </div>
+        <div id="buttonContainer">
+            <div id="clefTitle">C-Lage</div>
+            <div id="heartsContainer" style="margin-left:10px;"></div>
+        </div>
+    </div>
+    <!-- Einstellungen-Menü -->
+    
+    <script>
         function updateAccuracyMarker(deviationRatio) {
           const display = document.getElementById("staccatoPercentDisplay");
           if (!display) return;
@@ -3526,8 +4361,36 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         });
     </script>
-
-<script>
+    
+    <div id="customModeModal" class="hidden">
+        <h2>Benutzerdefiniert</h2>
+        <div class="custom-mode-row">
+            <!-- Notenschlüssel & Lagen-Auswahl -->
+            <div class="custom-mode-clef-container">
+                <div class="custom-mode-clef-option" data-clef="treble">🎼</div>
+                <div class="custom-mode-clef-option" data-clef="bass">𝄢</div>
+            </div>
+            <div class="custom-mode-range-container">
+                <div class="custom-mode-range-option" data-range="C">C</div>
+                <div class="custom-mode-range-option" data-range="D">D</div>
+                <div class="custom-mode-range-option" data-range="F">F</div>
+                <div class="custom-mode-range-option" data-range="G">G</div>
+                <div class="custom-mode-range-option" data-range="MC">MC</div>
+            </div>
+        </div>
+        <div id="customModeContent" style="margin-top: 10px;">
+          <!-- Hier werden dynamisch Oktavennamen und Checkboxen eingefügt -->
+        </div>
+        <div class="custom-mode-row">
+            <label for="noteValueCheckbox" style="font-weight: bold;">Wertvariation</label>
+            <input type="checkbox" id="noteValueCheckbox" />
+          </div>
+        <div class="custom-mode-save">
+            <button id="custom-mode-save-button">Speichern</button>
+        </div>
+    </div>
+    
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
             const modal = document.getElementById('customModeModal');
             if (!modal) {
@@ -3774,105 +4637,6 @@ document.addEventListener("DOMContentLoaded", () => {
         
     
     </script>
-    </head>
-<body>
-    <div id="streakDisplay"></div>
-    <!-- Canvas für Animation (Hintergrund) -->
-    <canvas id="animationCanvas"></canvas>
-    <!-- Audio-Element (deaktiviert) -->
-    <!--
-    <audio id="backgroundSound" autoplay>
-        <source src="https://raw.githubusercontent.com/JP0024/piano.github.io/3d35e0a8d4eb3e018151018e36e225dc7a856ecd/mixkit-relaxing-harp-sweep-2628.wav" type="audio/wav">
-            Dein Browser unterstützt das Audio-Element nicht.
-    </audio>
-    -->
-    <!-- Pause-Overlay -->
-    <div id="pauseOverlay">
-        <div id="pauseInfo">
-            <div id="pauseHeader">SESSION PAUSIERT</div>
-            <div id="pauseProgressContainer">
-                <div id="pauseProgress"></div>
-                <div id="pauseTime" style="position:absolute; left:0; top:0; font-size:14px; color:#000; padding:0 5px;"></div>
-            </div>
-        </div>
-        <!-- Kachelwand -->
-        <div id="pauseTiles"></div>
-    </div>
-    <!-- Welcome Overlay -->
-    <div id="welcomeOverlay">
-        <div id="welcomeMessage"><br>Schön, dass du da bist!<br></div>
-    </div>
-    <!-- Game Over Overlay -->
-    <div id="gameOverOverlay"></div>
-    <!-- Scoreboard Overlay -->
-    <div id="scoreboardOverlay" class="hidden"></div>
-    <!-- Motivationsfenster -->
-    <div id="motivationOverlay"></div>
-    <!-- Timer Container -->
-    <div id="timerContainer"></div>
-    <!-- Hauptinhalt -->
-    <div id="settingsPanel" style="position: fixed; top: 20%; right: 10px; background: rgba(255,255,255,0.8); padding: 10px; border: 1px solid #000; border-radius: 8px; z-index: 200;"></div>
-    <div id="mainContent">
-        <div id="staccatoPercentDisplay" style="
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          font-size: 3em;
-          font-weight: bold;
-          z-index: 1000;
-          display: none;
-          color: #333;">
-        </div>
-       
-        <div id="notation"></div>
-        <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase; z-index: 1000; pointer-events: auto;"></div>
-        <div id="correctionBox" class="hidden">
-          <div id="correctionChoices">
-            <button id="prevNoteBtn">&lt;</button>
-            <span id="correctionNoteDisplay">&lt; ? &gt;</span>
-            <button id="nextNoteBtn">&gt;</button>
-          </div>
-          <button id="confirmNoteBtn">OK</button>
-        </div>
-        <div id="buttonContainer">
-            <div id="clefTitle">C-Lage</div>
-            <div id="heartsContainer" style="margin-left:10px;"></div>
-        </div>
-    </div>
-    <!-- Einstellungen-Menü -->
-    
-    
-    
-    <div id="customModeModal" class="hidden">
-        <h2>Benutzerdefiniert</h2>
-        <div class="custom-mode-row">
-            <!-- Notenschlüssel & Lagen-Auswahl -->
-            <div class="custom-mode-clef-container">
-                <div class="custom-mode-clef-option" data-clef="treble">🎼</div>
-                <div class="custom-mode-clef-option" data-clef="bass">𝄢</div>
-            </div>
-            <div class="custom-mode-range-container">
-                <div class="custom-mode-range-option" data-range="C">C</div>
-                <div class="custom-mode-range-option" data-range="D">D</div>
-                <div class="custom-mode-range-option" data-range="F">F</div>
-                <div class="custom-mode-range-option" data-range="G">G</div>
-                <div class="custom-mode-range-option" data-range="MC">MC</div>
-            </div>
-        </div>
-        <div id="customModeContent" style="margin-top: 10px;">
-          <!-- Hier werden dynamisch Oktavennamen und Checkboxen eingefügt -->
-        </div>
-        <div class="custom-mode-row">
-            <label for="noteValueCheckbox" style="font-weight: bold;">Wertvariation</label>
-            <input type="checkbox" id="noteValueCheckbox" />
-          </div>
-        <div class="custom-mode-save">
-            <button id="custom-mode-save-button">Speichern</button>
-        </div>
-    </div>
-    
-    
     
 </body>
 </script>

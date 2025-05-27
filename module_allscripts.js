@@ -1,3 +1,5 @@
+
+      
 let twoHandMode = false;
 let seriesCounterLeft = 0;
 let seriesCounterRight = 0;
