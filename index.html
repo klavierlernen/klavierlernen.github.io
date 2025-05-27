@@ -4197,7 +4197,9 @@ document.addEventListener("DOMContentLoaded", () => {
                   <button class="clef-btn" data-clef="bass">Bassschlüssel</button>
                 </div>
                 <div class="staff-container">
-                  <canvas id="staffCanvas"></canvas>
+                  <div id="staffWrapper">
+                    <canvas id="staffCanvas"></canvas>
+                  </div>
                   <div class="range-controls">
                     <button id="upperRangeUp">↑</button>
                     <button id="upperRangeDown">↓</button>
@@ -4228,6 +4230,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 display: flex;
                 flex-direction: column;
                 gap: 20px;
+                background: white;
+                z-index: 1000;
+                position: relative;
               }
 
               .clef-selector {
@@ -4252,15 +4257,25 @@ document.addEventListener("DOMContentLoaded", () => {
               .staff-container {
                 position: relative;
                 height: 200px;
+                background: white;
                 border: 1px solid #ccc;
                 margin: 20px 0;
                 display: flex;
                 align-items: center;
               }
 
+              #staffWrapper {
+                width: 100%;
+                height: 100%;
+                position: relative;
+                overflow: visible;
+              }
+
               #staffCanvas {
                 width: 100%;
                 height: 100%;
+                display: block;
+                background: white;
               }
 
               .range-controls {
@@ -4270,6 +4285,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 display: flex;
                 flex-direction: column;
                 justify-content: space-around;
+                z-index: 1001;
               }
 
               .range-controls button {
@@ -4319,22 +4335,21 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
             document.head.appendChild(style);
 
-            // Zustandsvariablen
-            let currentClef = 'treble';
-            let upperNoteIndex = 2; // Start mit a'
-            let lowerNoteIndex = 6; // Start mit d'
-            let savedRanges = JSON.parse(localStorage.getItem('savedNoteRanges') || '[]');
-
             // Canvas-Setup
             const canvas = document.getElementById('staffCanvas');
             const ctx = canvas.getContext('2d');
 
             function drawStaff() {
+              // Debugging
+              console.log('Drawing staff...');
+              console.log('Canvas dimensions:', canvas.width, canvas.height);
+              
               // Canvas-Größe an Container anpassen
-              canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-              canvas.height = canvas.offsetHeight * window.devicePixelRatio;
-              canvas.style.width = canvas.offsetWidth + 'px';
-              canvas.style.height = canvas.offsetHeight + 'px';
+              const wrapper = document.getElementById('staffWrapper');
+              canvas.width = wrapper.offsetWidth * window.devicePixelRatio;
+              canvas.height = wrapper.offsetHeight * window.devicePixelRatio;
+              canvas.style.width = wrapper.offsetWidth + 'px';
+              canvas.style.height = wrapper.offsetHeight + 'px';
               
               // VexFlow Renderer erstellen
               const renderer = new Vex.Flow.Renderer(canvas, Vex.Flow.Renderer.Backends.CANVAS);
@@ -4344,7 +4359,7 @@ document.addEventListener("DOMContentLoaded", () => {
               context.clearRect(0, 0, canvas.width, canvas.height);
               
               // Notensystem erstellen
-              const stave = new Vex.Flow.Stave(10, 40, canvas.width / window.devicePixelRatio - 100);
+              const stave = new Vex.Flow.Stave(10, canvas.height/4, canvas.width/window.devicePixelRatio - 80);
               stave.addClef(currentClef);
               stave.setContext(context).draw();
 
@@ -4391,20 +4406,13 @@ document.addEventListener("DOMContentLoaded", () => {
               context.fillRect(60, startY, canvas.width - 160, endY - startY);
             }
 
-            // Größenanpassung bei Fensteränderung
-            window.addEventListener('resize', () => {
-              if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
-                drawStaff();
-              }
-            });
+            // Zustandsvariablen
+            let currentClef = 'treble';
+            let upperNoteIndex = 2; // Start mit a'
+            let lowerNoteIndex = 6; // Start mit d'
+            let savedRanges = JSON.parse(localStorage.getItem('savedNoteRanges') || '[]');
 
-            // Initialisierung mit Verzögerung, um sicherzustellen, dass VexFlow geladen ist
-            setTimeout(() => {
-              if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
-                drawStaff();
-              }
-            }, 500);
-
+            // Event Listeners
             document.querySelectorAll('.clef-btn').forEach(btn => {
               btn.addEventListener('click', () => {
                 document.querySelectorAll('.clef-btn').forEach(b => b.classList.remove('active'));
@@ -4504,12 +4512,6 @@ document.addEventListener("DOMContentLoaded", () => {
               updateSavedRangesList();
             };
 
-            // Initialisierung
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-            drawStaff();
-            updateSavedRangesList();
-
             // Aktualisiere customModeSettings beim Speichern
             function updateCustomModeSettings() {
               const notes = noteDefinitions[currentClef];
@@ -4530,6 +4532,20 @@ document.addEventListener("DOMContentLoaded", () => {
               document.getElementById(id).addEventListener('click', updateCustomModeSettings);
             });
             document.querySelector('select[name="noteValue"]').addEventListener('change', updateCustomModeSettings);
+
+            // Größenanpassung bei Fensteränderung
+            window.addEventListener('resize', () => {
+              if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+                drawStaff();
+              }
+            });
+
+            // Initialisierung mit Verzögerung, um sicherzustellen, dass VexFlow geladen ist
+            setTimeout(() => {
+              if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+                drawStaff();
+              }
+            }, 500);
           }
         });
     </script>
