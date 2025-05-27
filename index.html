@@ -2396,6 +2396,9 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
             window.practiceSettings = {
               notes: practiceNotes
             };
+            
+            // Speichere die Einstellungen im localStorage
+            localStorage.setItem('practiceSettings', JSON.stringify(window.practiceSettings));
 
             // Deaktiviere Practice Mode
             isPracticeMode = false;
@@ -2415,10 +2418,16 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
           const notation = document.getElementById("notation");
           notation.onclick = null;
           notation.style.cursor = "default";
-          window.practiceSettings = null;
+          // Behalte die Einstellungen bei, setze sie nicht auf null
           generateSeries();
         }
       });
+
+      // Lade gespeicherte Practice-Einstellungen beim Start
+      const savedPracticeSettings = localStorage.getItem('practiceSettings');
+      if (savedPracticeSettings) {
+        window.practiceSettings = JSON.parse(savedPracticeSettings);
+      }
 
       // Move Notation Toggle
       const moveNotationToggle = document.createElement("span");
