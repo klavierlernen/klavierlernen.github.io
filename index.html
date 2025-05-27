@@ -4199,13 +4199,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div class="staff-container">
                   <div id="staffWrapper">
                     <canvas id="staffCanvas"></canvas>
+                    <div id="noteOverlay"></div>
                   </div>
-                  <div class="range-controls">
-                    <button id="upperRangeUp">↑</button>
-                    <button id="upperRangeDown">↓</button>
-                    <button id="lowerRangeUp">↑</button>
-                    <button id="lowerRangeDown">↓</button>
-                  </div>
+                </div>
+                <div class="octave-selector">
+                  <button id="prevOctave">◀ Oktave tiefer</button>
+                  <span id="currentOctave">Eingestrichene Oktave</span>
+                  <button id="nextOctave">Oktave höher ▶</button>
                 </div>
                 <div class="note-value-selector">
                   <label>Notenwert:</label>
@@ -4215,9 +4215,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     <option value="16">Sechzehntelnoten</option>
                   </select>
                 </div>
-                <div class="save-controls">
-                  <button id="saveRangeBtn" class="save-btn">Bereich speichern</button>
-                  <div id="savedRangesList"></div>
+                <div class="selected-notes">
+                  <h3>Ausgewählte Noten:</h3>
+                  <div id="selectedNotesList"></div>
                 </div>
               </div>
             `;
@@ -4235,123 +4235,135 @@ document.addEventListener("DOMContentLoaded", () => {
                 position: relative;
               }
 
-              .clef-selector {
-                display: flex;
-                gap: 10px;
-                justify-content: center;
-              }
-
-              .clef-btn {
-                padding: 10px 20px;
-                border: 2px solid #000;
-                background: #fff;
-                border-radius: 5px;
-                cursor: pointer;
-              }
-
-              .clef-btn.active {
-                background: #000;
-                color: #fff;
-              }
-
               .staff-container {
                 position: relative;
-                height: 200px;
+                height: 300px;
                 background: white;
                 border: 1px solid #ccc;
                 margin: 20px 0;
-                display: flex;
-                align-items: center;
               }
 
               #staffWrapper {
                 width: 100%;
                 height: 100%;
                 position: relative;
-                overflow: visible;
               }
 
               #staffCanvas {
                 width: 100%;
                 height: 100%;
                 display: block;
-                background: white;
               }
 
-              .range-controls {
+              #noteOverlay {
                 position: absolute;
-                right: 10px;
+                top: 0;
+                left: 0;
+                width: 100%;
                 height: 100%;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-around;
-                z-index: 1001;
+                pointer-events: none;
               }
 
-              .range-controls button {
+              .note-spot {
+                position: absolute;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: transparent;
+                border: 2px solid #666;
+                cursor: pointer;
+                pointer-events: auto;
+                transition: all 0.2s;
+              }
+
+              .note-spot:hover {
+                transform: scale(1.2);
+                border-color: #000;
+              }
+
+              .note-spot.selected {
+                background: #4CAF50;
+                border-color: #4CAF50;
+              }
+
+              .octave-selector {
+                display: flex;
+                gap: 10px;
+                justify-content: center;
+                align-items: center;
+              }
+
+              .octave-selector button {
                 padding: 5px 10px;
-                background: #fff;
                 border: 1px solid #000;
-                border-radius: 3px;
+                background: white;
                 cursor: pointer;
               }
 
-              .note-value-selector {
-                display: flex;
-                gap: 10px;
-                align-items: center;
-                justify-content: center;
+              #currentOctave {
+                font-weight: bold;
+                min-width: 200px;
+                text-align: center;
               }
 
-              .save-controls {
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-              }
-
-              .save-btn {
+              .selected-notes {
+                border: 1px solid #ccc;
                 padding: 10px;
+                border-radius: 5px;
+              }
+
+              #selectedNotesList {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+                margin-top: 10px;
+              }
+
+              .selected-note-tag {
                 background: #4CAF50;
                 color: white;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-              }
-
-              #savedRangesList {
+                padding: 5px 10px;
+                border-radius: 15px;
                 display: flex;
-                flex-direction: column;
+                align-items: center;
                 gap: 5px;
               }
 
-              .saved-range-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 8px;
-                background: #f5f5f5;
-                border-radius: 4px;
+              .selected-note-tag button {
+                background: none;
+                border: none;
+                color: white;
+                cursor: pointer;
+                padding: 0 5px;
               }
             `;
             document.head.appendChild(style);
 
-            // Canvas-Setup
-            const canvas = document.getElementById('staffCanvas');
-            const ctx = canvas.getContext('2d');
+            // Zustandsvariablen
+            let currentClef = 'treble';
+            let currentOctave = 4; // Eingestrichene Oktave
+            const selectedNotes = new Set();
+            
+            // Notendefinitionen
+            const notePositions = ['c', 'd', 'e', 'f', 'g', 'a', 'h'];
+            const octaveNames = {
+              2: 'Große Oktave',
+              3: 'Kleine Oktave',
+              4: 'Eingestrichene Oktave',
+              5: 'Zweigestrichene Oktave'
+            };
 
             function drawStaff() {
-              // Debugging
-              console.log('Drawing staff...');
-              console.log('Canvas dimensions:', canvas.width, canvas.height);
+              const canvas = document.getElementById('staffCanvas');
+              const ctx = canvas.getContext('2d');
               
-              // Canvas-Größe an Container anpassen
-              const wrapper = document.getElementById('staffWrapper');
-              canvas.width = wrapper.offsetWidth * window.devicePixelRatio;
-              canvas.height = wrapper.offsetHeight * window.devicePixelRatio;
-              canvas.style.width = wrapper.offsetWidth + 'px';
-              canvas.style.height = wrapper.offsetHeight + 'px';
+              // Canvas-Größe setzen
+              canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+              canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+              canvas.style.width = canvas.offsetWidth + 'px';
+              canvas.style.height = canvas.offsetHeight + 'px';
               
-              // VexFlow Renderer erstellen
+              // VexFlow Setup
               const renderer = new Vex.Flow.Renderer(canvas, Vex.Flow.Renderer.Backends.CANVAS);
               renderer.resize(canvas.width, canvas.height);
               const context = renderer.getContext();
@@ -4359,58 +4371,84 @@ document.addEventListener("DOMContentLoaded", () => {
               context.clearRect(0, 0, canvas.width, canvas.height);
               
               // Notensystem erstellen
-              const stave = new Vex.Flow.Stave(10, canvas.height/4, canvas.width/window.devicePixelRatio - 80);
+              const stave = new Vex.Flow.Stave(10, canvas.height/4, canvas.width/window.devicePixelRatio - 20);
               stave.addClef(currentClef);
               stave.setContext(context).draw();
 
-              // Noten erstellen
-              const notes = noteDefinitions[currentClef];
-              const upperNote = notes[upperNoteIndex];
-              const lowerNote = notes[lowerNoteIndex];
-
-              // Hilfsfunktion zum Konvertieren der Notennamen
-              function convertNoteNameToVexFlow(noteName) {
-                // Entferne Apostrophe und ersetze sie durch Oktavzahl
-                let note = noteName.replace(/'/g, "");
-                // Konvertiere deutsche in englische Notation
-                note = note.replace(/h/i, "b");
-                // Standardisiere die Oktave
-                const octave = currentClef === "treble" ? "4" : "3";
-                return note + "/" + octave;
-              }
-
-              // Noten für VexFlow vorbereiten
-              const staveNotes = [
-                new Vex.Flow.StaveNote({
-                  clef: currentClef,
-                  keys: [convertNoteNameToVexFlow(upperNote.note)],
-                  duration: "q"
-                }),
-                new Vex.Flow.StaveNote({
-                  clef: currentClef,
-                  keys: [convertNoteNameToVexFlow(lowerNote.note)],
-                  duration: "q"
-                })
-              ];
-
-              // Noten zeichnen
-              const voice = new Vex.Flow.Voice({num_beats: 2, beat_value: 4});
-              voice.addTickables(staveNotes);
-              new Vex.Flow.Formatter().joinVoices([voice]).format([voice], 200);
-              voice.draw(context, stave);
-
-              // Bereich zwischen den Noten markieren
-              const startY = (upperNote.position + 3) * (canvas.height / 16);
-              const endY = (lowerNote.position + 3) * (canvas.height / 16);
-              context.fillStyle = 'rgba(200, 200, 255, 0.3)';
-              context.fillRect(60, startY, canvas.width - 160, endY - startY);
+              // Klickbare Notenpositionen erstellen
+              createNoteSpots(stave);
             }
 
-            // Zustandsvariablen
-            let currentClef = 'treble';
-            let upperNoteIndex = 2; // Start mit a'
-            let lowerNoteIndex = 6; // Start mit d'
-            let savedRanges = JSON.parse(localStorage.getItem('savedNoteRanges') || '[]');
+            function createNoteSpots(stave) {
+              const overlay = document.getElementById('noteOverlay');
+              overlay.innerHTML = '';
+              
+              const lineHeight = stave.getHeight() / 4;
+              const startX = 100; // Nach dem Schlüssel
+              
+              notePositions.forEach((note, index) => {
+                const y = stave.getY() + lineHeight * (6 - index);
+                const spot = document.createElement('div');
+                spot.className = 'note-spot';
+                if (selectedNotes.has(`${note}${currentOctave}`)) {
+                  spot.classList.add('selected');
+                }
+                spot.style.left = `${startX}px`;
+                spot.style.top = `${y}px`;
+                spot.dataset.note = note;
+                spot.dataset.octave = currentOctave;
+                
+                spot.addEventListener('click', () => toggleNote(spot));
+                overlay.appendChild(spot);
+              });
+            }
+
+            function toggleNote(noteSpot) {
+              const note = noteSpot.dataset.note;
+              const octave = noteSpot.dataset.octave;
+              const noteId = `${note}${octave}`;
+              
+              if (selectedNotes.has(noteId)) {
+                selectedNotes.delete(noteId);
+                noteSpot.classList.remove('selected');
+              } else {
+                selectedNotes.add(noteId);
+                noteSpot.classList.add('selected');
+              }
+              
+              updateSelectedNotesList();
+              updateCustomModeSettings();
+            }
+
+            function updateSelectedNotesList() {
+              const list = document.getElementById('selectedNotesList');
+              list.innerHTML = '';
+              
+              [...selectedNotes].sort().forEach(noteId => {
+                const tag = document.createElement('div');
+                tag.className = 'selected-note-tag';
+                tag.innerHTML = `
+                  ${noteId}
+                  <button onclick="removeNote('${noteId}')">×</button>
+                `;
+                list.appendChild(tag);
+              });
+            }
+
+            window.removeNote = function(noteId) {
+              selectedNotes.delete(noteId);
+              updateSelectedNotesList();
+              drawStaff(); // Aktualisiert die visuellen Markierungen
+              updateCustomModeSettings();
+            };
+
+            function updateCustomModeSettings() {
+              window.customModeSettings = {
+                clef: currentClef,
+                notes: Array.from(selectedNotes),
+                noteValue: document.querySelector('select[name="noteValue"]').value
+              };
+            }
 
             // Event Listeners
             document.querySelectorAll('.clef-btn').forEach(btn => {
@@ -4418,134 +4456,39 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.querySelectorAll('.clef-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 currentClef = btn.dataset.clef;
-                upperNoteIndex = 2;
-                lowerNoteIndex = 6;
                 drawStaff();
               });
             });
 
-            document.getElementById('upperRangeUp').addEventListener('click', () => {
-              if (upperNoteIndex > 0) {
-                upperNoteIndex--;
+            document.getElementById('prevOctave').addEventListener('click', () => {
+              if (currentOctave > 2) {
+                currentOctave--;
+                document.getElementById('currentOctave').textContent = octaveNames[currentOctave];
                 drawStaff();
               }
             });
 
-            document.getElementById('upperRangeDown').addEventListener('click', () => {
-              if (upperNoteIndex < lowerNoteIndex - 1) {
-                upperNoteIndex++;
+            document.getElementById('nextOctave').addEventListener('click', () => {
+              if (currentOctave < 5) {
+                currentOctave++;
+                document.getElementById('currentOctave').textContent = octaveNames[currentOctave];
                 drawStaff();
               }
             });
 
-            document.getElementById('lowerRangeUp').addEventListener('click', () => {
-              if (lowerNoteIndex > upperNoteIndex + 1) {
-                lowerNoteIndex--;
-                drawStaff();
-              }
-            });
-
-            document.getElementById('lowerRangeDown').addEventListener('click', () => {
-              if (lowerNoteIndex < noteDefinitions[currentClef].length - 1) {
-                lowerNoteIndex++;
-                drawStaff();
-              }
-            });
-
-            document.getElementById('saveRangeBtn').addEventListener('click', () => {
-              const name = prompt('Name für diesen Bereich:');
-              if (!name) return;
-
-              const notes = noteDefinitions[currentClef];
-              const range = {
-                name,
-                clef: currentClef,
-                upperNote: notes[upperNoteIndex].note,
-                lowerNote: notes[lowerNoteIndex].note,
-                noteValue: document.querySelector('select[name="noteValue"]').value
-              };
-
-              savedRanges.push(range);
-              localStorage.setItem('savedNoteRanges', JSON.stringify(savedRanges));
-              updateSavedRangesList();
-            });
-
-            function updateSavedRangesList() {
-              const list = document.getElementById('savedRangesList');
-              list.innerHTML = '';
-              savedRanges.forEach((range, index) => {
-                const item = document.createElement('div');
-                item.className = 'saved-range-item';
-                item.innerHTML = `
-                  <span>${range.name} (${range.upperNote} - ${range.lowerNote})</span>
-                  <div>
-                    <button onclick="loadRange(${index})">Laden</button>
-                    <button onclick="deleteRange(${index})">❌</button>
-                  </div>
-                `;
-                list.appendChild(item);
-              });
-            }
-
-            // Globale Funktionen für Laden und Löschen
-            window.loadRange = function(index) {
-              const range = savedRanges[index];
-              if (!range) return;
-
-              currentClef = range.clef;
-              document.querySelectorAll('.clef-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.clef === currentClef);
-              });
-
-              const notes = noteDefinitions[currentClef];
-              upperNoteIndex = notes.findIndex(n => n.note === range.upperNote);
-              lowerNoteIndex = notes.findIndex(n => n.note === range.lowerNote);
-              
-              document.querySelector('select[name="noteValue"]').value = range.noteValue;
-              drawStaff();
-            };
-
-            window.deleteRange = function(index) {
-              if (!confirm('Diesen Bereich wirklich löschen?')) return;
-              savedRanges.splice(index, 1);
-              localStorage.setItem('savedNoteRanges', JSON.stringify(savedRanges));
-              updateSavedRangesList();
-            };
-
-            // Aktualisiere customModeSettings beim Speichern
-            function updateCustomModeSettings() {
-              const notes = noteDefinitions[currentClef];
-              const selectedNotes = [];
-              for (let i = upperNoteIndex; i <= lowerNoteIndex; i++) {
-                selectedNotes.push(notes[i].note);
-              }
-              
-              window.customModeSettings = {
-                clef: currentClef,
-                notes: selectedNotes,
-                noteValue: document.querySelector('select[name="noteValue"]').value
-              };
-            }
-
-            // Event Listener für alle Änderungen
-            ['upperRangeUp', 'upperRangeDown', 'lowerRangeUp', 'lowerRangeDown'].forEach(id => {
-              document.getElementById(id).addEventListener('click', updateCustomModeSettings);
-            });
-            document.querySelector('select[name="noteValue"]').addEventListener('change', updateCustomModeSettings);
-
-            // Größenanpassung bei Fensteränderung
-            window.addEventListener('resize', () => {
-              if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
-                drawStaff();
-              }
-            });
-
-            // Initialisierung mit Verzögerung, um sicherzustellen, dass VexFlow geladen ist
+            // Initialisierung
             setTimeout(() => {
               if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
                 drawStaff();
               }
             }, 500);
+
+            // Größenanpassung
+            window.addEventListener('resize', () => {
+              if (canvas.offsetWidth > 0 && canvas.offsetHeight > 0) {
+                drawStaff();
+              }
+            });
           }
         });
     </script>
