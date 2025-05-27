@@ -1,4 +1,4 @@
-<script>
+
       
 let twoHandMode = false;
 let seriesCounterLeft = 0;
@@ -1718,7 +1718,7 @@ bpmDisplay.style.display = "block";
 // const emojiWidth = metronomeToggle.getBoundingClientRect().width;
 bpmDisplay.style.fontSize = "14px"; // feste Schriftgröße, frei anpassbar
 bpmDisplay.style.fontWeight = "bold";
-bpmDisplay.textContent = metronomeBPM > 0 ? metronomeBPM + " BPM" : "";
+bpmDisplay.textContent = metronomeBPM > 0 ? metronomeBPM + " BPM" : "";
 metronomeContainer.appendChild(bpmDisplay);
 bpmDisplay.addEventListener("click", () => {
   let existingInput = document.getElementById("bpmInput");
@@ -1745,7 +1745,7 @@ bpmDisplay.addEventListener("click", () => {
         if (bpm > 0) {
           metronomeBPM = bpm;
           metronomeInterval = 60000 / bpm;
-          document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
+          document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
           metronomeTolerance = metronomeInterval * 0.3;
           if (metronomeOn) startMetronome();
           startMetronome();
@@ -1791,7 +1791,7 @@ input.addEventListener("keydown", (e) => {
     if (bpm > 0) {
       metronomeBPM = bpm;
       metronomeInterval = 60000 / bpm;
-      document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
+      document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
       metronomeTolerance = metronomeInterval * 0.3;
       if (metronomeOn) startMetronome();
       startMetronome();
@@ -2194,7 +2194,7 @@ lastNote: null,
 direction: 1, // 1 = aufwärts, -1 = abwärts
 scale: ["c", "d", "e", "f", "g", "a", "b"], // C-Dur
 };
-// Füge am Anfang des Skripts (z. B. direkt vor der Funktion generateSeries) hinzu:
+// Füge am Anfang des Skripts (z. B. direkt vor der Funktion generateSeries) hinzu:
 let notesInCurrentPhase = 0;
                                       
 const generateSeries = () => {
@@ -2880,7 +2880,7 @@ input.onmidimessage = (msg) => {
   }
 };
 });
-// Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
+// Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
 midiAccess.onstatechange = (event) => {
 const port = event.port;
 console.log("MIDI-Gerätestatus hat sich geändert:", port.name, port.state);
@@ -2950,7 +2950,7 @@ input.onmidimessage = (msg) => {
   handleMIDIMessage(status, data1, data2);
 };
 });
-// Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
+// Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
 midiAccess.onstatechange = (event) => {
 const port = event.port;
 console.log("MIDI-Gerätestatus hat sich geändert:", port.name, port.state);
