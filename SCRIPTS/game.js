@@ -54,7 +54,7 @@ export const gameModule = {
     // Modulreferenzen
     audio: null,
     ui: null,
-
+    
     init(audioModule, uiModule) {
         console.log('🎲 Initializing game module...');
         this.audio = audioModule;
@@ -151,9 +151,9 @@ export const gameModule = {
             this.errorNotes.push(expectedNoteObject);
             this.ui.addCircle("negative");
             if (!this.unlimitedLives) {
-                this.hearts--;
+            this.hearts--;
                 this.ui.updateHeartsDisplay(this.hearts);
-                if (this.hearts <= 0) {
+            if (this.hearts <= 0) {
                     window.app.endGame();
                     return;
                 }

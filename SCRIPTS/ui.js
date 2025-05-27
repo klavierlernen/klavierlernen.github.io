@@ -53,7 +53,7 @@ export const uiModule = {
     vfInitialized: false,
     blobsEnabled: true, // Default, kann über Settings geändert werden
     initialBackgroundColor: "#f0f0f0", // Default oder aus CSS auslesen
-    
+
     init() {
         console.log('🎨 Initializing UI module...');
         this.cacheElements();
