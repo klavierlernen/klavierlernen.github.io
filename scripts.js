@@ -2820,8 +2820,6 @@ if (window.innerWidth > window.innerHeight) {
 window.addEventListener("resize", checkOrientation);
 checkOrientation();
 
-</script>
-<script>
 // Initialisiere MIDI-Zugriff (Web MIDI API)
 function initMIDIAccess() {
 if (!navigator.requestMIDIAccess) {
@@ -2902,9 +2900,7 @@ function onMIDIFailure(error) {
 console.error("Zugriff auf MIDI-Geräte fehlgeschlagen:", error);
 }
 
-</script>
 
-<script>
 // Initialisiere MIDI-Zugriff (Web MIDI API)
 function initMIDIAccess() {
 if (!navigator.requestMIDIAccess) {
@@ -2971,8 +2967,7 @@ console.error("Zugriff auf MIDI-Geräte fehlgeschlagen:", error);
 
 // Direkt beim Parsen starten
 initMIDIAccess();
-</script>
-<script>
+
 
 
 function startTutorialSequence() {
@@ -3140,37 +3135,6 @@ if (!localStorage.getItem('tutorialCompleted')) {
 startTutorialSequence();
 }
 });
-</script>
-<style>
-@keyframes flyOutRight {
-from { opacity: 1; transform: translateX(0); }
-to   { opacity: 0; transform: translateX(100%); }
-}
-@keyframes flyOutLeft {
-from { opacity: 1; transform: translateX(0); }
-to   { opacity: 0; transform: translateX(-100%); }
-}
-.fly-out-right {
-animation: flyOutRight 0.5s forwards;
-}
-.fly-out-left {
-animation: flyOutLeft 0.5s forwards;
-}
-@keyframes flyInRight {
-from { opacity: 0; transform: translateX(100%); }
-to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes flyInLeft {
-from { opacity: 0; transform: translateX(-100%); }
-to   { opacity: 1; transform: translateX(0); }
-}
-.fly-in-right {
-animation: flyInRight 0.5s forwards;
-}
-.fly-in-left {
-animation: flyInLeft 0.5s forwards;
-}
-
     function updateAccuracyMarker(deviationRatio) {
       const display = document.getElementById("staccatoPercentDisplay");
       if (!display) return;

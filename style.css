@@ -731,3 +731,32 @@ font-weight: bold;
       border: 1px solid #000;
       border-radius: 4px;
     }
+
+@keyframes flyOutRight {
+from { opacity: 1; transform: translateX(0); }
+to   { opacity: 0; transform: translateX(100%); }
+}
+@keyframes flyOutLeft {
+from { opacity: 1; transform: translateX(0); }
+to   { opacity: 0; transform: translateX(-100%); }
+}
+.fly-out-right {
+animation: flyOutRight 0.5s forwards;
+}
+.fly-out-left {
+animation: flyOutLeft 0.5s forwards;
+}
+@keyframes flyInRight {
+from { opacity: 0; transform: translateX(100%); }
+to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes flyInLeft {
+from { opacity: 0; transform: translateX(-100%); }
+to   { opacity: 1; transform: translateX(0); }
+}
+.fly-in-right {
+animation: flyInRight 0.5s forwards;
+}
+.fly-in-left {
+animation: flyInLeft 0.5s forwards;
+}
