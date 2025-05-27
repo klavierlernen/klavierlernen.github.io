@@ -757,6 +757,18 @@
     
       
   </style>
+  <style>
+    @keyframes ripple {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(3);
+        opacity: 0;
+      }
+    }
+  </style>
   <script>
       
       let twoHandMode = false;
@@ -2234,7 +2246,21 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
           saveButton.style.borderRadius = "5px";
           saveButton.style.cursor = "pointer";
           saveButton.style.display = "none";
+          saveButton.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
+          saveButton.style.transition = "all 0.3s ease";
           document.body.appendChild(saveButton);
+
+          // Hover-Effekt
+          saveButton.onmouseover = () => {
+            saveButton.style.backgroundColor = "#45a049";
+            saveButton.style.transform = "translateY(-2px)";
+            saveButton.style.boxShadow = "0 4px 8px rgba(0,0,0,0.2)";
+          };
+          saveButton.onmouseout = () => {
+            saveButton.style.backgroundColor = "#4CAF50";
+            saveButton.style.transform = "translateY(0)";
+            saveButton.style.boxShadow = "0 2px 5px rgba(0,0,0,0.2)";
+          };
         }
 
         saveButton.style.display = isPracticeMode ? "block" : "none";
@@ -2311,23 +2337,49 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
             const y = event.clientY - rect.top;
 
             const notes = notation.querySelectorAll('.vf-stavenote');
+            let noteClicked = false;
+            
             notes.forEach((note, index) => {
               const bbox = note.getBoundingClientRect();
               if (x >= bbox.left - rect.left && x <= bbox.right - rect.left &&
                   y >= bbox.top - rect.top && y <= bbox.bottom - rect.top) {
+                noteClicked = true;
                 const noteInfo = currentSeriesSingle[index];
                 const noteId = `${noteInfo.note}${noteInfo.octave}${noteInfo.clef}`;
 
                 if (selectedNotes.has(noteId)) {
                   selectedNotes.delete(noteId);
                   noteInfo.color = 'black';
+                  note.style.transition = 'all 0.3s ease';
                 } else {
                   selectedNotes.add(noteId);
                   noteInfo.color = '#4CAF50';
+                  // Füge eine kleine Animation hinzu
+                  note.style.transition = 'all 0.3s ease';
                 }
+                
+                // Aktiviere den Speichern-Button nur wenn mindestens eine Note ausgewählt ist
+                saveButton.disabled = selectedNotes.size === 0;
+                saveButton.style.opacity = selectedNotes.size === 0 ? "0.5" : "1";
+                
                 drawSeries();
               }
             });
+
+            // Visuelles Feedback wenn keine Note getroffen wurde
+            if (!noteClicked) {
+              const ripple = document.createElement('div');
+              ripple.style.position = 'absolute';
+              ripple.style.left = (x - 5) + 'px';
+              ripple.style.top = (y - 5) + 'px';
+              ripple.style.width = '10px';
+              ripple.style.height = '10px';
+              ripple.style.backgroundColor = 'rgba(200, 200, 200, 0.5)';
+              ripple.style.borderRadius = '50%';
+              ripple.style.animation = 'ripple 0.6s ease-out';
+              notation.appendChild(ripple);
+              setTimeout(() => ripple.remove(), 600);
+            }
           };
 
           // Speichern-Button Event Handler
