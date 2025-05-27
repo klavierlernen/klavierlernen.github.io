@@ -293,7 +293,7 @@
       border: 2px solid black;         /* Passender Randton */
       border-radius: 10px;
       box-shadow:
-        0 6px 0 black,                 /* „fester“ Schatten für die 3D-Kante */
+        0 6px 0 black,                 /* „fester" Schatten für die 3D-Kante */
         0 6px 6px rgba(0, 0, 0, 0.2);    /* Weicher Schlagschatten */
       padding: 15px 24px;                /* Innenabstand */
       margin: 8px;                       /* Außenabstand */
@@ -531,52 +531,19 @@
 
      
      /* Custom Mode Modal Styles */
-     #customModeModal {
-         position: fixed;
-         top: 15%;
-         right: 90px; /* ca. 10px links vom Menü */
-         width: 400px;
-         background: white;
-         border: 2px solid black;
-         border-radius: 10px;
-         padding: 20px;
-         z-index: 150;
-     }
-     #customModeModal h2 {
-         margin-top: 0;
-         text-align: center;
-     }
-     .custom-mode-row {
-         display: flex;
-         justify-content: space-around;
-         margin-bottom: 15px;
-         flex-wrap: wrap;
-     }
-     .custom-mode-clef-container, .custom-mode-range-container, .custom-mode-note-set {
-         display: flex;
-         gap: 5px;
-     }
-.custom-mode-clef-option, .custom-mode-range-option, .custom-mode-note-option {
-    padding: 5px 10px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    opacity: 0.5;
-    transition: opacity 0.3s;
-    font-weight: bold;
-}
-     .custom-mode-clef-option.active, .custom-mode-range-option.active, .custom-mode-note-option.active {
-         opacity: 1;
-     }
-     .custom-mode-hand-label {
-         align-self: center;
-         margin-right: 10px;
-         font-weight: bold;
-     }
+     #customModeModal,
+     .custom-mode-row,
+     .custom-mode-clef-container,
+     .custom-mode-range-container,
+     .custom-mode-note-set,
+     .custom-mode-clef-option,
+     .custom-mode-range-option,
+     .custom-mode-note-option,
+     .custom-mode-hand-label,
      .custom-mode-save {
-         text-align: center;
-         margin-top: 20px;
+         display: none !important;
      }
+
      
      .custom-mode-save button {
          background: white;
@@ -830,11 +797,11 @@
     zweigestr:{ notes: ["c","d","e","f","g","a","b"], baseOctave: 6 },
   };
   
-let wizardMode = true;
-   let correctionActive = false;
-   let availableNotes = [];
-   let selectedNoteIndex = 0;
-   let expectedNote = "";
+  let wizardMode = true;
+  let correctionActive = false;
+  let availableNotes = [];
+  let selectedNoteIndex = 0;
+  let expectedNote = "";
    
    
       
@@ -2956,7 +2923,7 @@ let melodyContext = {
   direction: 1, // 1 = aufwärts, -1 = abwärts
   scale: ["c", "d", "e", "f", "g", "a", "b"], // C-Dur
 };
-// Füge am Anfang des Skripts (z. B. direkt vor der Funktion generateSeries) hinzu:
+// Füge am Anfang des Skripts (z. B. direkt vor der Funktion generateSeries) hinzu:
 let notesInCurrentPhase = 0;
                                             
 const generateSeries = () => {
@@ -3592,7 +3559,7 @@ function scheduleReverseAnimation() {
         }
       };
     });
-    // Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
+    // Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
     midiAccess.onstatechange = (event) => {
       const port = event.port;
       console.log("MIDI-Gerätestatus hat sich geändert:", port.name, port.state);
@@ -3664,7 +3631,7 @@ function scheduleReverseAnimation() {
         handleMIDIMessage(status, data1, data2);
       };
     });
-    // Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
+    // Auf Änderungen (z. B. Geräte an- oder abstecken) reagieren
     midiAccess.onstatechange = (event) => {
       const port = event.port;
       console.log("MIDI-Gerätestatus hat sich geändert:", port.name, port.state);
