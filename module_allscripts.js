@@ -6,10 +6,70 @@
       let currentSeriesRight = [];
       let articulationMode = null; // null, "staccato" oder "legato"
 
-             
-    
+        // Initialize global homeworkData from storage
+        window.homeworkData = JSON.parse(localStorage.getItem("homeworkData") || "null");
+        // … der restliche bisherige Script-Code …
+      
+      let homeworkData = JSON.parse(localStorage.getItem("homeworkData") || "null");
+      
+      
+      // (hwToggle click event listener will be added later in DOMContentLoaded after settingsPanel.appendChild(hwToggle))
+
+      // Camera-based QR scanning
+      async function openCameraScan() {
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        } catch (err) {
+          alert("Kamerazugriff fehlgeschlagen: " + err.message);
+          return null;
+        }
+        // Create modal overlay
+        const scanOverlay = document.createElement("div");
+        scanOverlay.id = "scanOverlay";
+        Object.assign(scanOverlay.style, {
+          position: "fixed", top:0, left:0, width:"100%", height:"100%",
+          background:"rgba(0,0,0,0.8)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:"2000"
+        });
+        const video = document.createElement("video");
+        video.style.maxWidth = "90%";
+        video.style.maxHeight = "80%";
+        video.autoplay = true;
+        video.srcObject = stream;
+        scanOverlay.appendChild(video);
+        const captureBtn = document.createElement("button");
+        captureBtn.textContent = "Scannen";
+        Object.assign(captureBtn.style, { position:"absolute", bottom:"20px", fontSize:"1.2em", padding:"10px" });
+        scanOverlay.appendChild(captureBtn);
+        document.body.appendChild(scanOverlay);
+        return new Promise(resolve => {
+          captureBtn.addEventListener("click", () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext("2d").drawImage(video, 0, 0);
+            const code = jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
+            stream.getTracks().forEach(t => t.stop());
+            document.body.removeChild(scanOverlay);
+            resolve(code);
+          });
+        });
+      }
+      
+    // Disable any scrolling
+    window.addEventListener('scroll', function(e) {
+      e.preventDefault();
+      window.scrollTo(0, 0);
+    }, { passive: false });
   
-  
+  // Oben im Skript
+  let customModeSettings = null;
+  const octaveDefinitions = {
+    grosse:   { notes: ["c","d","e","f","g","a","b"], baseOctave: 3 },
+    kleine:   { notes: ["c","d","e","f","g","a","b"], baseOctave: 4 },
+    eingestr: { notes: ["c","d","e","f","g","a","b"], baseOctave: 5 },
+    zweigestr:{ notes: ["c","d","e","f","g","a","b"], baseOctave: 6 },
+  };
   
 let wizardMode = true;
    let correctionActive = false;
@@ -18,7 +78,71 @@ let wizardMode = true;
    let expectedNote = "";
    
    
- 
+      
+// === Touch‐based positioning for the notation crosshair ===
+document.addEventListener('DOMContentLoaded', () => {
+  const notation = document.getElementById('notation');
+  if (!notation) return;
+
+  // Load or set default transform
+  let saved = localStorage.getItem('notationTransform');
+  if (!saved) {
+    saved = 'translate(-50%, -50%)';
+    localStorage.setItem('notationTransform', saved);
+  }
+  notation.style.transform = saved;
+
+  // Prepare variables for touch dragging
+  let startX = 0, startY = 0;
+  let initX = 0, initY = 0;
+  let dragging = false;
+
+  notation.addEventListener('touchstart', e => {
+    // Only allow dragging if the Geodreieck-Button ("geometryToggle") is active
+    const toggle = document.getElementById('geometryToggle');
+    const isActive = toggle && (toggle.classList.contains('active') || toggle.dataset.active === 'true');
+    if (!isActive) return;
+    e.preventDefault();
+    dragging = true;
+    const touch = e.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+    const style = window.getComputedStyle(notation);
+    const matrix = new DOMMatrix(style.transform);
+    initX = matrix.m41;
+    initY = matrix.m42;
+  }, { passive: false });
+
+  notation.addEventListener('touchmove', e => {
+    if (!dragging) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    const newX = initX + dx;
+    const newY = initY + dy;
+    // Calculate the position of the center of notation in viewport
+    // The transform is relative to (left:50%, top:50%)
+    const newLeft = newX + window.innerWidth / 2;
+    const newTop = newY + window.innerHeight / 2;
+    if (
+      newLeft > 0 &&
+      newLeft < window.innerWidth &&
+      newTop > 0 &&
+      newTop < window.innerHeight
+    ) {
+      notation.style.transform = `translate(${newX}px, ${newY}px)`;
+    }
+  }, { passive: false });
+
+  notation.addEventListener('touchend', () => {
+    if (!dragging) return;
+    dragging = false;
+    localStorage.setItem('notationTransform', notation.style.transform);
+  });
+});
+    
+      
       document.addEventListener("DOMContentLoaded", () => {
         const timerElem = document.getElementById("timerContainer");
         // Beispiel: Direkt eine Info setzen
@@ -188,7 +312,60 @@ let wizardMode = true;
         // ... restlicher Initialisierungscode
       });
       
-    
+    function logSessionStart() {
+      const sessionTimes = JSON.parse(localStorage.getItem("sessionTimes") || "[]");
+      sessionTimes.push(new Date().toISOString());
+      localStorage.setItem("sessionTimes", JSON.stringify(sessionTimes));
+    }
+      
+    // Speichert die relevanten Statistiken im localStorage
+    function saveStatistics() {
+      const stats = {
+        totalAttempts: totalAttempts,
+        correctAnswers: correctAnswers,
+        correctNoteCount: correctNoteCount,
+        responseTimes: responseTimes,
+        sessionCount: sessionCount,
+        hearts: hearts,
+        errorNotes: errorNotes,
+        // Du kannst hier auch weitere Variablen eintragen, z.B. openTimes, appStartTime etc.
+        appStartTime: appStartTime
+      };
+      localStorage.setItem("appStatistics", JSON.stringify(stats));
+      // Ensure all leaderboard values (accuracy, duration, mode) are sent for proper leaderboard updates
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.gameCenter) {
+        window.webkit.messageHandlers.gameCenter.postMessage({
+          type: "highscore",
+          value: {
+            accuracy: Math.round((correctAnswers / totalAttempts) * 100),
+            duration: Math.floor((Date.now() - appStartTime) / 1000),
+            mode: randomMode ? "random" : selectedMode
+          }
+        });
+      }
+    }
+
+    // Lädt die Statistiken aus dem localStorage und weist sie den globalen Variablen zu
+    function loadStatistics() {
+      const statsStr = localStorage.getItem("appStatistics");
+      if (statsStr) {
+        const stats = JSON.parse(statsStr);
+        totalAttempts = stats.totalAttempts || 0;
+        correctAnswers = stats.correctAnswers || 0;
+        correctNoteCount = stats.correctNoteCount || 0;
+        responseTimes = stats.responseTimes || [];
+        sessionCount = stats.sessionCount || 0;
+        hearts = stats.hearts || (unlimitedLives ? Infinity : 4);
+        errorNotes = stats.errorNotes || [];
+        appStartTime = stats.appStartTime || Date.now();
+      }
+    }
+
+    // Optional: Speichern der Statistiken, wenn die Seite geschlossen wird
+    window.addEventListener("beforeunload", saveStatistics);
+
+    // Beim Laden der Seite die Statistiken laden
+    document.addEventListener("DOMContentLoaded", loadStatistics);
     
     function proceedToMainScreen() {
       const audio = document.getElementById("backgroundSound");
@@ -209,7 +386,92 @@ let wizardMode = true;
       return Math.floor(Math.random() * 4) + 2;
     }
     
+    document.addEventListener("DOMContentLoaded", () => {
+      const settingsPanel = document.getElementById("settingsPanel");
+      const pauseButton = document.createElement("span");
+      pauseButton.id = "pauseButton";
+      pauseButton.textContent = "🎹";
+      settingsPanel.appendChild(pauseButton);
 
+      pauseButton.addEventListener("click", () => {
+        const notationElem = document.getElementById("notation");
+        const vk = document.getElementById("virtualKeyboard");
+        if (vk) {
+          const isHidden = vk.style.visibility === "hidden";
+          vk.style.visibility = isHidden ? "visible" : "hidden";
+          // Neu: Klasse setzen/removen
+          if (isHidden) {
+            document.body.classList.add("vk-active");
+          } else {
+            document.body.classList.remove("vk-active");
+          }
+          if (notationElem) {
+            if (isHidden) {
+              // Keyboard wird aktiviert: Notation etwas höher positionieren
+              notationElem.style.top = "55%";
+            } else {
+              // Keyboard wird deaktiviert: gespeicherte Position wiederherstellen
+              const saved = localStorage.getItem("notationTransform");
+              if (saved) notationElem.style.transform = saved;
+              // Entferne inline-top, damit CSS-Default (85%) greift
+              notationElem.style.top = "";
+            }
+          }
+        }
+      });
+
+      // ---- Virtual Keyboard below notation ----
+      // Find the button container
+      const bc = document.getElementById("buttonContainer");
+      if (bc) {
+        // Create a virtual keyboard element
+        const vk = document.createElement("div");
+        vk.id = "virtualKeyboard";
+        vk.textContent = "Virtuelles Keyboard";
+        // Keyboard initially hidden
+        vk.style.visibility = "hidden";
+        vk.style.position = "fixed";
+        vk.style.top = "10%";
+        vk.style.transform = "translateY(210%) scale(0.7, 1.5)"; // Uniform Zoom: both axes the same scale
+        vk.style.zIndex = "100";
+        vk.style.background = "#eee";
+        vk.style.padding = "100px";
+        // Initially place it just above the button container
+        // We'll update its position on window resize and DOMContentLoaded
+        function positionVK() {
+          const bcRect = bc.getBoundingClientRect();
+          const vkHeight = vk.offsetHeight || 200;
+          // Place it above the button container, but not out of screen
+          let top = bcRect.top - vkHeight - 5;
+          if (top < 0) top = 0;
+          vk.style.top = `${top}px`;
+        }
+        // Append first so offsetHeight is available
+        document.body.appendChild(vk);
+        // --- Override key dimensions after rendering ---
+        setTimeout(() => {
+          const whiteKeys = vk.querySelectorAll('.white-key, .white');
+          whiteKeys.forEach(key => {
+            key.style.width = '23px';
+            key.style.height = '260px';
+          });
+          const blackKeys = vk.querySelectorAll('.black-key, .black');
+          blackKeys.forEach(key => {
+            key.style.width = '14px';
+            key.style.height = '80px';
+            key.style.marginLeft = '-7px';
+            key.style.marginRight = '-7px';
+          });
+        }, 100);
+        // Position after appending
+        positionVK();
+        // Update position on window resize and orientation change
+        window.addEventListener("resize", positionVK);
+        window.addEventListener("orientationchange", positionVK);
+        // The virtual keyboard layout and input is now handled only by QwertyHancock or other dedicated code.
+        // No manual <button> elements are created here.
+      }
+    });
       
     /************** Globale Variablen & Konstanten **************/
     // Handoptionen
@@ -3223,246 +3485,3 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         });
    
-        document.addEventListener('DOMContentLoaded', function() {
-            const modal = document.getElementById('customModeModal');
-            if (!modal) {
-                console.error('Modal nicht gefunden.');
-                return;
-            }
-
-            let selectedCustomClef = null;
-            let selectedCustomRange = null;
-
-            // Eventlistener für Schlüsselauswahl
-            document.querySelectorAll('.custom-mode-clef-option').forEach(el => {
-                el.addEventListener('click', () => {
-                    document.querySelectorAll('.custom-mode-clef-option').forEach(opt => opt.classList.remove('active'));
-                    el.classList.add('active');
-                    selectedCustomClef = el.getAttribute('data-clef');
-                    populateCustomNotes();
-                });
-            });
-
-            // Eventlistener für Lagen-Auswahl
-            document.querySelectorAll('.custom-mode-range-option').forEach(el => {
-                el.addEventListener('click', () => {
-                    document.querySelectorAll('.custom-mode-range-option').forEach(opt => opt.classList.remove('active'));
-                    el.classList.add('active');
-                    selectedCustomRange = el.getAttribute('data-range');
-                    populateCustomNotes();
-                });
-            });
-
-            // Notenzuordnungen für linke und rechte Hand
-            const customLeftNotesMapping = {
-                "C": ["C", "D", "E", "F", "G", "A"],
-                "D": ["D", "E", "F#", "G", "A", "B"],
-                "F": ["F", "G", "A", "Bb", "C"],
-                "G": ["G", "A", "B", "C", "D", "E"],
-                "MC": ["F", "G", "A", "B", "C"]
-            };
-            const customRightNotesMapping = {
-                "C": ["C", "D", "E", "F", "G", "A"],
-                "D": ["D", "E", "F#", "G", "A", "B"],
-                "F": ["F", "G", "A", "Bb", "C"],
-                "G": ["G", "A", "B", "C", "D", "E"],
-                "MC": ["F", "G", "A", "B", "C"]
-            };
-
-            // Funktion, um basierend auf der ausgewählten Lage die Noten für linke und rechte Hand zu befüllen
-            function populateCustomNotes() {
-                if (!selectedCustomRange) return;
-                const leftContainer = document.getElementById('left-hand-notes');
-                const rightContainer = document.getElementById('right-hand-notes');
-                if (!leftContainer || !rightContainer) {
-                    console.error('Noten-Container nicht gefunden.');
-                    return;
-                }
-                leftContainer.innerHTML = '';
-                rightContainer.innerHTML = '';
-
-                customLeftNotesMapping[selectedCustomRange].forEach(note => {
-                    const noteEl = document.createElement('div');
-                    noteEl.className = 'custom-mode-note-option';
-                    noteEl.textContent = note;
-                    noteEl.setAttribute('data-note', note);
-                    noteEl.addEventListener('click', () => {
-                        noteEl.classList.toggle('active');
-                    });
-                    leftContainer.appendChild(noteEl);
-                });
-
-                customRightNotesMapping[selectedCustomRange].forEach(note => {
-                    const noteEl = document.createElement('div');
-                    noteEl.className = 'custom-mode-note-option';
-                    noteEl.textContent = note;
-                    noteEl.setAttribute('data-note', note);
-                    noteEl.addEventListener('click', () => {
-                        noteEl.classList.toggle('active');
-                    });
-                    rightContainer.appendChild(noteEl);
-                });
-            }
-
-            // Eventlistener für den Speichern-Button im Custom Mode Modal
-            const saveButton = document.getElementById('custom-mode-save-button');
-            if (saveButton) {
-                saveButton.addEventListener('click', () => {
-                    const activeClef = document.querySelector('.custom-mode-clef-option.active');
-                    const activeRange = document.querySelector('.custom-mode-range-option.active');
-                    const activeLeftNotes = document.querySelectorAll('#left-hand-notes .custom-mode-note-option.active');
-                    const activeRightNotes = document.querySelectorAll('#right-hand-notes .custom-mode-note-option.active');
-                    const noteValueCheckbox = document.getElementById('noteValueCheckbox');
-                    const noteValue = noteValueCheckbox.checked ? "8" : "q";  // "8" für Achtelnoten, "q" als Standard (Viertelnoten)
-                    
-                    const settings = {
-                        clef: activeClef ? activeClef.getAttribute('data-clef') : null,
-                        range: activeRange ? activeRange.getAttribute('data-range') : null,
-                        leftNotes: Array.from(activeLeftNotes).map(el => el.getAttribute('data-note')),
-                        rightNotes: Array.from(activeRightNotes).map(el => el.getAttribute('data-note')),
-                        noteValue: noteValue
-                    };
-                    
-                    console.log("Benutzerdefinierte Einstellungen:", settings);
-                    window.customModeSettings = settings;
-                    modal.classList.add('hidden');
-                    
-                    // Aktualisiere den Lagen-Button (clefTitle)
-                    const clefTitle = document.getElementById("clefTitle");
-                    if (clefTitle && settings.range) {
-                        clefTitle.textContent = settings.range + "-Lage";
-                    }
-                    
-                    generateSeries();
-                });
-            } else {
-                console.warn('Speichern-Button nicht gefunden.');
-            }
-        });
-        
-        function showCorrection(note, choices) {
-          correctionActive = true;
-          expectedNote = note;
-          availableNotes = choices;
-          selectedNoteIndex = 0;
-          updateCorrectionDisplay();
-          document.getElementById("correctionBox").classList.remove("hidden");
-        }
-
-        function updateCorrectionDisplay(result) {
-          const display = document.getElementById("correctionNoteDisplay");
-          const confirm = document.getElementById("confirmNoteBtn");
-          if (result === "correct") {
-            confirm.textContent = "🥳";
-          } else if (result === "wrong") {
-            confirm.textContent = "❌";
-          } else {
-            confirm.textContent = "OK";
-          }
-          display.textContent = `< ${availableNotes[selectedNoteIndex] || "?"} >`;
-        }
-
-        document.getElementById("prevNoteBtn").addEventListener("click", () => {
-          selectedNoteIndex = (selectedNoteIndex - 1 + availableNotes.length) % availableNotes.length;
-          updateCorrectionDisplay();
-        });
-
-        document.getElementById("nextNoteBtn").addEventListener("click", () => {
-          selectedNoteIndex = (selectedNoteIndex + 1) % availableNotes.length;
-          updateCorrectionDisplay();
-        });
-
-        document.getElementById("confirmNoteBtn").addEventListener("click", () => {
-          const selected = availableNotes[selectedNoteIndex];
-          if (selected === expectedNote) {
-            updateCorrectionDisplay("correct");
-            setTimeout(() => {
-              document.getElementById("correctionBox").classList.add("hidden");
-              correctionActive = false;
-              resetGame(); // oder nächster Schritt
-            }, 1000);
-          } else {
-            updateCorrectionDisplay("wrong");
-          }
-        });
-
-        function handleCorrectionInput(notePlayed) {
-          if (!correctionActive) return;
-          if (notePlayed === expectedNote) {
-            updateCorrectionDisplay("correct");
-            setTimeout(() => {
-              document.getElementById("correctionBox").classList.add("hidden");
-              correctionActive = false;
-              resetGame();
-            }, 1000);
-          } else {
-            updateCorrectionDisplay("wrong");
-          }
-        }
-        
-          function showCorrection(note, choices) {
-            correctionActive = true;
-            expectedNote = note;
-            availableNotes = choices;
-
-            let container = document.getElementById('correctionContainer');
-            if (!container) {
-              container = document.createElement('div');
-              container.id = 'correctionContainer';
-              Object.assign(container.style, {
-                position: 'fixed',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                background: '#fff',
-                padding: '20px',
-                border: '2px solid #000',
-                zIndex: '1000'
-              });
-              document.body.appendChild(container);
-            }
-            container.innerHTML = '';
-
-            choices.forEach(choice => {
-              const btn = document.createElement('div');
-              btn.textContent = choice.toUpperCase();
-              btn.className = 'correction-choice';
-              btn.addEventListener('click', () => {
-                if (btn.textContent === expectedNote.toUpperCase()) {
-                  btn.style.opacity = '1';
-                  btn.style.backgroundColor = 'green';
-                } else {
-                  btn.style.opacity = '1';
-                  btn.style.backgroundColor = 'red';
-                  const correctBtn = Array.from(container.children)
-                    .find(child => child.textContent === expectedNote.toUpperCase());
-                  if (correctBtn) correctBtn.style.backgroundColor = 'yellow';
-                }
-                setTimeout(() => {
-                  container.remove();
-                  correctionActive = false;
-                  resetGame();
-                }, 1000);
-              });
-              container.appendChild(btn);
-            });
-          }
-        
-        function checkArticulation(noteOnTime, noteOffTime, velocity) {
-          if (!articulationMode) return;
-
-          const duration = noteOffTime - noteOnTime;
-          let correct = false;
-
-          if (articulationMode === "staccato") {
-            correct = duration < 250 && velocity > 50;
-          } else if (articulationMode === "legato") {
-            correct = duration > 500 && velocity > 30;
-          }
-
-          if (correct) {
-            showMotivation("✅ Artikulation korrekt");
-          } else {
-            showMotivation("❌ Falsche Artikulation");
-          }
-        }
