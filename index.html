@@ -531,19 +531,52 @@
 
      
      /* Custom Mode Modal Styles */
-     #customModeModal,
-     .custom-mode-row,
-     .custom-mode-clef-container,
-     .custom-mode-range-container,
-     .custom-mode-note-set,
-     .custom-mode-clef-option,
-     .custom-mode-range-option,
-     .custom-mode-note-option,
-     .custom-mode-hand-label,
-     .custom-mode-save {
-         display: none !important;
+     #customModeModal {
+         position: fixed;
+         top: 15%;
+         right: 90px; /* ca. 10px links vom Menü */
+         width: 400px;
+         background: white;
+         border: 2px solid black;
+         border-radius: 10px;
+         padding: 20px;
+         z-index: 150;
      }
-
+     #customModeModal h2 {
+         margin-top: 0;
+         text-align: center;
+     }
+     .custom-mode-row {
+         display: flex;
+         justify-content: space-around;
+         margin-bottom: 15px;
+         flex-wrap: wrap;
+     }
+     .custom-mode-clef-container, .custom-mode-range-container, .custom-mode-note-set {
+         display: flex;
+         gap: 5px;
+     }
+.custom-mode-clef-option, .custom-mode-range-option, .custom-mode-note-option {
+    padding: 5px 10px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.3s;
+    font-weight: bold;
+}
+     .custom-mode-clef-option.active, .custom-mode-range-option.active, .custom-mode-note-option.active {
+         opacity: 1;
+     }
+     .custom-mode-hand-label {
+         align-self: center;
+         margin-right: 10px;
+         font-weight: bold;
+     }
+     .custom-mode-save {
+         text-align: center;
+         margin-top: 20px;
+     }
      
      .custom-mode-save button {
          background: white;
@@ -797,11 +830,11 @@
     zweigestr:{ notes: ["c","d","e","f","g","a","b"], baseOctave: 6 },
   };
   
-  let wizardMode = true;
-  let correctionActive = false;
-  let availableNotes = [];
-  let selectedNoteIndex = 0;
-  let expectedNote = "";
+let wizardMode = true;
+   let correctionActive = false;
+   let availableNotes = [];
+   let selectedNoteIndex = 0;
+   let expectedNote = "";
    
    
       
@@ -2169,434 +2202,171 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
         generateSeries();
       });
       
+      // Practice Mode Toggle
+      const practiceToggle = document.createElement("span");
+      practiceToggle.id = "practiceToggle";
+      practiceToggle.textContent = "🖊️";
+      practiceToggle.style.cursor = "pointer";
+      practiceToggle.style.opacity = "0.5";
+      settingsPanel.appendChild(practiceToggle);
 
-      
-      function showHomework() {
-        let modal = document.getElementById("homeworkModal");
-        if (!modal) {
-          modal = document.createElement("div");
-          modal.id = "homeworkModal";
-          Object.assign(modal.style, {
-            position: "fixed", top:"35%", right:"90px", width:"300px",
-            background:"white", border:"2px solid black", borderRadius:"10px",
-            padding:"20px", zIndex:"150"
-          });
-          document.body.appendChild(modal);
+      let selectedNotes = new Set();
+      let isPracticeMode = false;
+
+      practiceToggle.addEventListener("click", () => {
+        isPracticeMode = !isPracticeMode;
+        practiceToggle.style.opacity = isPracticeMode ? "1" : "0.5";
+
+        // Erstelle den Speichern-Button, wenn er noch nicht existiert
+        let saveButton = document.getElementById("practice-save-button");
+        if (!saveButton) {
+          saveButton = document.createElement("button");
+          saveButton.id = "practice-save-button";
+          saveButton.textContent = "Speichern";
+          saveButton.style.position = "fixed";
+          saveButton.style.bottom = "20px";
+          saveButton.style.right = "20px";
+          saveButton.style.zIndex = "1000";
+          saveButton.style.padding = "10px 20px";
+          saveButton.style.backgroundColor = "#4CAF50";
+          saveButton.style.color = "white";
+          saveButton.style.border = "none";
+          saveButton.style.borderRadius = "5px";
+          saveButton.style.cursor = "pointer";
+          saveButton.style.display = "none";
+          document.body.appendChild(saveButton);
         }
-        // Dynamisch Titel/Beschreibung wählen
-        // Automatischer Scan bei leerer Hausaufgabe
-        if (!homeworkData) {
-          openCameraScan().then(code => {
-            if (code && code.data) {
-              try {
-                homeworkData = JSON.parse(code.data);
-                localStorage.setItem("homeworkData", JSON.stringify(homeworkData));
-              } catch {
-                alert("Ungültiger QR-Code");
+
+        saveButton.style.display = isPracticeMode ? "block" : "none";
+
+        if (isPracticeMode) {
+          // Speichere den aktuellen Zustand
+          const originalSeries = currentSeriesSingle.slice();
+          const originalCounter = seriesCounter;
+
+          // Generiere alle möglichen Noten
+          currentSeriesSingle = [];
+          
+          // Bass-Noten (C2 bis C4)
+          ['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(note => {
+            // Große Oktave (C2-H2)
+            currentSeriesSingle.push({
+              note: note,
+              octave: 2,
+              clef: 'bass',
+              color: 'black'
+            });
+            // Kleine Oktave (c3-h3)
+            currentSeriesSingle.push({
+              note: note,
+              octave: 3,
+              clef: 'bass',
+              color: 'black'
+            });
+          });
+          // Middle C in Bass
+          currentSeriesSingle.push({
+            note: 'c',
+            octave: 4,
+            clef: 'bass',
+            color: 'black'
+          });
+
+          // Violin-Noten (C4 bis C6)
+          ['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(note => {
+            // Eingestrichene Oktave (c4-h4)
+            currentSeriesSingle.push({
+              note: note,
+              octave: 4,
+              clef: 'treble',
+              color: 'black'
+            });
+            // Zweigestrichene Oktave (c5-h5)
+            currentSeriesSingle.push({
+              note: note,
+              octave: 5,
+              clef: 'treble',
+              color: 'black'
+            });
+          });
+          // High C in Treble
+          currentSeriesSingle.push({
+            note: 'c',
+            octave: 6,
+            clef: 'treble',
+            color: 'black'
+          });
+
+          // Zeichne alle Noten
+          drawSeries();
+
+          // Mache Noten anklickbar
+          const notation = document.getElementById("notation");
+          notation.style.cursor = "pointer";
+
+          // Click-Handler für die Noten
+          notation.onclick = function(event) {
+            const rect = notation.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            const notes = notation.querySelectorAll('.vf-stavenote');
+            notes.forEach((note, index) => {
+              const bbox = note.getBoundingClientRect();
+              if (x >= bbox.left - rect.left && x <= bbox.right - rect.left &&
+                  y >= bbox.top - rect.top && y <= bbox.bottom - rect.top) {
+                const noteInfo = currentSeriesSingle[index];
+                const noteId = `${noteInfo.note}${noteInfo.octave}${noteInfo.clef}`;
+
+                if (selectedNotes.has(noteId)) {
+                  selectedNotes.delete(noteId);
+                  noteInfo.color = 'black';
+                } else {
+                  selectedNotes.add(noteId);
+                  noteInfo.color = '#4CAF50';
+                }
+                drawSeries();
               }
-            }
-            showHomework();
-          }).catch(() => {
-            // Scan abgebrochen oder Fehler – trotzdem das Modal anzeigen
-            showHomework();
-          });
-          return;
-        }
-        const title = homeworkData?.HA || "Keine HA";
-        const desc  = homeworkData?.Beschreibung || "";
-        modal.innerHTML = `
-          <h2>Hausaufgabe</h2>
-          <p><strong>Titel:</strong> ${title}</p>
-          <p><strong>Beschreibung:</strong> ${desc}</p>
-          <button id="hwReceive">HA erhalten</button>
-          <button id="hwSend">HA senden</button>
-        `;
-        // Button-Listener
-        document.getElementById("hwReceive").addEventListener("click", () => {
-          openCameraScan().then(code => {
-            if (code && code.data) {
-              try {
-                homeworkData = JSON.parse(code.data);
-                localStorage.setItem("homeworkData", JSON.stringify(homeworkData));
-              } catch {
-                alert("Ungültiger QR-Code");
-              }
-            }
-            showHomework();
-          });
-        });
-      // Overlay Camera Scan: openCameraScan implementation
-      function openCameraScan() {
-        return new Promise((resolve, reject) => {
-          // Create overlay
-          let scanOverlay = document.createElement("div");
-          Object.assign(scanOverlay.style, {
-            position: "fixed", top:"20%", left:"10%", width:"80%", height:"60%",
-            background:"rgba(0,0,0,0.8)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:"2000"
-          });
-          scanOverlay.id = "scanOverlay";
-          // Create video element
-          let video = document.createElement("video");
-          video.setAttribute("autoplay", true);
-          video.setAttribute("playsinline", true);
-          video.style.width = "100%";
-          video.style.height = "100%";
-          video.style.objectFit = "cover";
-          // Add close button
-          let closeBtn = document.createElement("button");
-          closeBtn.textContent = "Abbrechen";
-          closeBtn.style.position = "absolute";
-          closeBtn.style.top = "10px";
-          closeBtn.style.right = "10px";
-          closeBtn.style.zIndex = "2100";
-          closeBtn.style.padding = "8px 16px";
-          closeBtn.style.background = "white";
-          closeBtn.style.border = "1px solid #000";
-          closeBtn.style.borderRadius = "6px";
-          closeBtn.style.cursor = "pointer";
-          closeBtn.addEventListener("click", () => {
-            if (video.srcObject) {
-              video.srcObject.getTracks().forEach(track => track.stop());
-            }
-            document.body.removeChild(scanOverlay);
-            reject(new Error("Scan cancelled"));
-          });
-          scanOverlay.appendChild(video);
-          scanOverlay.appendChild(closeBtn);
-          document.body.appendChild(scanOverlay);
-          // Access camera
-          navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(stream => {
-            video.srcObject = stream;
-            // Use a QR scanner library or implement simple scanning
-            // For now, simulate scan after 3 seconds
-            // In real code, integrate a QR code library such as jsQR or html5-qrcode
-            setTimeout(() => {
-              // Stop camera
-              stream.getTracks().forEach(track => track.stop());
-              document.body.removeChild(scanOverlay);
-              // Simulate a QR result object
-              resolve({ data: '{"HA":"Beispiel","Beschreibung":"Test"}' });
-            }, 3000);
-          }).catch(err => {
-            document.body.removeChild(scanOverlay);
-            alert("Kamera konnte nicht geöffnet werden: " + err);
-            reject(err);
-          });
-        });
-      }
-        document.getElementById("hwSend").addEventListener("click", () => {
-          modal.innerHTML = `
-            <h2>Hausaufgabe erstellen</h2>
-            <label>Titel:<br><input id="newHA" value="${homeworkData?.HA||""}"></label><br>
-            <label>Beschreibung:<br><textarea id="newDesc">${homeworkData?.Beschreibung||""}</textarea></label><br>
-            <button id="generateQR">QR-Code erstellen</button>
-          `;
-          // Prevent HA input from affecting the notation/game
-          const haInput = document.getElementById("newHA");
-          const descInput = document.getElementById("newDesc");
-          [haInput, descInput].forEach(el => {
-            el.addEventListener('keydown', e => e.stopPropagation());
-            el.addEventListener('keyup',   e => e.stopPropagation());
-            el.addEventListener('keypress',e => e.stopPropagation());
-            el.addEventListener('input',   e => e.stopPropagation());
-          });
-          document.getElementById("generateQR").addEventListener("click", () => {
-            const obj = { HA: document.getElementById("newHA").value, Beschreibung: document.getElementById("newDesc").value };
-            modal.innerHTML = `<div id="qrContainer"></div>`;
-            new QRCode(document.getElementById("qrContainer"), { text: JSON.stringify(obj), width:200, height:200 });
-            localStorage.setItem("homeworkData", JSON.stringify(obj));
-          });
-        });
-      }
-
-      // Called by Swift after scanning QR code
-      function handleIncomingHomework() {
-        console.log("🏠 Received homeworkData from Swift:", window.homeworkData);
-        // Speichere es noch einmal ab – so verhält sich auch der Fallback-Mechanismus
-        localStorage.setItem("homeworkData", JSON.stringify(window.homeworkData));
-        // Öffne oder aktualisiere das Modal
-        showHomework();
-      }
-
-      // 🧙🏼 Wizard-Modus Toggle im Karussell
-      const wizardToggle = document.createElement("span");
-      wizardToggle.id = "wizardToggle";
-      wizardToggle.textContent = "🧙🏼";
-      wizardToggle.style.cursor = "pointer";
-      wizardToggle.style.opacity = "1";
-      settingsPanel.appendChild(wizardToggle);
-      let wizardMode = true;
-      wizardToggle.addEventListener("click", () => {
-        wizardMode = !wizardMode;
-        wizardToggle.style.opacity = wizardMode ? "1" : "0.5";
-      });
-      
-      const blobToggle = document.createElement("span");
-      blobToggle.id = "blobToggle";
-      blobToggle.textContent = "🔆";
-      blobToggle.style.cursor = "pointer";
-      settingsPanel.appendChild(blobToggle);
-
-      blobToggle.addEventListener("click", () => {
-        blobsEnabled = !blobsEnabled;
-        blobToggle.textContent = blobsEnabled ? "🔆" : "🔅";
-      });
-      
-      // Pausen-Button
-      function blinkGreenBackground() {
-        // Ursprüngliche Hintergrundfarbe speichern (falls gesetzt, sonst Standardwert)
-        const originalBg = document.body.style.backgroundColor || "";
-        // Setze den Hintergrund auf den bekannten Grünton
-        document.body.style.backgroundColor = "LightBlue"; // hier den gewünschten Grünton anpassen
-        // Nach 300 Millisekunden wieder zurücksetzen
-        setTimeout(function() {
-          document.body.style.backgroundColor = originalBg;
-        }, 300);
-      }
-      
-      pauseButton.addEventListener("click", () => {
-        if (!sessionPaused) {
-          saveStatistics();
-          saveButtonEffect();
-          console.log("Statistiken gespeichert und grüner Farbtupfer ausgelöst.");
-        }
-      });
-      
-      
-      
-      // Metronom-Ton (tick.mp3)
-      const metronomeSound = new Audio('tick.mp3');
-      // Metronom-Toggle
-      // Metronom-Setup: Zustandsvariablen und Steuerfunktionen
-      let metronomeOn = false;
-      let metronomeInterval = 60000;         // Millisekunden pro Schlag, wird bei BPM-Änderung angepasst
-      let lastTickTime = Date.now();         // Zeitstempel des letzten Metronom-Schlags
-      let metronomeTimer;                    // Intervall-Timer für Metronom
-      let metronomeTolerance = 0;            // Fehlertoleranz (wird noch gesetzt)
-
-      // Startet das Metronom: aktualisiert lastTickTime bei jedem Schlag und spielt Ton ab
-      function startMetronome() {
-        if (metronomeTimer) clearInterval(metronomeTimer);
-        metronomeOn = true;
-        lastTickTime = Date.now();
-        metronomeTimer = setInterval(() => {
-          // Metronom-Ton abspielen
-          metronomeSound.currentTime = 0;
-          metronomeSound.play();
-          lastTickTime = Date.now();
-        }, metronomeInterval);
-      }
-
-      // Stoppt das Metronom
-      function stopMetronome() {
-        metronomeOn = false;
-        if (metronomeTimer) {
-          clearInterval(metronomeTimer);
-          metronomeTimer = null;
-        }
-      }
-
-      // Metronom-Container mit Emoji und BPM-Anzeige
-      const metronomeContainer = document.createElement("div");
-      metronomeContainer.style.display = "inline-block";
-      metronomeContainer.style.textAlign = "center";
-      settingsPanel.appendChild(metronomeContainer);
-
-      const metronomeToggle = document.createElement("span");
-      metronomeToggle.id = "metronomeToggle";
-      metronomeToggle.textContent = "⏲️";
-      metronomeToggle.style.opacity = "0.5";
-      metronomeContainer.appendChild(metronomeToggle);
-
-      const bpmDisplay = document.createElement("span");
-      bpmDisplay.id = "bpmDisplay";
-      bpmDisplay.style.display = "block";
-      // const emojiWidth = metronomeToggle.getBoundingClientRect().width;
-      bpmDisplay.style.fontSize = "14px"; // feste Schriftgröße, frei anpassbar
-      bpmDisplay.style.fontWeight = "bold";
-      bpmDisplay.textContent = metronomeBPM > 0 ? metronomeBPM + " BPM" : "";
-      metronomeContainer.appendChild(bpmDisplay);
-      bpmDisplay.addEventListener("click", () => {
-        let existingInput = document.getElementById("bpmInput");
-        if (!existingInput) {
-          const input = document.createElement("input");
-          input.id = "bpmInput";
-          input.type = "number";
-          input.min = "1";
-          input.placeholder = metronomeBPM > 0 ? metronomeBPM : "";
-          Object.assign(input.style, {
-            backgroundColor: "white",
-            border: "1px solid #000",
-            width: "60px",
-            fontSize: "1em",
-            borderRadius: "5px",
-            outline: "none",
-            marginLeft: "5px"
-          });
-          metronomeContainer.appendChild(input);
-          input.focus();
-          input.addEventListener("keydown", (e) => {
-            if (e.key === "Enter") {
-              const bpm = Number(input.value);
-              if (bpm > 0) {
-                metronomeBPM = bpm;
-                metronomeInterval = 60000 / bpm;
-                document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
-                metronomeTolerance = metronomeInterval * 0.3;
-                if (metronomeOn) startMetronome();
-                startMetronome();
-                metronomeToggle.style.opacity = "1";
-                metronomeOn = true;
-              }
-              input.remove();
-            }
-          });
-          input.addEventListener("blur", () => {
-            input.remove();
-          });
-        }
-      });
-metronomeToggle.addEventListener("click", () => {
-  if (metronomeOn) {
-    stopMetronome();
-    metronomeOn = false;
-    metronomeToggle.style.opacity = "0.5";
-    document.getElementById("bpmDisplay").textContent = "";
-  } else {
-    let existingInput = document.getElementById("bpmInput");
-    if (!existingInput) {
-      let input = document.createElement("input");
-      input.id = "bpmInput";
-      input.type = "number";
-      input.min = "1";
-      input.placeholder = metronomeBPM > 0 ? metronomeBPM : "";
-      input.style.backgroundColor = "white";
-      input.style.border = "1px solid #000";
-      input.style.width = "60px";
-      input.style.fontSize = "1em";
-      input.style.borderRadius = "5px";
-      input.style.outline = "none";
-      input.style.marginLeft = "5px";
-
-      metronomeToggle.parentElement.appendChild(input);
-      input.focus();
-
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          const bpm = Number(input.value);
-          if (bpm > 0) {
-            metronomeBPM = bpm;
-            metronomeInterval = 60000 / bpm;
-            document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
-            metronomeTolerance = metronomeInterval * 0.3;
-            if (metronomeOn) startMetronome();
-            startMetronome();
-            metronomeToggle.style.opacity = "1";
-            metronomeOn = true;
-          }
-          input.remove();
-        }
-      });
-
-      input.addEventListener("blur", () => {
-        input.remove();
-      });
-    }
-  }
-});
-
-      const kidsModeToggle = document.createElement("span");
-      kidsModeToggle.id = "kidsModeToggle";
-      kidsModeToggle.textContent = "🐝";
-      kidsModeToggle.style.cursor = "pointer";
-      kidsModeToggle.style.opacity = "0.5";
-      settingsPanel.appendChild(kidsModeToggle);
-
-      kidsModeToggle.addEventListener("click", () => {
-        kidsMode = !kidsMode;
-        kidsModeToggle.style.opacity = kidsMode ? "1" : "0.5";
-        drawSeries();
-      });
-      
-      
-      const customModeToggle = document.createElement("span");
-      customModeToggle.id = "customModeToggle";
-      customModeToggle.textContent = "🖍️";
-      customModeToggle.style.cursor = "pointer";
-      customModeToggle.style.marginTop = "10px";
-      settingsPanel.appendChild(customModeToggle);
-      customModeToggle.addEventListener("click", () => {
-        const modal = document.getElementById("customModeModal");
-        modal.classList.toggle("hidden");
-        // Erweiterung: Checkboxen für Custom-Notenauswahl
-        if (!modal.querySelector("#customModeContent")) {
-          const container = document.createElement("div");
-          container.id = "customModeContent";
-          container.style.marginTop = "10px";
-
-          const octaves = {
-            "große Oktave": ["C", "D", "E", "F", "G", "A", "H"],
-            "kleine Oktave": ["c", "d", "e", "f", "g", "a", "h"],
-            "eingestrichene Oktave": ["c'", "d'", "e'", "f'", "g'", "a'", "h'"],
-            "zweigestrichene Oktave": ["c''", "d''", "e''", "f''", "g''", "a''", "h''"],
+            });
           };
 
-          Object.entries(octaves).forEach(([octaveName, notes]) => {
-            // 1. Oktaven-Label als Button statt div
-            const octaveLabel = document.createElement("button");
-            octaveLabel.textContent = octaveName;
-            octaveLabel.style.marginTop = "10px";
-            octaveLabel.style.fontWeight = "bold";
-            octaveLabel.style.cursor = "pointer";
-            container.appendChild(octaveLabel);
-
-            notes.forEach(note => {
-              const label = document.createElement("label");
-              label.style.marginRight = "8px";
-              const checkbox = document.createElement("input");
-              checkbox.type = "checkbox";
-              checkbox.value = note;
-              checkbox.disabled = true;
-              label.appendChild(checkbox);
-              label.appendChild(document.createTextNode(note));
-              container.appendChild(label);
-            });
-
-            // 2. Klick auf Oktaven-Button aktiviert zugehörige Checkboxen
-            octaveLabel.addEventListener("click", () => {
-              notes.forEach(note => {
-                const checkbox = container.querySelector(`input[value="${note}"]`);
-                if (checkbox) {
-                  checkbox.disabled = false;
-                  checkbox.checked = true;
-                }
-              });
-            });
-          });
-
-          // Verwende existierenden Save-Button im .custom-mode-save Bereich
-          modal.appendChild(container);
-          // Suche den Speichern-Button im Custom-Mode-Bereich und setze Listener
-          const saveBtn = document.querySelector(".custom-mode-save button");
-          if (saveBtn) {
-            // 3. Nur noch eine Auswahl, keine Unterscheidung mehr zwischen linker und rechter Hand
-            saveBtn.addEventListener("click", () => {
-              const selectedNotes = Array.from(container.querySelectorAll("input[type=checkbox]"))
-                .filter(cb => cb.checked && !cb.disabled)
-                .map(cb => cb.value);
-
-              window.customModeSettings = {
-                clef: "bass",
-                range: "MC",
-                selectedNotes: selectedNotes.map(n => n.replace(/'/g, "").toLowerCase())
+          // Speichern-Button Event Handler
+          saveButton.onclick = function() {
+            const practiceNotes = Array.from(selectedNotes).map(noteId => {
+              const note = noteId.match(/([a-g])(\d+)(.*)/);
+              return {
+                note: note[1],
+                octave: parseInt(note[2]),
+                clef: note[3]
               };
-              generateSeries();
             });
-          }
+
+            window.practiceSettings = {
+              notes: practiceNotes
+            };
+
+            // Deaktiviere Practice Mode
+            isPracticeMode = false;
+            practiceToggle.style.opacity = "0.5";
+            saveButton.style.display = "none";
+
+            // Entferne den Click-Handler
+            const notation = document.getElementById("notation");
+            notation.onclick = null;
+            notation.style.cursor = "default";
+
+            // Generiere neue Serie mit den ausgewählten Noten
+            generateSeries();
+          };
+        } else {
+          // Deaktiviere Practice Mode
+          const notation = document.getElementById("notation");
+          notation.onclick = null;
+          notation.style.cursor = "default";
+          window.practiceSettings = null;
+          generateSeries();
         }
       });
-      
-      
 
       // Move Notation Toggle
       const moveNotationToggle = document.createElement("span");
@@ -2934,111 +2704,69 @@ const generateSeries = () => {
 
   let seriesClef, chooseNote;
 
-  // Prüfe, ob benutzerdefinierte Einstellungen aktiv sind
-  if (window.customModeSettings && window.customModeSettings.clef && window.customModeSettings.range) {
-    // Verwende die benutzerdefinierten Einstellungen
-    seriesClef = window.customModeSettings.clef; // z.B. 'treble' oder 'bass'
-    currentRange = window.customModeSettings.range; // Aktualisiere die globale Lage
-    // Wähle die Noten basierend auf der ausgewählten Hand (left/right)
-    let customNotes = (selectedMode === "left") ? window.customModeSettings.leftNotes : window.customModeSettings.rightNotes;
-    // Fallback, falls keine Noten ausgewählt wurden
-    if (!customNotes || customNotes.length === 0) {
-      if (currentRange === "MC") {
-        customNotes = seriesClef === "bass"
-          ? ["f", "g", "a", "b", "c"]
-          : ["c", "d", "e", "f", "g"];
-      } else if (currentRange === "D") {
-        customNotes = ["d", "e", "f#", "g", "a"];
-      } else if (currentRange === "F") {
-        customNotes = ["f", "g", "a", "bb", "c"];
-      } else {
-        customNotes = rangeNotes[currentRange];
-      }
-    }
-    
+  // Prüfe, ob Practice Mode aktiv ist
+  if (window.practiceSettings && window.practiceSettings.notes && window.practiceSettings.notes.length > 0) {
     chooseNote = () => {
       if (errorNotes.length > 0 && Math.random() < 0.6) {
-        const idx = errorNotes.findIndex(note => note.clef === seriesClef);
+        const idx = errorNotes.findIndex(note => true); // Nimm jede Fehlernote
         if (idx !== -1) {
           return errorNotes.splice(idx, 1)[0];
         }
       }
-      const randomIndex = Math.floor(Math.random() * customNotes.length);
-      const chosenNote = customNotes[randomIndex];
-      let noteOctave = seriesClef === "bass" ? 3 : 4;
-      // F-Lage: ensure C is one octave higher in treble clef
-      if (currentRange === "F" && seriesClef === "treble" && chosenNote.toLowerCase() === "c") {
-        noteOctave = 5;
-      }
-      let accidental = undefined;
-      if (["F", "G"].includes(currentRange)) {
-        if (currentRange === "F" && chosenNote.toLowerCase() === "bb") {
-          accidental = "b";
-        } else if (currentRange === "F" && chosenNote.includes("b") && chosenNote !== "b") {
-          accidental = chosenNote;
-        } else if (currentRange === "G" && (chosenNote.includes("#") || (chosenNote.includes("b") && chosenNote !== "b"))) {
-          accidental = chosenNote;
-        }
-      }
-      return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
-    };
 
+      const practiceNotes = window.practiceSettings.notes;
+      const randomIndex = Math.floor(Math.random() * practiceNotes.length);
+      const selectedNote = practiceNotes[randomIndex];
+
+      return {
+        note: selectedNote.note,
+        octave: selectedNote.octave,
+        clef: selectedNote.clef,
+        color: "black"
+      };
+    };
   } else {
-    // Bestehendes Verhalten, wenn kein Custom Mode aktiv ist
     if (randomMode) {
       seriesClef = Math.random() < 0.5 ? "bass" : "treble";
       notesInCurrentPhase += seriesLength;
       if (notesInCurrentPhase >= 20) {
-        let oldRange = currentRange;
-        if (typeof alternatingRanges !== 'undefined' && alternatingRanges.length > 0) {
-          currentRange = alternatingRanges[Math.floor(Math.random() * alternatingRanges.length)];
-        }
-        if (oldRange !== currentRange) {
-          gongSound.currentTime = 0;
-          gongSound.play();
-          var clefTitle = document.getElementById("clefTitle");
-          clefTitle.textContent = currentRange + "-Lage";
-          clefTitle.style.border = "3px solid red";
-          setTimeout(() => {
-            if (document.body.classList.contains("dark-mode")) {
-              clefTitle.style.border = "3px solid #fff";
-            } else {
-              clefTitle.style.border = "3px solid #000";
-            }
-          }, 300);
-        }
         notesInCurrentPhase = 0;
+        seriesClef = seriesClef === "bass" ? "treble" : "bass";
       }
     } else {
-      seriesClef = (selectedMode === "left") ? "bass" : "treble";
+      seriesClef = selectedMode === "left" ? "bass" : "treble";
     }
 
     chooseNote = () => {
-      if (errorNotes.length > 0 && Math.random() < 0.6) {
-        const idx = errorNotes.findIndex(note => note.clef === seriesClef);
+      if (errorNotes.length) {
+        const idx = Math.floor(Math.random() * errorNotes.length);
         if (idx !== -1) {
           return errorNotes.splice(idx, 1)[0];
         }
       }
-      let defaultNotes;
-      if (currentRange === "MC") {
-        defaultNotes = seriesClef === "bass"
-          ? ["f", "g", "a", "b", "c"]
-          : ["c", "d", "e", "f", "g"];
-      } else if (currentRange === "D") {
-        defaultNotes = ["d", "e", "f#", "g", "a"];
-      } else if (currentRange === "F") {
-        defaultNotes = ["f", "g", "a", "bb", "c"];
-      } else {
-        defaultNotes = rangeNotes[currentRange];
-      }
-      const randomIndex = Math.floor(Math.random() * defaultNotes.length);
-      const chosenNote = defaultNotes[randomIndex];
+
       let noteOctave = seriesClef === "bass" ? 3 : 4;
+      let chosenNote = "";
+      
+      if (currentRange === "C") {
+        chosenNote = ["c", "d", "e", "f", "g", "a", "b"][Math.floor(Math.random() * 7)];
+      } else if (currentRange === "D") {
+        chosenNote = ["d", "e", "f#", "g", "a", "b"][Math.floor(Math.random() * 6)];
+      } else if (currentRange === "F") {
+        chosenNote = ["f", "g", "a", "bb", "c"][Math.floor(Math.random() * 5)];
+        if (chosenNote === "c") noteOctave++;
+      } else if (currentRange === "G") {
+        chosenNote = ["g", "a", "b", "c", "d", "e"][Math.floor(Math.random() * 6)];
+        if (chosenNote === "c" || chosenNote === "d" || chosenNote === "e") noteOctave++;
+      } else if (currentRange === "MC") {
+        chosenNote = ["c", "d", "e", "f", "g"][Math.floor(Math.random() * 5)];
+      }
+
       // F-Lage: ensure C is one octave higher in treble clef
       if (currentRange === "F" && seriesClef === "treble" && chosenNote.toLowerCase() === "c") {
         noteOctave = 5;
       }
+
       let accidental = undefined;
       if (["F", "G"].includes(currentRange)) {
         if (currentRange === "F" && chosenNote.toLowerCase() === "bb") {
@@ -3049,6 +2777,7 @@ const generateSeries = () => {
           accidental = chosenNote;
         }
       }
+
       return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
     };
   }
