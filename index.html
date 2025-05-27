@@ -758,7 +758,42 @@
         }
     
       
-  </style>
+  
+@keyframes flyOutRight {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(100%); }
+}
+@keyframes flyOutLeft {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-100%); }
+}
+.fly-out-right {
+  animation: flyOutRight 0.5s forwards;
+}
+.fly-out-left {
+  animation: flyOutLeft 0.5s forwards;
+}
+@keyframes flyInRight {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes flyInLeft {
+  from { opacity: 0; transform: translateX(-100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.fly-in-right {
+  animation: flyInRight 0.5s forwards;
+}
+.fly-in-left {
+  animation: flyInLeft 0.5s forwards;
+}
+
+  /* Weniger Abstand des Notensystems nach oben */
+  #notation {
+    margin-top: 10px;
+  }
+</style>
+
   <script>
       
       let twoHandMode = false;
@@ -3582,8 +3617,7 @@ const handleMIDIMessage = (status, data1, data2) => {
   window.addEventListener("resize", checkOrientation);
   checkOrientation();
   
-  </script>
-<script>
+  
   // Initialisiere MIDI-Zugriff (Web MIDI API)
   function initMIDIAccess() {
     if (!navigator.requestMIDIAccess) {
@@ -3664,9 +3698,7 @@ const handleMIDIMessage = (status, data1, data2) => {
     console.error("Zugriff auf MIDI-Geräte fehlgeschlagen:", error);
   }
   
-</script>
 
-<script>
   // Initialisiere MIDI-Zugriff (Web MIDI API)
   function initMIDIAccess() {
     if (!navigator.requestMIDIAccess) {
@@ -3733,8 +3765,7 @@ const handleMIDIMessage = (status, data1, data2) => {
 
   // Direkt beim Parsen starten
   initMIDIAccess();
-  </script>
-<script>
+  
     
     
     function startTutorialSequence() {
@@ -3903,42 +3934,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 </script>
-<style>
-@keyframes flyOutRight {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(100%); }
-}
-@keyframes flyOutLeft {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(-100%); }
-}
-.fly-out-right {
-  animation: flyOutRight 0.5s forwards;
-}
-.fly-out-left {
-  animation: flyOutLeft 0.5s forwards;
-}
-@keyframes flyInRight {
-  from { opacity: 0; transform: translateX(100%); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes flyInLeft {
-  from { opacity: 0; transform: translateX(-100%); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-.fly-in-right {
-  animation: flyInRight 0.5s forwards;
-}
-.fly-in-left {
-  animation: flyInLeft 0.5s forwards;
-}
-</style>
-<style>
-  /* Weniger Abstand des Notensystems nach oben */
-  #notation {
-    margin-top: 10px;
-  }
-</style>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qwerty-hancock/0.7.2/qwerty-hancock.min.js"></script>
 </head>
 <body>
