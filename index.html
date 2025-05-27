@@ -2568,11 +2568,32 @@ metronomeToggle.addEventListener("click", () => {
         const originalSeries = [...currentSeriesSingle];
         const originalCounter = seriesCounter;
         
-        // Aktiviere den Custom Mode
-        const modal = document.getElementById("customModeModal");
-        modal.classList.toggle("hidden");
+        // Erstelle den Speichern-Button, wenn er noch nicht existiert
+        let saveButton = document.getElementById("custom-mode-save-button");
+        if (!saveButton) {
+          saveButton = document.createElement("button");
+          saveButton.id = "custom-mode-save-button";
+          saveButton.textContent = "Speichern";
+          saveButton.style.position = "fixed";
+          saveButton.style.bottom = "20px";
+          saveButton.style.right = "20px";
+          saveButton.style.zIndex = "1000";
+          saveButton.style.padding = "10px 20px";
+          saveButton.style.backgroundColor = "#4CAF50";
+          saveButton.style.color = "white";
+          saveButton.style.border = "none";
+          saveButton.style.borderRadius = "5px";
+          saveButton.style.cursor = "pointer";
+          saveButton.style.display = "none";
+          document.body.appendChild(saveButton);
+        }
         
-        if (!modal.classList.contains("hidden")) {
+        // Toggle Custom Mode
+        const isCustomMode = customModeToggle.style.opacity !== "1";
+        customModeToggle.style.opacity = isCustomMode ? "1" : "0.5";
+        saveButton.style.display = isCustomMode ? "block" : "none";
+        
+        if (isCustomMode) {
           // Custom Mode wurde aktiviert
           const selectedNotes = new Set();
           
@@ -2628,7 +2649,7 @@ metronomeToggle.addEventListener("click", () => {
           
           // Click-Handler für die Noten
           notation.onclick = function(event) {
-            if (modal.classList.contains("hidden")) return; // Nur im Custom Mode aktiv
+            if (!isCustomMode) return; // Nur im Custom Mode aktiv
             
             const rect = notation.getBoundingClientRect();
             const x = event.clientX - rect.left;
@@ -2655,7 +2676,6 @@ metronomeToggle.addEventListener("click", () => {
           };
           
           // Speichern-Button Event Handler
-          const saveButton = document.getElementById("custom-mode-save-button");
           saveButton.onclick = function() {
             // Speichere die ausgewählten Noten
             window.customModeSettings = {
@@ -2664,8 +2684,9 @@ metronomeToggle.addEventListener("click", () => {
               noteValue: "4" // Standard: Viertelnoten
             };
             
-            // Schließe den Custom Mode
-            modal.classList.add("hidden");
+            // Deaktiviere Custom Mode
+            customModeToggle.style.opacity = "0.5";
+            saveButton.style.display = "none";
             
             // Stelle den ursprünglichen Zustand wieder her
             seriesLength = originalSeriesLength;
@@ -2673,6 +2694,7 @@ metronomeToggle.addEventListener("click", () => {
             seriesCounter = originalCounter;
             
             // Entferne den Click-Handler
+            const notation = document.getElementById("notation");
             notation.onclick = null;
             notation.style.cursor = "default";
             
