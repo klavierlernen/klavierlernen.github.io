@@ -11,23 +11,20 @@ console.log('✅ All modules imported successfully');
 const app = {
     isInitialized: false,
     
-    // Initialize Application
     async init() {
         console.log('🎮 Initializing application...');
         try {
-            // Initialize all modules
             console.log('🎹 Initializing MIDI...');
             await audioModule.initMIDIAccess();
             
             console.log('🖥️ Initializing UI...');
-            uiModule.init();
+            uiModule.init(); // UI-Elemente cachen und EventListener einrichten
             
             console.log('🎲 Initializing game...');
             gameModule.init(audioModule, uiModule);
             
-            // Setup welcome screen
             console.log('👋 Setting up welcome screen...');
-            this.setupWelcomeScreen();
+            this.setupWelcomeScreen(); // Dies startet den Prozess, der zum Spiel führt
             
             this.isInitialized = true;
             console.log('✨ Application initialized successfully');
@@ -41,31 +38,19 @@ const app = {
         if (welcomeOverlay) {
             console.log('⏳ Welcome screen visible, game will start in 2 seconds...');
             setTimeout(() => {
-                welcomeOverlay.style.display = 'none';
-                console.log('🎬 Starting game...');
+                if (welcomeOverlay) welcomeOverlay.style.display = 'none';
+                console.log('🎬 Showing main content and starting game...');
+                uiModule.showMainContent(); // Jetzt den Hauptinhalt explizit anzeigen
                 this.startGame();
             }, 2000);
         } else {
-            console.error('❌ Welcome overlay element not found!');
+            console.error('❌ Welcome overlay element not found! Game may not start correctly.');
+            // Fallback: Direkt Hauptinhalt anzeigen und Spiel starten, wenn Welcome-Screen fehlt
+            uiModule.showMainContent(); 
+            this.startGame();
         }
     },
 
-    // Event Listeners
-    setupEventListeners() {
-        // Document ready
-        document.addEventListener('DOMContentLoaded', () => {
-            uiModule.resizeCanvas();
-        });
-
-        // Handle visibility change
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                audioModule.stopMetronome();
-            }
-        });
-    },
-
-    // Game Control
     startGame() {
         console.log('🎮 Game starting...');
         gameModule.startGame();
@@ -84,11 +69,37 @@ const app = {
         console.log('🏁 Game ended');
         audioModule.stopMetronome();
         gameModule.endGame();
+    },
+
+    // Globale Funktionen für Buttons
+    toggleMetronome() {
+        if (audioModule.isMetronomeActive) {
+            audioModule.stopMetronome();
+        } else {
+            audioModule.startMetronome();
+        }
+    },
+
+    toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        console.log('🌙 Dark mode toggled');
+    },
+
+    resetGame() {
+        console.log('🔄 Resetting game via button...');
+        gameModule.resetGame(); 
+        uiModule.showMainContent(); // Sicherstellen, dass UI sichtbar ist
     }
 };
 
-// Initialize application when the script loads
-console.log('🚀 Starting application initialization...');
-app.init().catch(error => {
-    console.error('❌ Initialization error:', error);
+// App global verfügbar machen für Inline-Event-Handler in HTML
+window.app = app;
+
+// Initialisierung starten, nachdem der DOM vollständig geladen ist
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOM fully loaded. Starting application initialization...');
+    app.init().catch(error => {
+        console.error('❌ Initialization error caught by DOMContentLoaded:', error);
+    });
+}); 
 }); 
