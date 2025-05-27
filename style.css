@@ -270,7 +270,7 @@ body.dark-mode #gameOverOverlay {
   border: 2px solid black;         /* Passender Randton */
   border-radius: 10px;
   box-shadow:
-    0 6px 0 black,                 /* „fester“ Schatten für die 3D-Kante */
+    0 6px 0 black,                 /* "fester" Schatten für die 3D-Kante */
     0 6px 6px rgba(0, 0, 0, 0.2);    /* Weicher Schlagschatten */
   padding: 15px 24px;                /* Innenabstand */
   margin: 8px;                       /* Außenabstand */
@@ -302,6 +302,7 @@ body.dark-mode #gameOverOverlay {
   color: #333;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
+  animation: float 3s ease-in-out infinite;
 }
 #clefTitle:active {
   transform: translateY(6px);
@@ -312,6 +313,7 @@ body.dark-mode #gameOverOverlay {
 body.dark-mode #settingsPanel {
   background: #000;
   border-color: #fff;
+  color: #fff;
 }
 #settingsPanel span {
   display: block;

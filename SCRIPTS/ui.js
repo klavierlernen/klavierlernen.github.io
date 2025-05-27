@@ -12,7 +12,8 @@ export const uiModule = {
         motivation: null,
         notation: null,
         settingsPanel: null,
-        clefTitle: null
+        clefTitle: null,
+        mainContent: null
     },
 
     init() {
@@ -20,6 +21,7 @@ export const uiModule = {
         this.cacheElements();
         this.setupEventListeners();
         this.setupInitialUI();
+        this.showMainContent();
     },
 
     cacheElements() {
@@ -37,6 +39,7 @@ export const uiModule = {
         this.elements.notation = document.getElementById('notation');
         this.elements.settingsPanel = document.getElementById('settingsPanel');
         this.elements.clefTitle = document.getElementById('clefTitle');
+        this.elements.mainContent = document.getElementById('mainContent');
 
         // Log which elements were found
         Object.entries(this.elements).forEach(([key, element]) => {
@@ -51,12 +54,14 @@ export const uiModule = {
         if (this.elements.notation) {
             console.log('  - Setting up notation display...');
             this.setupNotationDisplay();
+            this.elements.notation.style.display = 'block';
         }
 
         // Setup settings panel
         if (this.elements.settingsPanel) {
             console.log('  - Setting up settings panel...');
             this.setupSettingsPanel();
+            this.elements.settingsPanel.style.display = 'flex';
         }
 
         // Initialize hearts display
@@ -64,10 +69,25 @@ export const uiModule = {
             console.log('  - Setting up hearts display...');
             this.updateHearts(3);
         }
+
+        // Setup clef title
+        if (this.elements.clefTitle) {
+            this.elements.clefTitle.textContent = 'C-Lage';
+        }
+    },
+
+    showMainContent() {
+        console.log('🎬 Showing main content...');
+        if (this.elements.mainContent) {
+            this.elements.mainContent.style.display = 'block';
+            // Kurze Verzögerung für die Fade-Animation
+            setTimeout(() => {
+                this.elements.mainContent.style.opacity = '1';
+            }, 100);
+        }
     },
 
     setupNotationDisplay() {
-        // Hier VexFlow initialisieren
         try {
             const VF = Vex.Flow;
             const div = this.elements.notation;
@@ -75,6 +95,12 @@ export const uiModule = {
             renderer.resize(300, 150);
             const context = renderer.getContext();
             context.setFont("Arial", 10);
+
+            // Erstelle ein neues Notensystem
+            const stave = new VF.Stave(10, 0, 280);
+            stave.addClef("treble");
+            stave.setContext(context).draw();
+
             console.log('✅ Notation system initialized');
         } catch (error) {
             console.error('❌ Failed to initialize notation system:', error);
@@ -84,8 +110,9 @@ export const uiModule = {
     setupSettingsPanel() {
         if (this.elements.settingsPanel) {
             this.elements.settingsPanel.innerHTML = `
-                <button onclick="app.toggleMetronome()">Metronome</button>
-                <button onclick="app.resetGame()">Reset</button>
+                <span onclick="app.toggleMetronome()" title="Metronom">🎵</span>
+                <span onclick="app.toggleDarkMode()" title="Dark Mode">🌙</span>
+                <span onclick="app.resetGame()" title="Neu starten">🔄</span>
             `;
             console.log('✅ Settings panel initialized');
         }
@@ -93,6 +120,12 @@ export const uiModule = {
 
     setupEventListeners() {
         // Event Listener für UI-Interaktionen
+        if (this.elements.clefTitle) {
+            this.elements.clefTitle.addEventListener('click', () => {
+                // Implementiere Lagenwechsel
+                console.log('🎼 Clef change requested');
+            });
+        }
     },
 
     updateDisplay(gameState) {
