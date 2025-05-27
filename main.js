@@ -13,14 +13,26 @@ const app = {
             // Initialize all modules
             await audioModule.initMIDIAccess();
             uiModule.init();
+            gameModule.init(audioModule, uiModule);
             
-            // Setup event listeners
-            this.setupEventListeners();
+            // Setup welcome screen
+            this.setupWelcomeScreen();
             
             this.isInitialized = true;
             console.log('Application initialized successfully');
         } catch (error) {
             console.error('Failed to initialize application:', error);
+        }
+    },
+
+    setupWelcomeScreen() {
+        const welcomeOverlay = document.getElementById('welcomeOverlay');
+        if (welcomeOverlay) {
+            // Automatisch nach 2 Sekunden zum Hauptbildschirm wechseln
+            setTimeout(() => {
+                welcomeOverlay.style.display = 'none';
+                this.startGame();
+            }, 2000);
         }
     },
 
@@ -41,9 +53,7 @@ const app = {
 
     // Game Control
     startGame() {
-        gameModule.resetGame();
-        uiModule.updateHeartsDisplay();
-        uiModule.updateTimer();
+        gameModule.startGame();
     },
 
     pauseGame() {
@@ -57,8 +67,7 @@ const app = {
 
     endGame() {
         audioModule.stopMetronome();
-        gameModule.saveStatistics();
-        // Additional end game logic
+        gameModule.endGame();
     }
 };
 
