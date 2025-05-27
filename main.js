@@ -1,8 +1,7 @@
 // Main Application
-import { audioModule } from './audio.js';
-import { gameModule } from './game.js';
-import { uiModule } from './ui.js';
-import { homeworkModule } from './homework.js';
+import { audioModule } from 'https://jp0024.github.io/piano.github.io/audio.js';
+import { gameModule } from 'https://jp0024.github.io/piano.github.io/game.js';
+import { uiModule } from 'https://jp0024.github.io/piano.github.io/ui.js';
 
 // Application State
 const app = {
@@ -14,7 +13,6 @@ const app = {
             // Initialize all modules
             await audioModule.initMIDIAccess();
             uiModule.init();
-            homeworkModule.init();
             
             // Setup event listeners
             this.setupEventListeners();
