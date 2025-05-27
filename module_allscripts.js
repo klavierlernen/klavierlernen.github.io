@@ -7,20 +7,9 @@
       let articulationMode = null; // null, "staccato" oder "legato"
 
              
-    // Disable any scrolling
-    window.addEventListener('scroll', function(e) {
-      e.preventDefault();
-      window.scrollTo(0, 0);
-    }, { passive: false });
+    
   
-  // Oben im Skript
-  let customModeSettings = null;
-  const octaveDefinitions = {
-    grosse:   { notes: ["c","d","e","f","g","a","b"], baseOctave: 3 },
-    kleine:   { notes: ["c","d","e","f","g","a","b"], baseOctave: 4 },
-    eingestr: { notes: ["c","d","e","f","g","a","b"], baseOctave: 5 },
-    zweigestr:{ notes: ["c","d","e","f","g","a","b"], baseOctave: 6 },
-  };
+  
   
 let wizardMode = true;
    let correctionActive = false;
@@ -29,71 +18,7 @@ let wizardMode = true;
    let expectedNote = "";
    
    
-      
-// === Touch‐based positioning for the notation crosshair ===
-document.addEventListener('DOMContentLoaded', () => {
-  const notation = document.getElementById('notation');
-  if (!notation) return;
-
-  // Load or set default transform
-  let saved = localStorage.getItem('notationTransform');
-  if (!saved) {
-    saved = 'translate(-50%, -50%)';
-    localStorage.setItem('notationTransform', saved);
-  }
-  notation.style.transform = saved;
-
-  // Prepare variables for touch dragging
-  let startX = 0, startY = 0;
-  let initX = 0, initY = 0;
-  let dragging = false;
-
-  notation.addEventListener('touchstart', e => {
-    // Only allow dragging if the Geodreieck-Button ("geometryToggle") is active
-    const toggle = document.getElementById('geometryToggle');
-    const isActive = toggle && (toggle.classList.contains('active') || toggle.dataset.active === 'true');
-    if (!isActive) return;
-    e.preventDefault();
-    dragging = true;
-    const touch = e.touches[0];
-    startX = touch.clientX;
-    startY = touch.clientY;
-    const style = window.getComputedStyle(notation);
-    const matrix = new DOMMatrix(style.transform);
-    initX = matrix.m41;
-    initY = matrix.m42;
-  }, { passive: false });
-
-  notation.addEventListener('touchmove', e => {
-    if (!dragging) return;
-    e.preventDefault();
-    const touch = e.touches[0];
-    const dx = touch.clientX - startX;
-    const dy = touch.clientY - startY;
-    const newX = initX + dx;
-    const newY = initY + dy;
-    // Calculate the position of the center of notation in viewport
-    // The transform is relative to (left:50%, top:50%)
-    const newLeft = newX + window.innerWidth / 2;
-    const newTop = newY + window.innerHeight / 2;
-    if (
-      newLeft > 0 &&
-      newLeft < window.innerWidth &&
-      newTop > 0 &&
-      newTop < window.innerHeight
-    ) {
-      notation.style.transform = `translate(${newX}px, ${newY}px)`;
-    }
-  }, { passive: false });
-
-  notation.addEventListener('touchend', () => {
-    if (!dragging) return;
-    dragging = false;
-    localStorage.setItem('notationTransform', notation.style.transform);
-  });
-});
-    
-      
+ 
       document.addEventListener("DOMContentLoaded", () => {
         const timerElem = document.getElementById("timerContainer");
         // Beispiel: Direkt eine Info setzen
@@ -263,60 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // ... restlicher Initialisierungscode
       });
       
-    function logSessionStart() {
-      const sessionTimes = JSON.parse(localStorage.getItem("sessionTimes") || "[]");
-      sessionTimes.push(new Date().toISOString());
-      localStorage.setItem("sessionTimes", JSON.stringify(sessionTimes));
-    }
-      
-    // Speichert die relevanten Statistiken im localStorage
-    function saveStatistics() {
-      const stats = {
-        totalAttempts: totalAttempts,
-        correctAnswers: correctAnswers,
-        correctNoteCount: correctNoteCount,
-        responseTimes: responseTimes,
-        sessionCount: sessionCount,
-        hearts: hearts,
-        errorNotes: errorNotes,
-        // Du kannst hier auch weitere Variablen eintragen, z.B. openTimes, appStartTime etc.
-        appStartTime: appStartTime
-      };
-      localStorage.setItem("appStatistics", JSON.stringify(stats));
-      // Ensure all leaderboard values (accuracy, duration, mode) are sent for proper leaderboard updates
-      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.gameCenter) {
-        window.webkit.messageHandlers.gameCenter.postMessage({
-          type: "highscore",
-          value: {
-            accuracy: Math.round((correctAnswers / totalAttempts) * 100),
-            duration: Math.floor((Date.now() - appStartTime) / 1000),
-            mode: randomMode ? "random" : selectedMode
-          }
-        });
-      }
-    }
-
-    // Lädt die Statistiken aus dem localStorage und weist sie den globalen Variablen zu
-    function loadStatistics() {
-      const statsStr = localStorage.getItem("appStatistics");
-      if (statsStr) {
-        const stats = JSON.parse(statsStr);
-        totalAttempts = stats.totalAttempts || 0;
-        correctAnswers = stats.correctAnswers || 0;
-        correctNoteCount = stats.correctNoteCount || 0;
-        responseTimes = stats.responseTimes || [];
-        sessionCount = stats.sessionCount || 0;
-        hearts = stats.hearts || (unlimitedLives ? Infinity : 4);
-        errorNotes = stats.errorNotes || [];
-        appStartTime = stats.appStartTime || Date.now();
-      }
-    }
-
-    // Optional: Speichern der Statistiken, wenn die Seite geschlossen wird
-    window.addEventListener("beforeunload", saveStatistics);
-
-    // Beim Laden der Seite die Statistiken laden
-    document.addEventListener("DOMContentLoaded", loadStatistics);
+    
     
     function proceedToMainScreen() {
       const audio = document.getElementById("backgroundSound");
