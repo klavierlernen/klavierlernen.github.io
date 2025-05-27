@@ -199,10 +199,3 @@ const app = {
 // App global verfügbar machen für Inline-Event-Handler in HTML
 window.app = app;
 
-// Initialisierung starten, nachdem der DOM vollständig geladen ist
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 DOM fully loaded. Starting application initialization...');
-    app.init().catch(error => {
-        console.error('❌ Initialization error caught by DOMContentLoaded:', error);
-    });
-}); 
