@@ -1748,7 +1748,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       // const emojiWidth = metronomeToggle.getBoundingClientRect().width;
       bpmDisplay.style.fontSize = "14px"; // feste Schriftgröße, frei anpassbar
       bpmDisplay.style.fontWeight = "bold";
-      bpmDisplay.textContent = metronomeBPM > 0 ? metronomeBPM + " BPM" : "";
+      bpmDisplay.textContent = metronomeBPM > 0 ? metronomeBPM + " BPM" : "";
       metronomeContainer.appendChild(bpmDisplay);
       bpmDisplay.addEventListener("click", () => {
         let existingInput = document.getElementById("bpmInput");
@@ -1775,7 +1775,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
               if (bpm > 0) {
                 metronomeBPM = bpm;
                 metronomeInterval = 60000 / bpm;
-                document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
+                document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
                 metronomeTolerance = metronomeInterval * 0.3;
                 if (metronomeOn) startMetronome();
                 startMetronome();
@@ -1821,7 +1821,7 @@ metronomeToggle.addEventListener("click", () => {
           if (bpm > 0) {
             metronomeBPM = bpm;
             metronomeInterval = 60000 / bpm;
-            document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
+            document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
             metronomeTolerance = metronomeInterval * 0.3;
             if (metronomeOn) startMetronome();
             startMetronome();
@@ -2803,7 +2803,7 @@ const handleMIDIMessage = (status, data1, data2) => {
     }
 
   // Hilfsfunktion: Staccato-Modus deaktivieren
-  function deactivateStaccatoMode() {
+  /* function deactivateStaccatoMode() {
     articulationMode = null;
     const notation = document.getElementById("notation");
     if (notation) notation.style.display = "block";
@@ -2811,7 +2811,7 @@ const handleMIDIMessage = (status, data1, data2) => {
     if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
     const staccatoToggle = document.getElementById("staccatoToggle");
     if (staccatoToggle) staccatoToggle.style.opacity = "0.5";
-  }
+  } */
     // Feedback
     const clefTitle = document.getElementById("clefTitle");
     if (correct) {
