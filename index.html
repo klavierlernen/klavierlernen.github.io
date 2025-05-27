@@ -2218,9 +2218,72 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       const practiceToggle = document.createElement("span");
       practiceToggle.id = "practiceToggle";
       practiceToggle.textContent = "🖊️";
-      practiceToggle.style.cursor = "pointer";
-      practiceToggle.style.opacity = "0.5";
+      practiceToggle.title = "Übungsmodus";
       settingsPanel.appendChild(practiceToggle);
+
+      // Reset-Button für Practice Mode
+      const practiceResetButton = document.createElement("span");
+      practiceResetButton.id = "practiceResetButton";
+      practiceResetButton.textContent = "🗑️";
+      practiceResetButton.title = "Übungsauswahl zurücksetzen";
+      practiceResetButton.style.marginLeft = "5px";
+      practiceResetButton.style.cursor = "pointer";
+      practiceResetButton.style.opacity = window.practiceSettings ? "1" : "0.5";
+      settingsPanel.appendChild(practiceResetButton);
+
+      // Event-Handler für den Reset-Button
+      practiceResetButton.addEventListener("click", () => {
+        if (!window.practiceSettings) return;
+        
+        // Bestätigungsdialog
+        if (confirm("Möchtest du wirklich alle ausgewählten Übungsnoten zurücksetzen?")) {
+          window.practiceSettings = null;
+          localStorage.removeItem('practiceSettings');
+          practiceResetButton.style.opacity = "0.5";
+          
+          // Visuelle Bestätigung
+          const notification = document.createElement("div");
+          notification.textContent = "✨ Übungsauswahl wurde zurückgesetzt";
+          notification.style.position = "fixed";
+          notification.style.top = "20px";
+          notification.style.left = "50%";
+          notification.style.transform = "translateX(-50%)";
+          notification.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+          notification.style.color = "white";
+          notification.style.padding = "10px 20px";
+          notification.style.borderRadius = "5px";
+          notification.style.zIndex = "9999";
+          document.body.appendChild(notification);
+          
+          // Notification nach 2 Sekunden ausblenden
+          setTimeout(() => {
+            notification.style.transition = "opacity 0.5s ease";
+            notification.style.opacity = "0";
+            setTimeout(() => notification.remove(), 500);
+          }, 2000);
+          
+          // Generiere neue Serie mit Standardeinstellungen
+          generateSeries();
+        }
+      });
+
+      // Aktualisiere Reset-Button wenn Practice-Einstellungen geändert werden
+      const updatePracticeResetButton = () => {
+        if (practiceResetButton) {
+          practiceResetButton.style.opacity = window.practiceSettings ? "1" : "0.5";
+        }
+      };
+
+      // Füge den Observer für practiceSettings hinzu
+      Object.defineProperty(window, 'practiceSettings', {
+        set: function(value) {
+          this._practiceSettings = value;
+          updatePracticeResetButton();
+        },
+        get: function() {
+          return this._practiceSettings;
+        }
+      });
 
       let selectedNotes = new Set();
       let isPracticeMode = false;
