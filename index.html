@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-   
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Klavier</title>
@@ -765,7 +764,6 @@
       let seriesCounterRight = 0;
       let currentSeriesLeft = [];
       let currentSeriesRight = [];
-      let articulationMode = null; // null, "staccato" oder "legato"
 
         // Initialize global homeworkData from storage
         window.homeworkData = JSON.parse(localStorage.getItem("homeworkData") || "null");
@@ -2361,37 +2359,9 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       wizardToggle.style.opacity = "1";
       settingsPanel.appendChild(wizardToggle);
       let wizardMode = true;
-      // --- resetArticulationMode helper ---
-      function resetArticulationMode() {
-        articulationMode = null;
-        const clefTitle = document.getElementById("clefTitle");
-        if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
-        const notation = document.getElementById("notation");
-        if (notation) notation.style.display = "block";
-      }
       wizardToggle.addEventListener("click", () => {
-        resetArticulationMode();
         wizardMode = !wizardMode;
         wizardToggle.style.opacity = wizardMode ? "1" : "0.5";
-      });
-      
-      const staccatoToggle = document.createElement("span");
-      staccatoToggle.id = "staccatoToggle";
-      staccatoToggle.textContent = "🥁";
-      staccatoToggle.style.cursor = "pointer";
-      staccatoToggle.style.opacity = "0.5";
-      settingsPanel.appendChild(staccatoToggle);
-
-      let staccatoModeActive = false;
-
-      staccatoToggle.addEventListener("click", () => {
-        staccatoModeActive = !staccatoModeActive;
-        articulationMode = staccatoModeActive ? "staccato" : null;
-        staccatoToggle.style.opacity = staccatoModeActive ? "1" : "0.5";
-        const clefTitle = document.getElementById("clefTitle");
-        if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
-        const notation = document.getElementById("notation");
-        if (notation) notation.style.display = staccatoModeActive ? "none" : "block";
       });
       
       const blobToggle = document.createElement("span");
@@ -2401,7 +2371,6 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       settingsPanel.appendChild(blobToggle);
 
       blobToggle.addEventListener("click", () => {
-        resetArticulationMode();
         blobsEnabled = !blobsEnabled;
         blobToggle.textContent = blobsEnabled ? "🔆" : "🔅";
       });
@@ -2478,7 +2447,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       // const emojiWidth = metronomeToggle.getBoundingClientRect().width;
       bpmDisplay.style.fontSize = "14px"; // feste Schriftgröße, frei anpassbar
       bpmDisplay.style.fontWeight = "bold";
-      bpmDisplay.textContent = metronomeBPM > 0 ? metronomeBPM + " BPM" : "";
+      bpmDisplay.textContent = metronomeBPM > 0 ? metronomeBPM + " BPM" : "";
       metronomeContainer.appendChild(bpmDisplay);
       bpmDisplay.addEventListener("click", () => {
         let existingInput = document.getElementById("bpmInput");
@@ -2505,7 +2474,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
               if (bpm > 0) {
                 metronomeBPM = bpm;
                 metronomeInterval = 60000 / bpm;
-                document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
+                document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
                 metronomeTolerance = metronomeInterval * 0.3;
                 if (metronomeOn) startMetronome();
                 startMetronome();
@@ -2551,7 +2520,7 @@ metronomeToggle.addEventListener("click", () => {
           if (bpm > 0) {
             metronomeBPM = bpm;
             metronomeInterval = 60000 / bpm;
-            document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
+            document.getElementById("bpmDisplay").textContent = metronomeBPM + " BPM";
             metronomeTolerance = metronomeInterval * 0.3;
             if (metronomeOn) startMetronome();
             startMetronome();
@@ -2577,8 +2546,6 @@ metronomeToggle.addEventListener("click", () => {
       settingsPanel.appendChild(kidsModeToggle);
 
       kidsModeToggle.addEventListener("click", () => {
-        deactivateStaccatoMode();
-        resetArticulationMode();
         kidsMode = !kidsMode;
         kidsModeToggle.style.opacity = kidsMode ? "1" : "0.5";
         drawSeries();
@@ -2592,20 +2559,76 @@ metronomeToggle.addEventListener("click", () => {
       customModeToggle.style.marginTop = "10px";
       settingsPanel.appendChild(customModeToggle);
       customModeToggle.addEventListener("click", () => {
-        deactivateStaccatoMode();
-        resetArticulationMode();
         const modal = document.getElementById("customModeModal");
         modal.classList.toggle("hidden");
-
+        // Erweiterung: Checkboxen für Custom-Notenauswahl
         if (!modal.querySelector("#customModeContent")) {
           const container = document.createElement("div");
           container.id = "customModeContent";
           container.style.marginTop = "10px";
-          modal.appendChild(container);
 
-          populateCustomNotes(); // Container existiert nun sicher
+          const octaves = {
+            "große Oktave": ["C", "D", "E", "F", "G", "A", "H"],
+            "kleine Oktave": ["c", "d", "e", "f", "g", "a", "h"],
+            "eingestrichene Oktave": ["c'", "d'", "e'", "f'", "g'", "a'", "h'"],
+            "zweigestrichene Oktave": ["c''", "d''", "e''", "f''", "g''", "a''", "h''"],
+          };
+
+          Object.entries(octaves).forEach(([octaveName, notes]) => {
+            // 1. Oktaven-Label als Button statt div
+            const octaveLabel = document.createElement("button");
+            octaveLabel.textContent = octaveName;
+            octaveLabel.style.marginTop = "10px";
+            octaveLabel.style.fontWeight = "bold";
+            octaveLabel.style.cursor = "pointer";
+            container.appendChild(octaveLabel);
+
+            notes.forEach(note => {
+              const label = document.createElement("label");
+              label.style.marginRight = "8px";
+              const checkbox = document.createElement("input");
+              checkbox.type = "checkbox";
+              checkbox.value = note;
+              checkbox.disabled = true;
+              label.appendChild(checkbox);
+              label.appendChild(document.createTextNode(note));
+              container.appendChild(label);
+            });
+
+            // 2. Klick auf Oktaven-Button aktiviert zugehörige Checkboxen
+            octaveLabel.addEventListener("click", () => {
+              notes.forEach(note => {
+                const checkbox = container.querySelector(`input[value="${note}"]`);
+                if (checkbox) {
+                  checkbox.disabled = false;
+                  checkbox.checked = true;
+                }
+              });
+            });
+          });
+
+          // Verwende existierenden Save-Button im .custom-mode-save Bereich
+          modal.appendChild(container);
+          // Suche den Speichern-Button im Custom-Mode-Bereich und setze Listener
+          const saveBtn = document.querySelector(".custom-mode-save button");
+          if (saveBtn) {
+            // 3. Nur noch eine Auswahl, keine Unterscheidung mehr zwischen linker und rechter Hand
+            saveBtn.addEventListener("click", () => {
+              const selectedNotes = Array.from(container.querySelectorAll("input[type=checkbox]"))
+                .filter(cb => cb.checked && !cb.disabled)
+                .map(cb => cb.value);
+
+              window.customModeSettings = {
+                clef: "bass",
+                range: "MC",
+                selectedNotes: selectedNotes.map(n => n.replace(/'/g, "").toLowerCase())
+              };
+              generateSeries();
+            });
+          }
         }
       });
+      
       
 
       // Move Notation Toggle
@@ -2622,8 +2645,6 @@ metronomeToggle.addEventListener("click", () => {
       let duringDrag, endDrag; // For removal of listeners
 
       moveNotationToggle.addEventListener("click", () => {
-        deactivateStaccatoMode();
-        resetArticulationMode();
         const notation = document.getElementById("notation");
         // Drag-Cursor für Notation
         notation.style.cursor = "grab";
@@ -2829,26 +2850,7 @@ document.getElementById("timerContainer").addEventListener("click", () => {
       darkModeToggle.id = "darkModeToggle";
       darkModeToggle.textContent = "🌙";
       settingsPanel.appendChild(darkModeToggle);
-      darkModeToggle.addEventListener("click", () => {
-        deactivateStaccatoMode();
-        resetArticulationMode();
-        toggleDarkMode();
-      });
-      blobToggle.addEventListener("click", () => {
-        deactivateStaccatoMode();
-        resetArticulationMode();
-        blobMode = !blobMode;
-        blobToggle.style.opacity = blobMode ? "1" : "0.5";
-        drawSeries();
-      });
-
-      wizardToggle.addEventListener("click", () => {
-        deactivateStaccatoMode();
-        resetArticulationMode();
-        wizardMode = !wizardMode;
-        wizardToggle.style.opacity = wizardMode ? "1" : "0.5";
-        drawSeries();
-      });
+      darkModeToggle.addEventListener("click", toggleDarkMode);
 
       // Animated carousel using a sliding track
       const carouselContainer = document.createElement('div');
@@ -2884,7 +2886,7 @@ document.getElementById("timerContainer").addEventListener("click", () => {
         localStorage.setItem('notationZoom', notationZoom);
         drawSeries();
       });
-      const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle, moveNotationToggle, wizardToggle, staccatoToggle];
+      const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle, moveNotationToggle, wizardToggle];
       carouselButtons.forEach(btn => {
         const item = document.createElement('div');
         item.className = 'carouselItem';
@@ -2966,38 +2968,52 @@ const generateSeries = () => {
   let seriesClef, chooseNote;
 
   // Prüfe, ob benutzerdefinierte Einstellungen aktiv sind
-  if (
-    window.customModeSettings &&
-    window.customModeSettings.selectedNotes &&
-    window.customModeSettings.selectedNotes.length > 0 &&
-    window.customModeSettings.clef
-  ) {
-    // Benutzerdefinierter Modus aktiv
-    seriesClef = window.customModeSettings.clef;
-    currentRange = window.customModeSettings.range;
-    const customNotes = window.customModeSettings.selectedNotes;
-
+  if (window.customModeSettings && window.customModeSettings.clef && window.customModeSettings.range) {
+    // Verwende die benutzerdefinierten Einstellungen
+    seriesClef = window.customModeSettings.clef; // z.B. 'treble' oder 'bass'
+    currentRange = window.customModeSettings.range; // Aktualisiere die globale Lage
+    // Wähle die Noten basierend auf der ausgewählten Hand (left/right)
+    let customNotes = (selectedMode === "left") ? window.customModeSettings.leftNotes : window.customModeSettings.rightNotes;
+    // Fallback, falls keine Noten ausgewählt wurden
+    if (!customNotes || customNotes.length === 0) {
+      if (currentRange === "MC") {
+        customNotes = seriesClef === "bass"
+          ? ["f", "g", "a", "b", "c"]
+          : ["c", "d", "e", "f", "g"];
+      } else if (currentRange === "D") {
+        customNotes = ["d", "e", "f#", "g", "a"];
+      } else if (currentRange === "F") {
+        customNotes = ["f", "g", "a", "bb", "c"];
+      } else {
+        customNotes = rangeNotes[currentRange];
+      }
+    }
+    
     chooseNote = () => {
-      const randomIndex = Math.floor(Math.random() * customNotes.length);
-      const chosenNoteRaw = customNotes[randomIndex];
-      // Remove apostrophes for base note (e.g. c', c'')
-      let baseNote = chosenNoteRaw.replace(/'+/g, "").toLowerCase();
-      let apostrophes = (chosenNoteRaw.match(/'/g) || []).length;
-      let noteOctave = (seriesClef === "bass") ? 2 : 4;
-      noteOctave += apostrophes;
-
-      let accidental = undefined;
-      if (["F", "G"].includes(currentRange)) {
-        if (currentRange === "F" && baseNote === "bb") {
-          accidental = "b";
-        } else if (currentRange === "F" && baseNote.includes("b") && baseNote !== "b") {
-          accidental = baseNote;
-        } else if (currentRange === "G" && (baseNote.includes("#") || (baseNote.includes("b") && baseNote !== "b"))) {
-          accidental = baseNote;
+      if (errorNotes.length > 0 && Math.random() < 0.6) {
+        const idx = errorNotes.findIndex(note => note.clef === seriesClef);
+        if (idx !== -1) {
+          return errorNotes.splice(idx, 1)[0];
         }
       }
-
-      return { note: baseNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
+      const randomIndex = Math.floor(Math.random() * customNotes.length);
+      const chosenNote = customNotes[randomIndex];
+      let noteOctave = seriesClef === "bass" ? 3 : 4;
+      // F-Lage: ensure C is one octave higher in treble clef
+      if (currentRange === "F" && seriesClef === "treble" && chosenNote.toLowerCase() === "c") {
+        noteOctave = 5;
+      }
+      let accidental = undefined;
+      if (["F", "G"].includes(currentRange)) {
+        if (currentRange === "F" && chosenNote.toLowerCase() === "bb") {
+          accidental = "b";
+        } else if (currentRange === "F" && chosenNote.includes("b") && chosenNote !== "b") {
+          accidental = chosenNote;
+        } else if (currentRange === "G" && (chosenNote.includes("#") || (chosenNote.includes("b") && chosenNote !== "b"))) {
+          accidental = chosenNote;
+        }
+      }
+      return { note: chosenNote, octave: noteOctave, clef: seriesClef, color: "black", accidental: accidental };
     };
 
   } else {
@@ -3076,8 +3092,6 @@ const generateSeries = () => {
   }
   drawSeries();
 };
-      
-      
                                             
 const drawSeries = () => {
   const noteAnimals = {
@@ -3123,7 +3137,7 @@ const drawSeries = () => {
   const noteOrder = ["c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b"];
 
   const staveNotes = currentSeriesSingle.map(item => {
-      let noteName = item.note.toLowerCase().replace(/♯/g, "#").replace(/♭/g, "b").replace(/^h$/, "b");
+    let noteName = item.note.toLowerCase().replace(/♯/g, "#").replace(/♭/g, "b");
     const key = noteName + "/" + item.octave;
     const staveNote = new Vex.Flow.StaveNote({
       clef: item.clef,
@@ -3280,75 +3294,47 @@ function scheduleReverseAnimation() {
         menusHidden = false;
       }, 2000);
 }
-// Für Staccato-Tracking
-let activeNotes = {};
-
-const handleMIDIMessage = (status, data1, data2) => {
-  if (sessionPaused) return;
-  // Animation beim Anschlagen einer Taste:
-  const settingsPanel = document.getElementById("settingsPanel");
-  const streakDisplay = document.getElementById("streakDisplay");
-  if (!menusHidden) {
-    if (settingsPanel) {
-      settingsPanel.classList.remove("fly-in-right", "fly-out-right");
-      void settingsPanel.offsetWidth;
-      settingsPanel.classList.add("fly-out-right");
-    }
-    if (streakDisplay) {
-      streakDisplay.classList.remove("fly-in-left", "fly-out-left");
-      void streakDisplay.offsetWidth;
-      streakDisplay.classList.add("fly-out-left");
-    }
-    menusHidden = true;
-  }
-  scheduleReverseAnimation();
-  if (metronomeOn) {
-    const now = Date.now();
-    const diff = now - lastTickTime;
-    if (Math.abs(diff) > metronomeTolerance) {
-      console.log(`MIDI außerhalb der Metronom-Toleranz: ${diff}ms`);
-      return;
-    }
-  }
-  resetInactivityTimer();
-
-  // NOTE-OFF für Staccato-Modus (auch NOTE-ON mit Velocity 0)
-  if (
-    (((status & 0xf0) === 0x80) ||
-     ((status & 0xf0) === 0x90 && data2 === 0)) &&
-    articulationMode === "staccato"
-  ) {
-    if (activeNotes[data1]) {
-      const noteData = activeNotes[data1];
-      checkArticulation(noteData.timestamp, Date.now(), noteData.velocity);
-      delete activeNotes[data1];
-    }
-    return;
-  }
-
-  // NOTE-ON
-  if ((status & 0xf0) === 0x90 && data2 > 0) {
-    let currentTime = Date.now();
-
-    if (articulationMode === "staccato") {
-      if (!activeNotes[data1]) {
-        activeNotes[data1] = { timestamp: currentTime, velocity: data2 };
+    const handleMIDIMessage = (status, data1, data2) => {
+      if (sessionPaused) return;
+      // Animation beim Anschlagen einer Taste:
+      const settingsPanel = document.getElementById("settingsPanel");
+      const streakDisplay = document.getElementById("streakDisplay");
+      if (!menusHidden) {
+        if (settingsPanel) {
+          settingsPanel.classList.remove("fly-in-right", "fly-out-right");
+          void settingsPanel.offsetWidth;
+          settingsPanel.classList.add("fly-out-right");
+        }
+        if (streakDisplay) {
+          streakDisplay.classList.remove("fly-in-left", "fly-out-left");
+          void streakDisplay.offsetWidth;
+          streakDisplay.classList.add("fly-out-left");
+        }
+        menusHidden = true;
       }
-      return;
-    }
-
-    // Nur im Nicht-Artikulationsmodus fortfahren
-    if (seriesCounter >= currentSeriesSingle.length) return;
-    let responseTime = currentTime - lastNoteTimestamp;
-    responseTimes.push(responseTime);
-    lastNoteTimestamp = currentTime;
-    const midiInfo = (() => {
-      const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
-      const octave = Math.floor(data1 / 12) - 1;
-      const rawNote = noteNames[data1 % 12];
-      const convertedNote = (rawNote === "a#") ? "bb" : rawNote;
-      return { note: convertedNote, octave: octave };
-    })();
+      scheduleReverseAnimation();
+      if (metronomeOn) {
+        const now = Date.now();
+        const diff = now - lastTickTime;
+        if (Math.abs(diff) > metronomeTolerance) {
+          console.log(`MIDI außerhalb der Metronom-Toleranz: ${diff}ms`);
+          return;
+        }
+      }
+      resetInactivityTimer();
+      if ((status & 0xf0) === 0x90 && data2 > 0) {
+        if (seriesCounter >= currentSeriesSingle.length) return;
+        let currentTime = Date.now();
+        let responseTime = currentTime - lastNoteTimestamp;
+        responseTimes.push(responseTime);
+        lastNoteTimestamp = currentTime;
+        const midiInfo = (() => {
+          const noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
+          const octave = Math.floor(data1 / 12) - 1;
+          const rawNote = noteNames[data1 % 12];
+          const convertedNote = (rawNote === "a#") ? "bb" : rawNote;
+          return { note: convertedNote, octave: octave };
+        })();
     let playedNoteDisplay;
     if (kidsMode) {
       const emojiMap = {
@@ -3360,147 +3346,147 @@ const handleMIDIMessage = (status, data1, data2) => {
     } else {
       playedNoteDisplay = (midiInfo.note === "b" ? "h" : midiInfo.note);
     }
-    const noteDisplay = document.getElementById("noteNameDisplay");
-    totalAttempts++;
-    
-    if (isNoteCorrect(midiInfo)) {
-      // Standardfarbe für korrekte Noten: grün
-      let displayColor = "green";
-      if (metronomeOn) {
-        const currentTime = Date.now();
-        const actualInterval = currentTime - lastTickTime;
-        const tolerance = metronomeInterval * 0.3;
-        // Wenn zu schnell oder zu langsam gespielt wird, setze die Farbe auf gelb und zeige entsprechende Motivation
-        if (actualInterval < metronomeInterval - tolerance) {
-          displayColor = "orange";
-          showMotivation("Zu schnell! Langsamer spielen.");
-        } else if (actualInterval > metronomeInterval + tolerance) {
-          displayColor = "orange";
-          showMotivation("Zu langsam! Schneller spielen.");
-        } else {
-          clearMotivation();
-          showMotivation("Super! Weiter so!");
+        const noteDisplay = document.getElementById("noteNameDisplay");
+        totalAttempts++;
+        
+        if (isNoteCorrect(midiInfo)) {
+          // Standardfarbe für korrekte Noten: grün
+          let displayColor = "green";
+          if (metronomeOn) {
+            const currentTime = Date.now();
+            const actualInterval = currentTime - lastTickTime;
+            const tolerance = metronomeInterval * 0.3;
+            // Wenn zu schnell oder zu langsam gespielt wird, setze die Farbe auf gelb und zeige entsprechende Motivation
+            if (actualInterval < metronomeInterval - tolerance) {
+              displayColor = "orange";
+              showMotivation("Zu schnell! Langsamer spielen.");
+            } else if (actualInterval > metronomeInterval + tolerance) {
+              displayColor = "orange";
+              showMotivation("Zu langsam! Schneller spielen.");
+            } else {
+              clearMotivation();
+              showMotivation("Super! Weiter so!");
+            }
+          } else {
+            // Ohne Metronom: explizit grün
+            clearMotivation();
+            showMotivation("Super! Weiter so!");
+            displayColor = "green";
+          }
+          // Setze die Farbe im Noten-Objekt, damit sie auch beim Zeichnen verwendet wird
+          currentSeriesSingle[seriesCounter].color = displayColor;
+          
+          correctAnswers++;
+          correctNoteCount++;
+          removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
+          addCircle("positive");
+        if (noteDisplay) {
+          noteDisplay.innerHTML = '<span style="color:' + displayColor + ';">' + playedNoteDisplay + '</span>';
         }
-      } else {
-        // Ohne Metronom: explizit grün
-        clearMotivation();
-        showMotivation("Super! Weiter so!");
-        displayColor = "green";
-      }
-      // Setze die Farbe im Noten-Objekt, damit sie auch beim Zeichnen verwendet wird
-      currentSeriesSingle[seriesCounter].color = displayColor;
-      
-      correctAnswers++;
-      correctNoteCount++;
-      removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
-      addCircle("positive");
-    if (noteDisplay) {
-      noteDisplay.innerHTML = '<span style="color:' + displayColor + ';">' + playedNoteDisplay + '</span>';
-    }
-    sessionCounter--;
-      
-    } else {
-      // Falsche Note: rot markieren
-      currentSeriesSingle[seriesCounter].color = "red";
-      errorNotes.push(currentSeriesSingle[seriesCounter]);
-      addCircle("negative");
-    if (noteDisplay) {
-      const correctRaw = currentSeriesSingle[seriesCounter].note;
-      const correctDisplay = (correctRaw === "b" ? "h" : correctRaw);
-      if (kidsMode) {
-        const emojiMap = {
-          "c": "🐱", "d": "🐳", "e": "🐷", "f": "🐟",
-          "g": "🐤", "a": "🦊", "b": "🐝", "bb": "🦁",
-          "f#": "🐙", "g#": "🐵", "d#": "🐭"
-        };
-        const playedEmoji = emojiMap[midiInfo.note.toLowerCase()] || "❓";
-        const correctEmoji = emojiMap[correctRaw.toLowerCase()] || "❓";
-        noteDisplay.innerHTML = '<span style="color:red;">' + playedEmoji + ' hätte ' + correctEmoji + ' sein müssen</span>';
-      } else {
-        noteDisplay.innerHTML = '<span style="color:red;">' + playedNoteDisplay + '</span> <span style="color:black; font-size:1em; margin:0 5px;">&#8594;</span> <span style="color:green;">' + correctDisplay + '</span>';
-        // Wizard-Modus: Inline-Auswahl der Buchstaben anzeigen
-        if (wizardMode) {
-          // Dynamische Auswahl basierend auf Custom Mode Settings für die aktuelle Hand
+        sessionCounter--;
+          
+        } else {
+          // Falsche Note: rot markieren
+          currentSeriesSingle[seriesCounter].color = "red";
+          errorNotes.push(currentSeriesSingle[seriesCounter]);
+          addCircle("negative");
+        if (noteDisplay) {
           const correctRaw = currentSeriesSingle[seriesCounter].note;
-          const correctLetter = (correctRaw.toUpperCase() === "B" ? "H" : correctRaw.toUpperCase());
-          // Determine available notes for current hand
-          const handNotes = (selectedMode === "left"
-            ? window.customModeSettings?.leftNotes
-            : window.customModeSettings?.rightNotes) || [];
-          const defaultNotes = ["C","D","E","F","G","A","H","C"];
-          const choices = handNotes.length > 0
-            ? handNotes.map(n => n.toUpperCase().replace("B", "H"))
-            : defaultNotes;
-          let html = `<span style="color:red;">${playedNoteDisplay}</span> <span style="color:black;">→</span> <span style="color:black; margin:0 5px;">?</span> <span style="color:black; margin:0 5px;"></span> `;
-          choices.forEach(letter => {
-            html += `<span class="correction-letter" style="opacity:0.5; margin:0 5px; cursor:pointer;">${letter}</span>`;
-          });
-          html += ` <span style="color:black; margin:0 5px;"></span>`;
-          noteDisplay.innerHTML = html;
-          // Klick-Handler für jeden Buchstaben
-          Array.from(noteDisplay.querySelectorAll('.correction-letter')).forEach(el => {
-            el.addEventListener('click', () => {
-              el.style.opacity = '1';
-              const selected = el.textContent;
-              if (selected === correctLetter) {
-                el.style.color = 'green';
-                // Markiere die Note im Notensystem
-                currentSeriesSingle[seriesCounter].color = 'green';
-                drawSeries();
-                // Als korrekte Note zählen
-                correctAnswers++;
-                correctNoteCount++;
-                removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
-                addCircle("positive");
-                // Counter reduzieren und Timer aktualisieren
-                sessionCounter--;
-                updateTimer();
-                // UI schließen und Fortschritt
-                noteDisplay.innerHTML = '';
-                correctionActive = false;
-                seriesCounter++;
-                if (seriesCounter < seriesLength) {
-                  queueRedraw();
-                } else {
-                  generateSeries();
-                }
-              } else {
-                el.style.color = 'red';
-                const correctEl = Array.from(noteDisplay.querySelectorAll('.correction-letter'))
-                  .find(e => e.textContent === correctLetter);
-                if (correctEl) {
-                  correctEl.style.color = 'orange';
-                  correctEl.style.opacity = '1';
-                }
-              }
-            });
-          });
+          const correctDisplay = (correctRaw === "b" ? "h" : correctRaw);
+          if (kidsMode) {
+            const emojiMap = {
+              "c": "🐱", "d": "🐳", "e": "🐷", "f": "🐟",
+              "g": "🐤", "a": "🦊", "b": "🐝", "bb": "🦁",
+              "f#": "🐙", "g#": "🐵", "d#": "🐭"
+            };
+            const playedEmoji = emojiMap[midiInfo.note.toLowerCase()] || "❓";
+            const correctEmoji = emojiMap[correctRaw.toLowerCase()] || "❓";
+            noteDisplay.innerHTML = '<span style="color:red;">' + playedEmoji + ' hätte ' + correctEmoji + ' sein müssen</span>';
+          } else {
+            noteDisplay.innerHTML = '<span style="color:red;">' + playedNoteDisplay + '</span> <span style="color:black; font-size:1em; margin:0 5px;">&#8594;</span> <span style="color:green;">' + correctDisplay + '</span>';
+            // Wizard-Modus: Inline-Auswahl der Buchstaben anzeigen
+            if (wizardMode) {
+              // Dynamische Auswahl basierend auf Custom Mode Settings für die aktuelle Hand
+              const correctRaw = currentSeriesSingle[seriesCounter].note;
+              const correctLetter = (correctRaw.toUpperCase() === "B" ? "H" : correctRaw.toUpperCase());
+              // Determine available notes for current hand
+              const handNotes = (selectedMode === "left"
+                ? window.customModeSettings?.leftNotes
+                : window.customModeSettings?.rightNotes) || [];
+              const defaultNotes = ["C","D","E","F","G","A","H","C"];
+              const choices = handNotes.length > 0
+                ? handNotes.map(n => n.toUpperCase().replace("B", "H"))
+                : defaultNotes;
+              let html = `<span style="color:red;">${playedNoteDisplay}</span> <span style="color:black;">→</span> <span style="color:black; margin:0 5px;">?</span> <span style="color:black; margin:0 5px;"></span> `;
+              choices.forEach(letter => {
+                html += `<span class="correction-letter" style="opacity:0.5; margin:0 5px; cursor:pointer;">${letter}</span>`;
+              });
+              html += ` <span style="color:black; margin:0 5px;"></span>`;
+              noteDisplay.innerHTML = html;
+              // Klick-Handler für jeden Buchstaben
+              Array.from(noteDisplay.querySelectorAll('.correction-letter')).forEach(el => {
+                el.addEventListener('click', () => {
+                  el.style.opacity = '1';
+                  const selected = el.textContent;
+                  if (selected === correctLetter) {
+                    el.style.color = 'green';
+                    // Markiere die Note im Notensystem
+                    currentSeriesSingle[seriesCounter].color = 'green';
+                    drawSeries();
+                    // Als korrekte Note zählen
+                    correctAnswers++;
+                    correctNoteCount++;
+                    removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
+                    addCircle("positive");
+                    // Counter reduzieren und Timer aktualisieren
+                    sessionCounter--;
+                    updateTimer();
+                    // UI schließen und Fortschritt
+                    noteDisplay.innerHTML = '';
+                    correctionActive = false;
+                    seriesCounter++;
+                    if (seriesCounter < seriesLength) {
+                      queueRedraw();
+                    } else {
+                      generateSeries();
+                    }
+                  } else {
+                    el.style.color = 'red';
+                    const correctEl = Array.from(noteDisplay.querySelectorAll('.correction-letter'))
+                      .find(e => e.textContent === correctLetter);
+                    if (correctEl) {
+                      correctEl.style.color = 'orange';
+                      correctEl.style.opacity = '1';
+                    }
+                  }
+                });
+              });
+              return;
+            }
+          }
+        }
+          if (!unlimitedLives) {
+            hearts--;
+            updateHeartsDisplay();
+            if (hearts <= 0) { endGame(); return; }
+          }
+        }
+        
+        if (sessionCounter <= 0 && !sessionPaused) {
+          sessionCounter = 0;
+          updateTimer();
+          startLocalTimer();
           return;
         }
+        seriesCounter++;
+        if (seriesCounter >= seriesLength) {
+          generateSeries();
+        } else {
+          queueRedraw();
+        }
+        updateTimer();
       }
-    }
-      if (!unlimitedLives) {
-        hearts--;
-        updateHeartsDisplay();
-        if (hearts <= 0) { endGame(); return; }
-      }
-    }
-    
-    if (sessionCounter <= 0 && !sessionPaused) {
-      sessionCounter = 0;
-      updateTimer();
-      startLocalTimer();
-      return;
-    }
-    seriesCounter++;
-    if (seriesCounter >= seriesLength) {
-      generateSeries();
-    } else {
-      queueRedraw();
-    }
-    updateTimer();
-  }
-};
+    };
       const resetGame = () => {
         sessionCounter = 5;      // Counter auf 1000
         totalAttempts = 0;          // Zähler für gespielte Noten auf 0
@@ -3524,41 +3510,6 @@ const handleMIDIMessage = (status, data1, data2) => {
 
   // Funktion, die den Hintergrund für kurze Zeit grün färbt und danach wieder zurücksetzt
   
-  // --- checkArticulation Funktion ---
-  function checkArticulation(startTime, endTime, velocity) {
-    // Nur noch Staccato prüfen, Legato entfällt
-    let correct = false;
-    if (articulationMode === "staccato") {
-      correct = (endTime - startTime) < 350 && velocity > 30;
-    }
-
-  // Hilfsfunktion: Staccato-Modus deaktivieren
-  function deactivateStaccatoMode() {
-    articulationMode = null;
-    const notation = document.getElementById("notation");
-    if (notation) notation.style.display = "block";
-    const clefTitle = document.getElementById("clefTitle");
-    if (clefTitle) clefTitle.textContent = currentRange + "-Lage";
-    const staccatoToggle = document.getElementById("staccatoToggle");
-    if (staccatoToggle) staccatoToggle.style.opacity = "0.5";
-  }
-    // Feedback
-    const clefTitle = document.getElementById("clefTitle");
-    if (correct) {
-      clefTitle.textContent = "Richtig!";
-      setTimeout(() => {
-        document.getElementById("clefTitle").textContent = "🥁 Staccato";
-      }, 700);
-    } else {
-      clefTitle.textContent = "Zu lang! Kürzer spielen.";
-    }
-  }
-  
-  function resetArticulationMode() {
-    articulationMode = null;
-    // ... ggf. weitere Rücksetzungen
-  }
-
   function checkOrientation() {
     const settingsPanel = document.getElementById("settingsPanel");
     if (!settingsPanel) return; // Falls das Element nicht existiert, beende die Funktion
@@ -3978,17 +3929,6 @@ document.addEventListener("DOMContentLoaded", () => {
     <!-- Hauptinhalt -->
     <div id="settingsPanel" style="position: fixed; top: 20%; right: 10px; background: rgba(255,255,255,0.8); padding: 10px; border: 1px solid #000; border-radius: 8px; z-index: 200;"></div>
     <div id="mainContent">
-        <div id="staccatoPercentDisplay" style="
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          font-size: 3em;
-          font-weight: bold;
-          z-index: 1000;
-          display: none;
-          color: #333;">
-        </div>
        
         <div id="notation"></div>
         <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase; z-index: 1000; pointer-events: auto;"></div>
@@ -4001,40 +3941,13 @@ document.addEventListener("DOMContentLoaded", () => {
           <button id="confirmNoteBtn">OK</button>
         </div>
         <div id="buttonContainer">
-            <div id="clefTitle">C-Lage</div>
+            <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
             <div id="heartsContainer" style="margin-left:10px;"></div>
         </div>
     </div>
     <!-- Einstellungen-Menü -->
     
     <script>
-        function updateAccuracyMarker(deviationRatio) {
-          const display = document.getElementById("staccatoPercentDisplay");
-          if (!display) return;
-
-          const accuracy = Math.max(0, Math.min(100, 100 - Math.abs(deviationRatio * 100)));
-          display.textContent = `${Math.round(accuracy)}%`;
-          display.style.display = "block";
-
-          clearTimeout(display._hideTimeout);
-          display._hideTimeout = setTimeout(() => {
-            display.style.display = "none";
-          }, 1000);
-        }
-        
-        function checkArticulation(startTime, endTime, velocity) {
-          const expected = 300; // Ziel-Staccato-Zeit in ms
-          const actual = endTime - startTime;
-          const deviation = ((expected - actual) / expected) * 2;
-
-          const correct = actual < 350 && velocity > 30;
-          updateAccuracyMarker(deviation);
-
-          const clefTitle = document.getElementById("clefTitle");
-          if (clefTitle) {
-            clefTitle.textContent = correct ? "Richtig!" : "Zu lang!";
-          }
-        }
         /* Falls im Pause-Modus: Aktualisiere Fortschrittsbalken und verbleibende Zeit (mm:ss) */
         function updatePauseProgress() {
             const progressBar = document.getElementById("pauseProgress");
@@ -4336,28 +4249,29 @@ document.addEventListener("DOMContentLoaded", () => {
           // 7. Speichern-Button
           const saveBtn = document.getElementById('custom-mode-save-button');
           if (saveBtn) {
-              saveBtn.addEventListener('click', () => {
-                const content = document.getElementById('customModeContent');
-                if (!selectedClef || !selectedRange || !content) return;
-
-                const selected = Array.from(content.querySelectorAll('input[type=checkbox]'))
-                  .filter(cb => cb.checked)
-                  .map(cb => cb.value);
-
-                window.customModeSettings = {
-                  clef: selectedClef,
-                  range: selectedRange,
-                  selectedNotes: selected.map(n => n.replace(/'/g, "").toLowerCase()) // Achtung: ' entfernen
-                };
-
-                const clefTitle = document.getElementById("clefTitle");
-                if (clefTitle && selectedRange) {
-                  clefTitle.textContent = selectedRange + "-Lage";
-                }
-
-                generateSeries();
-                modal.classList.add('hidden');
-              });
+            saveBtn.addEventListener('click', () => {
+              const content = document.getElementById('customModeContent');
+              if (!selectedClef || !selectedRange || !content) return;
+              const selected = Array.from(content.querySelectorAll('input[type=checkbox]'))
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+              // Notenwert-Checkbox
+              const noteValueCheckbox = document.getElementById('noteValueCheckbox');
+              const noteValue = noteValueCheckbox && noteValueCheckbox.checked ? "8" : "q";
+              window.customModeSettings = {
+                clef: selectedClef,
+                range: selectedRange,
+                selectedNotes: selected.map(n => n.replace(/'/g, "").toLowerCase()),
+                noteValue: noteValue
+              };
+              // clefTitle aktualisieren
+              const clefTitle = document.getElementById("clefTitle");
+              if (clefTitle && selectedRange) {
+                clefTitle.textContent = selectedRange + "-Lage";
+              }
+              generateSeries();
+              modal.classList.add('hidden');
+            });
           }
         });
     </script>
@@ -4615,25 +4529,6 @@ document.addEventListener("DOMContentLoaded", () => {
               container.appendChild(btn);
             });
           }
-        
-        function checkArticulation(noteOnTime, noteOffTime, velocity) {
-          if (!articulationMode) return;
-
-          const duration = noteOffTime - noteOnTime;
-          let correct = false;
-
-          if (articulationMode === "staccato") {
-            correct = duration < 250 && velocity > 50;
-          } else if (articulationMode === "legato") {
-            correct = duration > 500 && velocity > 30;
-          }
-
-          if (correct) {
-            showMotivation("✅ Artikulation korrekt");
-          } else {
-            showMotivation("❌ Falsche Artikulation");
-          }
-        }
         
     
     </script>
