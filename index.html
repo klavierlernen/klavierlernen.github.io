@@ -2675,7 +2675,7 @@ document.getElementById("timerContainer").addEventListener("click", () => {
         localStorage.setItem('notationZoom', notationZoom);
         drawSeries();
       });
-      const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle, moveNotationToggle, wizardToggle];
+      const carouselButtons = [pauseButton, kidsModeToggle, darkModeToggle, moveNotationToggle, wizardToggle];
       carouselButtons.forEach(btn => {
         const item = document.createElement('div');
         item.className = 'carouselItem';
