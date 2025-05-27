@@ -2565,7 +2565,7 @@ metronomeToggle.addEventListener("click", () => {
         seriesLength = 14; // 7 Noten pro Oktave * 2 Oktaven
 
         // Speichere den aktuellen Zustand
-        const originalSeries = [...currentSeriesSingle];
+        const originalSeries = currentSeriesSingle.slice(); // Kopie erstellen
         const originalCounter = seriesCounter;
         
         // Erstelle den Speichern-Button, wenn er noch nicht existiert
@@ -2598,7 +2598,7 @@ metronomeToggle.addEventListener("click", () => {
           const selectedNotes = new Set();
           
           // Generiere alle möglichen Noten
-          currentSeriesSingle = [];
+          currentSeriesSingle.length = 0; // Array leeren statt neu zuweisen
           
           if (currentClef === "treble") {
             // Eingestrichene Oktave (c4-h4)
@@ -2690,7 +2690,8 @@ metronomeToggle.addEventListener("click", () => {
             
             // Stelle den ursprünglichen Zustand wieder her
             seriesLength = originalSeriesLength;
-            currentSeriesSingle = originalSeries;
+            currentSeriesSingle.length = 0; // Array leeren
+            originalSeries.forEach(note => currentSeriesSingle.push(note)); // Originalnoten wiederherstellen
             seriesCounter = originalCounter;
             
             // Entferne den Click-Handler
@@ -2708,7 +2709,8 @@ metronomeToggle.addEventListener("click", () => {
           // Custom Mode wurde deaktiviert
           // Stelle den ursprünglichen Zustand wieder her
           seriesLength = originalSeriesLength;
-          currentSeriesSingle = originalSeries;
+          currentSeriesSingle.length = 0; // Array leeren
+          originalSeries.forEach(note => currentSeriesSingle.push(note)); // Originalnoten wiederherstellen
           seriesCounter = originalCounter;
           
           // Entferne den Click-Handler
