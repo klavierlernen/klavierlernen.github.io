@@ -3485,3 +3485,246 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         });
    
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('customModeModal');
+            if (!modal) {
+                console.error('Modal nicht gefunden.');
+                return;
+            }
+
+            let selectedCustomClef = null;
+            let selectedCustomRange = null;
+
+            // Eventlistener für Schlüsselauswahl
+            document.querySelectorAll('.custom-mode-clef-option').forEach(el => {
+                el.addEventListener('click', () => {
+                    document.querySelectorAll('.custom-mode-clef-option').forEach(opt => opt.classList.remove('active'));
+                    el.classList.add('active');
+                    selectedCustomClef = el.getAttribute('data-clef');
+                    populateCustomNotes();
+                });
+            });
+
+            // Eventlistener für Lagen-Auswahl
+            document.querySelectorAll('.custom-mode-range-option').forEach(el => {
+                el.addEventListener('click', () => {
+                    document.querySelectorAll('.custom-mode-range-option').forEach(opt => opt.classList.remove('active'));
+                    el.classList.add('active');
+                    selectedCustomRange = el.getAttribute('data-range');
+                    populateCustomNotes();
+                });
+            });
+
+            // Notenzuordnungen für linke und rechte Hand
+            const customLeftNotesMapping = {
+                "C": ["C", "D", "E", "F", "G", "A"],
+                "D": ["D", "E", "F#", "G", "A", "B"],
+                "F": ["F", "G", "A", "Bb", "C"],
+                "G": ["G", "A", "B", "C", "D", "E"],
+                "MC": ["F", "G", "A", "B", "C"]
+            };
+            const customRightNotesMapping = {
+                "C": ["C", "D", "E", "F", "G", "A"],
+                "D": ["D", "E", "F#", "G", "A", "B"],
+                "F": ["F", "G", "A", "Bb", "C"],
+                "G": ["G", "A", "B", "C", "D", "E"],
+                "MC": ["F", "G", "A", "B", "C"]
+            };
+
+            // Funktion, um basierend auf der ausgewählten Lage die Noten für linke und rechte Hand zu befüllen
+            function populateCustomNotes() {
+                if (!selectedCustomRange) return;
+                const leftContainer = document.getElementById('left-hand-notes');
+                const rightContainer = document.getElementById('right-hand-notes');
+                if (!leftContainer || !rightContainer) {
+                    console.error('Noten-Container nicht gefunden.');
+                    return;
+                }
+                leftContainer.innerHTML = '';
+                rightContainer.innerHTML = '';
+
+                customLeftNotesMapping[selectedCustomRange].forEach(note => {
+                    const noteEl = document.createElement('div');
+                    noteEl.className = 'custom-mode-note-option';
+                    noteEl.textContent = note;
+                    noteEl.setAttribute('data-note', note);
+                    noteEl.addEventListener('click', () => {
+                        noteEl.classList.toggle('active');
+                    });
+                    leftContainer.appendChild(noteEl);
+                });
+
+                customRightNotesMapping[selectedCustomRange].forEach(note => {
+                    const noteEl = document.createElement('div');
+                    noteEl.className = 'custom-mode-note-option';
+                    noteEl.textContent = note;
+                    noteEl.setAttribute('data-note', note);
+                    noteEl.addEventListener('click', () => {
+                        noteEl.classList.toggle('active');
+                    });
+                    rightContainer.appendChild(noteEl);
+                });
+            }
+
+            // Eventlistener für den Speichern-Button im Custom Mode Modal
+            const saveButton = document.getElementById('custom-mode-save-button');
+            if (saveButton) {
+                saveButton.addEventListener('click', () => {
+                    const activeClef = document.querySelector('.custom-mode-clef-option.active');
+                    const activeRange = document.querySelector('.custom-mode-range-option.active');
+                    const activeLeftNotes = document.querySelectorAll('#left-hand-notes .custom-mode-note-option.active');
+                    const activeRightNotes = document.querySelectorAll('#right-hand-notes .custom-mode-note-option.active');
+                    const noteValueCheckbox = document.getElementById('noteValueCheckbox');
+                    const noteValue = noteValueCheckbox.checked ? "8" : "q";  // "8" für Achtelnoten, "q" als Standard (Viertelnoten)
+                    
+                    const settings = {
+                        clef: activeClef ? activeClef.getAttribute('data-clef') : null,
+                        range: activeRange ? activeRange.getAttribute('data-range') : null,
+                        leftNotes: Array.from(activeLeftNotes).map(el => el.getAttribute('data-note')),
+                        rightNotes: Array.from(activeRightNotes).map(el => el.getAttribute('data-note')),
+                        noteValue: noteValue
+                    };
+                    
+                    console.log("Benutzerdefinierte Einstellungen:", settings);
+                    window.customModeSettings = settings;
+                    modal.classList.add('hidden');
+                    
+                    // Aktualisiere den Lagen-Button (clefTitle)
+                    const clefTitle = document.getElementById("clefTitle");
+                    if (clefTitle && settings.range) {
+                        clefTitle.textContent = settings.range + "-Lage";
+                    }
+                    
+                    generateSeries();
+                });
+            } else {
+                console.warn('Speichern-Button nicht gefunden.');
+            }
+        });
+        
+        function showCorrection(note, choices) {
+          correctionActive = true;
+          expectedNote = note;
+          availableNotes = choices;
+          selectedNoteIndex = 0;
+          updateCorrectionDisplay();
+          document.getElementById("correctionBox").classList.remove("hidden");
+        }
+
+        function updateCorrectionDisplay(result) {
+          const display = document.getElementById("correctionNoteDisplay");
+          const confirm = document.getElementById("confirmNoteBtn");
+          if (result === "correct") {
+            confirm.textContent = "🥳";
+          } else if (result === "wrong") {
+            confirm.textContent = "❌";
+          } else {
+            confirm.textContent = "OK";
+          }
+          display.textContent = `< ${availableNotes[selectedNoteIndex] || "?"} >`;
+        }
+
+        document.getElementById("prevNoteBtn").addEventListener("click", () => {
+          selectedNoteIndex = (selectedNoteIndex - 1 + availableNotes.length) % availableNotes.length;
+          updateCorrectionDisplay();
+        });
+
+        document.getElementById("nextNoteBtn").addEventListener("click", () => {
+          selectedNoteIndex = (selectedNoteIndex + 1) % availableNotes.length;
+          updateCorrectionDisplay();
+        });
+
+        document.getElementById("confirmNoteBtn").addEventListener("click", () => {
+          const selected = availableNotes[selectedNoteIndex];
+          if (selected === expectedNote) {
+            updateCorrectionDisplay("correct");
+            setTimeout(() => {
+              document.getElementById("correctionBox").classList.add("hidden");
+              correctionActive = false;
+              resetGame(); // oder nächster Schritt
+            }, 1000);
+          } else {
+            updateCorrectionDisplay("wrong");
+          }
+        });
+
+        function handleCorrectionInput(notePlayed) {
+          if (!correctionActive) return;
+          if (notePlayed === expectedNote) {
+            updateCorrectionDisplay("correct");
+            setTimeout(() => {
+              document.getElementById("correctionBox").classList.add("hidden");
+              correctionActive = false;
+              resetGame();
+            }, 1000);
+          } else {
+            updateCorrectionDisplay("wrong");
+          }
+        }
+        
+          function showCorrection(note, choices) {
+            correctionActive = true;
+            expectedNote = note;
+            availableNotes = choices;
+
+            let container = document.getElementById('correctionContainer');
+            if (!container) {
+              container = document.createElement('div');
+              container.id = 'correctionContainer';
+              Object.assign(container.style, {
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                background: '#fff',
+                padding: '20px',
+                border: '2px solid #000',
+                zIndex: '1000'
+              });
+              document.body.appendChild(container);
+            }
+            container.innerHTML = '';
+
+            choices.forEach(choice => {
+              const btn = document.createElement('div');
+              btn.textContent = choice.toUpperCase();
+              btn.className = 'correction-choice';
+              btn.addEventListener('click', () => {
+                if (btn.textContent === expectedNote.toUpperCase()) {
+                  btn.style.opacity = '1';
+                  btn.style.backgroundColor = 'green';
+                } else {
+                  btn.style.opacity = '1';
+                  btn.style.backgroundColor = 'red';
+                  const correctBtn = Array.from(container.children)
+                    .find(child => child.textContent === expectedNote.toUpperCase());
+                  if (correctBtn) correctBtn.style.backgroundColor = 'yellow';
+                }
+                setTimeout(() => {
+                  container.remove();
+                  correctionActive = false;
+                  resetGame();
+                }, 1000);
+              });
+              container.appendChild(btn);
+            });
+          }
+        
+        function checkArticulation(noteOnTime, noteOffTime, velocity) {
+          if (!articulationMode) return;
+
+          const duration = noteOffTime - noteOnTime;
+          let correct = false;
+
+          if (articulationMode === "staccato") {
+            correct = duration < 250 && velocity > 50;
+          } else if (articulationMode === "legato") {
+            correct = duration > 500 && velocity > 30;
+          }
+
+          if (correct) {
+            showMotivation("✅ Artikulation korrekt");
+          } else {
+            showMotivation("❌ Falsche Artikulation");
+          }
+        }
