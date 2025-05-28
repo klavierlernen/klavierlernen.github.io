@@ -1032,6 +1032,17 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById("mainContent").style.display = "none";
         document.getElementById("timerContainer").style.display = "none";
         document.getElementById("settingsPanel").style.display = "none";
+        // Animate notation scale up and back on pause
+        const notationEl = document.getElementById("notation");
+        if (notationEl) {
+          notationEl.style.transition = "transform 0.2s ease-in-out";
+          // Scale up from the default translation
+          notationEl.style.transform = "translate(-50%, -50%) scale(1.2)";
+          // After 200ms, revert to default position
+          setTimeout(() => {
+            notationEl.style.transform = "translate(-50%, -50%)";
+          }, 200);
+        }
         document.getElementById("pauseOverlay").style.display = "flex";
       }
       
@@ -2661,8 +2672,14 @@ metronomeToggle.addEventListener("click", () => {
         btn.textContent = label;
         btn.style.cursor = "pointer";
         btn.addEventListener("click", () => {
-          // Wechsle zur neuen Oktave und zeige Skala
+          // Setze Octave und passenden Clef: tiefe Oktaven links (Bass), hohe Oktaven rechts (Treble)
           selectedOctave = label;
+          if (label === 'große Oktave' || label === 'kleine Oktave') {
+            selectedClef = 'bass';
+          } else {
+            selectedClef = 'treble';
+          }
+          // Anzeige und Rendern aktualisieren
           const sel = document.getElementById("scaleSelector");
           if (sel) sel.style.display = "flex";
           generateScaleSeries(false);
