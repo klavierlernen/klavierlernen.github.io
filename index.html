@@ -2607,14 +2607,20 @@ metronomeToggle.addEventListener("click", () => {
       resetScaleBtn.style.display = "none";
       settingsPanel.appendChild(resetScaleBtn);
       resetScaleBtn.addEventListener("click", () => {
-        // Zurück zur ursprünglichen Skalenansicht
-        // Zurück zur ursprünglichen Skalenansicht
+        // Reset selection mode and clear stored notes for this octave
         scaleSelectionMode = true;
-        // Auswahl zurücksetzen
+        if (window.selectedNotesByOctave) {
+          window.selectedNotesByOctave[selectedOctave] = [];
+        }
         selectedNotes = [];
         // Entferne visuelle Selektion in der SVG
         document.querySelectorAll("svg g.vf-stavenote.selected").forEach(svgNote => {
           svgNote.classList.remove("selected");
+          // Reset color to black
+          svgNote.querySelectorAll('path, circle, ellipse').forEach(shape => {
+            shape.setAttribute('fill', 'black');
+            shape.setAttribute('stroke', 'black');
+          });
         });
         // Skala neu anzeigen
         generateScaleSeries(false);
@@ -2632,7 +2638,36 @@ metronomeToggle.addEventListener("click", () => {
         scaleSelectionMode = false;
         resetScaleBtn.style.display = "none";
         saveScaleBtn.style.display = "none";
+        // Merge all per-octave selections into global selectedNotes
+        if (window.selectedNotesByOctave) {
+          selectedNotes = [].concat(...Object.values(window.selectedNotesByOctave));
+        }
+        // Hide octave selector on save
+        const sel = document.getElementById("scaleSelector");
+        if (sel) sel.style.display = "none";
         generateScaleSeries(true);
+      });
+
+      // Oktavenauswahl-Container
+      const scaleSelector = document.createElement("div");
+      scaleSelector.id = "scaleSelector";
+      scaleSelector.style.display = "none";
+      scaleSelector.style.gap = "8px";
+      settingsPanel.appendChild(scaleSelector);
+
+      // Buttons für jede Oktave
+      Object.keys(octaveOptions).forEach(label => {
+        const btn = document.createElement("button");
+        btn.textContent = label;
+        btn.style.cursor = "pointer";
+        btn.addEventListener("click", () => {
+          // Wechsle zur neuen Oktave und zeige Skala
+          selectedOctave = label;
+          const sel = document.getElementById("scaleSelector");
+          if (sel) sel.style.display = "flex";
+          generateScaleSeries(false);
+        });
+        scaleSelector.appendChild(btn);
       });
 
       customModeToggle.addEventListener("click", () => {
@@ -2655,8 +2690,10 @@ metronomeToggle.addEventListener("click", () => {
           generateScaleSeries(false);
           resetScaleBtn.style.display = "inline";
           saveScaleBtn.style.display = "inline";
+          scaleSelector.style.display = "flex";
         } else {
           // Finalphase: fortlaufende Serie generieren
+          scaleSelector.style.display = "none";
           scaleSelectionMode = false;
           generateScaleSeries(true);
           resetScaleBtn.style.display = "none";
@@ -3002,42 +3039,42 @@ let notesInCurrentPhase = 0;
 
 // Extrahierte Funktion für den Tonleiter-Modus
 function generateScaleSeries(isFinal = false) {
+  // Reset counters
   seriesCounter = 0;
   correctNoteCount = 0;
-  // Manuelle Notenauswahl aus UI
-  // Verwende globale selectedNotes als manuelle Auswahl
-  const manuallySelectedNotes = selectedNotes.length > 0
-    ? selectedNotes.map(s => s.toLowerCase())
-    : [];
-  // Default-Skala je nach Schlüssel
-  const defaultScaleNotes = selectedClef === "bass"
-    ? ["C2","D2","E2","F2","G2","A2","B2","C3"]
-    : ["C4","D4","E4","F4","G4","A4","B4","C5"];
-  // Bestimme Noten für Serie
-  const notesToUse = manuallySelectedNotes.length > 0
-    ? manuallySelectedNotes.map(pitch => {
-        const [note, octave] = pitch.split("/");
-        return { note, octave: parseInt(octave, 10) };
-      })
-    : defaultScaleNotes.map(s => {
-        const match = s.match(/^([A-G])(\d)$/);
-        return { note: match[1].toLowerCase(), octave: parseInt(match[2], 10) };
-      });
-    // Baue Auswahl- oder Final-Serie
-      if (!isFinal) {
-        // Auswahlmodus: zeige die komplette Skala (oder Auswahl) einmal
-         currentSeriesSingle = notesToUse.map(({ note, octave }) =>
-           ({ note, octave, clef: selectedClef, color: 'black' }));
-       } else {
-         // Finalmodus: baue die Serie in Länge seriesLength
-         currentSeriesSingle = [];
-         for (let i = 0; i < seriesLength; i++) {
-           const { note, octave } = notesToUse[i % notesToUse.length];
-           currentSeriesSingle.push({ note, octave, clef: selectedClef, color: 'black' });
-        }
-       }
-       drawSeries();
-    }
+  // Always show full octave in selection phase
+  const defaultScaleNotes = octaveOptions[selectedOctave] || [];
+  if (!isFinal) {
+    // Selection-mode: render all notes of the current octave
+    currentSeriesSingle = defaultScaleNotes.map(s => {
+      const [, n, o] = s.match(/^([A-G])(\d)$/);
+      return { note: n.toLowerCase(), octave: parseInt(o, 10), clef: selectedClef, color: 'black' };
+    });
+    drawSeries();
+    return;
+  }
+  // Final-mode: build infinite series from the explicit clicks, per-octave.
+  let notesToUse;
+  // Use per-octave clicked notes if any, otherwise default octave notes
+  const stored = (window.selectedNotesByOctave && window.selectedNotesByOctave[selectedOctave]) || [];
+  if (stored.length > 0) {
+    notesToUse = stored.map(pitch => {
+      const [n, o] = pitch.split("/");
+      return { note: n.toLowerCase(), octave: parseInt(o, 10) };
+    });
+  } else {
+    notesToUse = defaultScaleNotes.map(s => {
+      const [, n, o] = s.match(/^([A-G])(\d)$/);
+      return { note: n.toLowerCase(), octave: parseInt(o, 10) };
+    });
+  }
+  currentSeriesSingle = [];
+  for (let i = 0; i < seriesLength; i++) {
+    const { note, octave } = notesToUse[i % notesToUse.length];
+    currentSeriesSingle.push({ note, octave, clef: selectedClef, color: 'black' });
+  }
+  drawSeries();
+}
 
 const generateSeries = () => {
   if (selectedMode === "scale") {
@@ -3338,25 +3375,54 @@ const drawSeries = () => {
   new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
   voice.draw(context, stave);
 
-  // Interaktive Noten aktivieren (nur im scale-Modus)
-  if (selectedMode === "scale") {
-    setTimeout(() => {
-      const noteElements = document.querySelectorAll("svg g.vf-stavenote");
-      noteElements.forEach((svgNote, idx) => {
-        svgNote.style.cursor = "pointer";
-        // Speichere Pitch als data-Attribut
-        const pitch = `${currentSeriesSingle[idx].note}/${currentSeriesSingle[idx].octave}`;
-        svgNote.dataset.pitch = pitch;
-        svgNote.addEventListener("click", () => {
-          svgNote.classList.toggle("selected");
-          if (selectedNotes.includes(pitch)) {
-            selectedNotes = selectedNotes.filter(n => n !== pitch);
-          } else {
-            selectedNotes.push(pitch);
-          }
+  // Interaktive Noten im Scale-Modus mit per-Oktave Speicherung
+  if (selectedMode === "scale" && scaleSelectionMode) {
+    const noteElements = document.querySelectorAll("svg g.vf-stavenote");
+    // Ensure storage exists
+    if (!window.selectedNotesByOctave) window.selectedNotesByOctave = {};
+    if (!window.selectedNotesByOctave[selectedOctave]) {
+      window.selectedNotesByOctave[selectedOctave] = [];
+    }
+    let selectedNotesByOctave = window.selectedNotesByOctave;
+    noteElements.forEach((svgNote, idx) => {
+      svgNote.style.cursor = "pointer";
+      const pitch = `${currentSeriesSingle[idx].note}/${currentSeriesSingle[idx].octave}`;
+      svgNote.dataset.pitch = pitch;
+      const selArr = selectedNotesByOctave[selectedOctave];
+      // Restore visual state
+      if (selArr.includes(pitch)) {
+        svgNote.classList.add("selected");
+        svgNote.querySelectorAll('path, circle, ellipse').forEach(shape => {
+          shape.setAttribute('fill', 'green');
+          shape.setAttribute('stroke', 'green');
         });
-      });
-    }, 100);
+      } else {
+        svgNote.classList.remove("selected");
+        svgNote.querySelectorAll('path, circle, ellipse').forEach(shape => {
+          shape.setAttribute('fill', 'black');
+          shape.setAttribute('stroke', 'black');
+        });
+      }
+      // Toggle on click
+      svgNote.onclick = () => {
+        const arr = selectedNotesByOctave[selectedOctave];
+        if (arr.includes(pitch)) {
+          selectedNotesByOctave[selectedOctave] = arr.filter(n => n !== pitch);
+          svgNote.classList.remove("selected");
+          svgNote.querySelectorAll('path, circle, ellipse').forEach(shape => {
+            shape.setAttribute('fill', 'black');
+            shape.setAttribute('stroke', 'black');
+          });
+        } else {
+          arr.push(pitch);
+          svgNote.classList.add("selected");
+          svgNote.querySelectorAll('path, circle, ellipse').forEach(shape => {
+            shape.setAttribute('fill', 'green');
+            shape.setAttribute('stroke', 'green');
+          });
+        }
+      };
+    });
   }
 
   // 🐝 Kinder-Modus: Emojis auf die Notenköpfe setzen
@@ -4108,17 +4174,20 @@ document.addEventListener("DOMContentLoaded", () => {
   #scaleSelector {
     display: none;
   }
+  /* Styling für Oktaven-Buttons: weißer Hintergrund, schwarzer Rand */
+  #scaleSelector button {
+    background-color: white;
+    border: 2px solid black;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qwerty-hancock/0.7.2/qwerty-hancock.min.js"></script>
 </head>
 <body>
     <!-- Direkt nach <body> einfügen -->
-    <div id="scaleSelector">
-      <button class="clef-button" id="trebleBtn">🎼</button>
-      <button class="clef-button" id="bassBtn">𝄢</button>
-      </div>
-    <!-- Sicherstellen, dass der noteSelector-Container existiert -->
-    <div id="noteSelector" style="display:none;; z-index:-1000;"></div>
+    
     
     <div id="streakDisplay"></div>
     <!-- Canvas für Animation (Hintergrund) -->
@@ -4792,47 +4861,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
           }
         
-        const trebleNotes = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
-        const bassNotes = ["C2", "D2", "E2", "F2", "G2", "A2", "B2", "C3"];
-        let selectedClef = "treble";
-        let selectedNotes = [];
-
-        function renderNoteSelector(notes) {
-          const container = document.getElementById("noteSelector");
-          container.innerHTML = "";
-          notes.forEach(note => {
-            const btn = document.createElement("div");
-            btn.className = "selectable-note";
-            btn.textContent = note;
-            btn.addEventListener("click", () => {
-              btn.classList.toggle("selected");
-              if (selectedNotes.includes(note)) {
-                selectedNotes = selectedNotes.filter(n => n !== note);
-              } else {
-                selectedNotes.push(note);
-              }
-            });
-            container.appendChild(btn);
-          });
-        }
-
-        document.getElementById("trebleBtn").addEventListener("click", () => {
-          selectedClef = "treble";
-          renderNoteSelector(trebleNotes);
-        });
-
-        document.getElementById("bassBtn").addEventListener("click", () => {
-          selectedClef = "bass";
-          renderNoteSelector(bassNotes);
-        });
-
-        document.getElementById("resetClefBtn").addEventListener("click", () => {
-          selectedNotes = [];
-          renderNoteSelector(selectedClef === "treble" ? trebleNotes : bassNotes);
-        });
-
-        // Standardmäßig Violinenschlüssel anzeigen
-        renderNoteSelector(trebleNotes);
         
     
     </script>
@@ -4846,51 +4874,3 @@ document.addEventListener("DOMContentLoaded", () => {
         
         
 
-    <script>
-    // Wickle alle EventListener und DOM-Zugriffe in DOMContentLoaded
-    window.addEventListener("DOMContentLoaded", () => {
-      // EventListener für #trebleBtn und #bassBtn
-      const trebleBtn = document.getElementById("trebleBtn");
-      if (trebleBtn) {
-        trebleBtn.addEventListener("click", () => {
-          if (typeof selectedMode !== "undefined" && selectedMode === "scale") {
-            selectedClef = "treble";
-            selectedNotes = [];
-            if (typeof generateSeries === "function") generateSeries();
-          } else {
-            selectedClef = "treble";
-          }
-        });
-      }
-      const bassBtn = document.getElementById("bassBtn");
-      if (bassBtn) {
-        bassBtn.addEventListener("click", () => {
-          if (typeof selectedMode !== "undefined" && selectedMode === "scale") {
-            selectedClef = "bass";
-            selectedNotes = [];
-            if (typeof generateSeries === "function") generateSeries();
-          } else {
-            selectedClef = "bass";
-          }
-        });
-      }
-      // Beispiel für weiteren EventListener aus der Aufgabenstellung
-      const confirmScaleSelection = document.getElementById("confirmScaleSelection");
-      if (confirmScaleSelection) {
-        confirmScaleSelection.addEventListener("click", () => {
-          if (typeof selectedMode !== "undefined" && selectedMode === "scale") {
-            localStorage.setItem("customOneHandNotes", JSON.stringify(selectedNotes));
-            selectedMode = "left";
-            seriesCounter = 0;
-            correctNoteCount = 0;
-            // Unendlich randomisierte Serie aus den gewählten Noten erzeugen
-            currentSeriesSingle = Array.from({ length: 1000 }, () => {
-              const i = Math.floor(Math.random() * selectedNotes.length);
-              return selectedNotes[i];
-            });
-            if (typeof drawSeries === "function") drawSeries();
-          }
-        });
-      }
-    });
-    </script>
