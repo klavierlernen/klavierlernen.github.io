@@ -790,7 +790,16 @@
         stroke: green !important;
         fill: green !important;
       }
-   
+      
+      #scaleSelector {
+        display: none;
+        margin: 10px 0;
+        gap: 8px;
+      }
+      #scaleSelector button {
+        cursor: pointer;
+        padding: 4px 8px;
+      }
   </style>
   <script>
       
@@ -2107,9 +2116,12 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
         welcomeMessage.style.fontSize = "2em";
         setTimeout(proceedToMainScreen, 5000);
       } else {
-        document.getElementById("mainContent").style.opacity = "0";
-        document.getElementById("timerContainer").style.opacity = "0";
-        document.getElementById("settingsPanel").style.opacity = "0";
+        const mc = document.getElementById("mainContent");
+        if (mc) mc.style.opacity = "0";
+        const tc = document.getElementById("timerContainer");
+        if (tc) tc.style.opacity = "0";
+        const sp = document.getElementById("settingsPanel");
+        if (sp) sp.style.opacity = "0";
 
         const nameOverlay = document.createElement("div");
         nameOverlay.id = "nameOverlay";
@@ -2276,19 +2288,22 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
           <button id="hwSend">HA senden</button>
         `;
         // Button-Listener
-        document.getElementById("hwReceive").addEventListener("click", () => {
-          openCameraScan().then(code => {
-            if (code && code.data) {
-              try {
-                homeworkData = JSON.parse(code.data);
-                localStorage.setItem("homeworkData", JSON.stringify(homeworkData));
-              } catch {
-                alert("Ungültiger QR-Code");
+        const hwReceiveBtn = document.getElementById("hwReceive");
+        if (hwReceiveBtn) {
+          hwReceiveBtn.addEventListener("click", () => {
+            openCameraScan().then(code => {
+              if (code && code.data) {
+                try {
+                  homeworkData = JSON.parse(code.data);
+                  localStorage.setItem("homeworkData", JSON.stringify(homeworkData));
+                } catch {
+                  alert("Ungültiger QR-Code");
+                }
               }
-            }
-            showHomework();
+              showHomework();
+            });
           });
-        });
+        }
       // Overlay Camera Scan: openCameraScan implementation
       function openCameraScan() {
         return new Promise((resolve, reject) => {
@@ -2348,29 +2363,35 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
           });
         });
       }
-        document.getElementById("hwSend").addEventListener("click", () => {
-          modal.innerHTML = `
-            <h2>Hausaufgabe erstellen</h2>
-            <label>Titel:<br><input id="newHA" value="${homeworkData?.HA||""}"></label><br>
-            <label>Beschreibung:<br><textarea id="newDesc">${homeworkData?.Beschreibung||""}</textarea></label><br>
-            <button id="generateQR">QR-Code erstellen</button>
-          `;
-          // Prevent HA input from affecting the notation/game
-          const haInput = document.getElementById("newHA");
-          const descInput = document.getElementById("newDesc");
-          [haInput, descInput].forEach(el => {
-            el.addEventListener('keydown', e => e.stopPropagation());
-            el.addEventListener('keyup',   e => e.stopPropagation());
-            el.addEventListener('keypress',e => e.stopPropagation());
-            el.addEventListener('input',   e => e.stopPropagation());
+        const hwSendBtn = document.getElementById("hwSend");
+        if (hwSendBtn) {
+          hwSendBtn.addEventListener("click", () => {
+            modal.innerHTML = `
+              <h2>Hausaufgabe erstellen</h2>
+              <label>Titel:<br><input id="newHA" value="${homeworkData?.HA||""}"></label><br>
+              <label>Beschreibung:<br><textarea id="newDesc">${homeworkData?.Beschreibung||""}</textarea></label><br>
+              <button id="generateQR">QR-Code erstellen</button>
+            `;
+            // Prevent HA input from affecting the notation/game
+            const haInput = document.getElementById("newHA");
+            const descInput = document.getElementById("newDesc");
+            [haInput, descInput].forEach(el => {
+              el.addEventListener('keydown', e => e.stopPropagation());
+              el.addEventListener('keyup',   e => e.stopPropagation());
+              el.addEventListener('keypress',e => e.stopPropagation());
+              el.addEventListener('input',   e => e.stopPropagation());
+            });
+            const genQRBtn = document.getElementById("generateQR");
+            if (genQRBtn) {
+              genQRBtn.addEventListener("click", () => {
+                const obj = { HA: document.getElementById("newHA").value, Beschreibung: document.getElementById("newDesc").value };
+                modal.innerHTML = `<div id="qrContainer"></div>`;
+                new QRCode(document.getElementById("qrContainer"), { text: JSON.stringify(obj), width:200, height:200 });
+                localStorage.setItem("homeworkData", JSON.stringify(obj));
+              });
+            }
           });
-          document.getElementById("generateQR").addEventListener("click", () => {
-            const obj = { HA: document.getElementById("newHA").value, Beschreibung: document.getElementById("newDesc").value };
-            modal.innerHTML = `<div id="qrContainer"></div>`;
-            new QRCode(document.getElementById("qrContainer"), { text: JSON.stringify(obj), width:200, height:200 });
-            localStorage.setItem("homeworkData", JSON.stringify(obj));
-          });
-        });
+        }
       }
 
       // Called by Swift after scanning QR code
@@ -2583,80 +2604,99 @@ metronomeToggle.addEventListener("click", () => {
       });
       
       
+      // Zeichne den Crayon-Button für Scale-Modus
       const customModeToggle = document.createElement("span");
       customModeToggle.id = "customModeToggle";
       customModeToggle.textContent = "🖍️";
       customModeToggle.style.cursor = "pointer";
       customModeToggle.style.marginTop = "10px";
       settingsPanel.appendChild(customModeToggle);
-      customModeToggle.addEventListener("click", () => {
-        const modal = document.getElementById("customModeModal");
-        modal.classList.toggle("hidden");
-        // Erweiterung: Checkboxen für Custom-Notenauswahl
-        if (!modal.querySelector("#customModeContent")) {
-          const container = document.createElement("div");
-          container.id = "customModeContent";
-          container.style.marginTop = "10px";
-
-          const octaves = {
-            "große Oktave": ["C", "D", "E", "F", "G", "A", "H"],
-            "kleine Oktave": ["c", "d", "e", "f", "g", "a", "h"],
-            "eingestrichene Oktave": ["c'", "d'", "e'", "f'", "g'", "a'", "h'"],
-            "zweigestrichene Oktave": ["c''", "d''", "e''", "f''", "g''", "a''", "h''"],
-          };
-
-          Object.entries(octaves).forEach(([octaveName, notes]) => {
-            // 1. Oktaven-Label als Button statt div
-            const octaveLabel = document.createElement("button");
-            octaveLabel.textContent = octaveName;
-            octaveLabel.style.marginTop = "10px";
-            octaveLabel.style.fontWeight = "bold";
-            octaveLabel.style.cursor = "pointer";
-            container.appendChild(octaveLabel);
-
-            notes.forEach(note => {
-              const label = document.createElement("label");
-              label.style.marginRight = "8px";
-              const checkbox = document.createElement("input");
-              checkbox.type = "checkbox";
-              checkbox.value = note;
-              checkbox.disabled = true;
-              label.appendChild(checkbox);
-              label.appendChild(document.createTextNode(note));
-              container.appendChild(label);
-            });
-
-            // 2. Klick auf Oktaven-Button aktiviert zugehörige Checkboxen
-            octaveLabel.addEventListener("click", () => {
-              notes.forEach(note => {
-                const checkbox = container.querySelector(`input[value="${note}"]`);
-                if (checkbox) {
-                  checkbox.disabled = false;
-                  checkbox.checked = true;
-                }
-              });
-            });
+      // Buttons für Reset und Speichern im Scale-Modus
+      const resetScaleBtn = document.createElement("span");
+      resetScaleBtn.id = "resetScaleBtn";
+      resetScaleBtn.textContent = "🔁";
+      resetScaleBtn.style.cursor = "pointer";
+      resetScaleBtn.style.display = "none";
+      settingsPanel.appendChild(resetScaleBtn);
+      resetScaleBtn.addEventListener("click", () => {
+        // Zurück zur ursprünglichen Skalenansicht
+        // Zurück zur ursprünglichen Skalenansicht
+        scaleSelectionMode = true;
+        // Auswahl zurücksetzen
+        selectedNotes = [];
+        // Entferne visuelle Selektion in der SVG
+        document.querySelectorAll("svg g.vf-stavenote.selected").forEach(svgNote => {
+          svgNote.classList.remove("selected");
+        });
+        // Skala neu anzeigen
+        generateScaleSeries(false);
+      });
+      
+      const scaleSelector = document.getElementById("scaleSelector");
+      if (scaleSelector) {
+        Object.entries(octaveOptions).forEach(([label, notes]) => {
+          const btn = document.createElement("button");
+          btn.textContent = label;
+          btn.addEventListener("click", () => {
+            selectedOctave = label;
+            generateScaleSeries(false);
           });
+          scaleSelector.appendChild(btn);
+        });
+      }
+      
+      const saveScaleBtn = document.createElement("span");
+      saveScaleBtn.id = "saveScaleBtn";
+      saveScaleBtn.textContent = "✅";
+      saveScaleBtn.style.cursor = "pointer";
+      saveScaleBtn.style.display = "none";
+      settingsPanel.appendChild(saveScaleBtn);
+      saveScaleBtn.addEventListener("click", () => {
+        // Wechsle in Final-Phase und starte unendliche Serie
+        scaleSelectionMode = false;
+        resetScaleBtn.style.display = "none";
+        saveScaleBtn.style.display = "none";
+        generateScaleSeries(true);
+      });
 
-          // Verwende existierenden Save-Button im .custom-mode-save Bereich
-          modal.appendChild(container);
-          // Suche den Speichern-Button im Custom-Mode-Bereich und setze Listener
-          const saveBtn = document.querySelector(".custom-mode-save button");
-          if (saveBtn) {
-            // 3. Nur noch eine Auswahl, keine Unterscheidung mehr zwischen linker und rechter Hand
-            saveBtn.addEventListener("click", () => {
-              const selectedNotes = Array.from(container.querySelectorAll("input[type=checkbox]"))
-                .filter(cb => cb.checked && !cb.disabled)
-                .map(cb => cb.value);
+      customModeToggle.addEventListener("click", () => {
+        const scaleSelector = document.getElementById("scaleSelector");
+        // Schalte Selection-Phase ein/aus
+        scaleSelectionMode = !scaleSelectionMode;
 
-              window.customModeSettings = {
-                clef: "bass",
-                range: "MC",
-                selectedNotes: selectedNotes.map(n => n.replace(/'/g, "").toLowerCase())
-              };
-              generateSeries();
-            });
+        // For use in both branches for settingsPanelEl ref
+        const settingsPanelEl = document.getElementById("settingsPanel");
+
+        if (scaleSelectionMode) {
+          // Auswahl: Oktaven-Buttons einblenden + reset/save Buttons
+          selectedMode = "scale";
+          sessionPaused = false;
+          seriesCounter = 0;
+          correctNoteCount = 0;
+          updateTimer();
+          const modeCarousel = document.getElementById("modeCarousel");
+          if (modeCarousel) modeCarousel.style.display = "none";
+          if (settingsPanelEl) settingsPanelEl.style.display = "flex";
+          const scaleSelectorEl = document.getElementById("scaleSelector");
+          if (scaleSelectorEl) scaleSelectorEl.style.display = "flex";
+          if (resetScaleBtn) resetScaleBtn.style.display = "inline";
+          if (saveScaleBtn) saveScaleBtn.style.display = "inline";
+          // Dimme alle anderen Controls
+          if (settingsPanelEl) {
+            Array.from(settingsPanelEl.children)
+              .filter(el => !['customModeToggle','resetScaleBtn','saveScaleBtn','scaleSelector'].includes(el.id))
+              .forEach(el => el.style.opacity = '0.5');
           }
+          generateScaleSeries(false);
+        } else {
+          // Speichern/Final: Oktaven-Buttons ausblenden + Controls reset
+          const scaleSelectorEl = document.getElementById("scaleSelector");
+          if (scaleSelectorEl) scaleSelectorEl.style.display = "none";
+          if (resetScaleBtn) resetScaleBtn.style.display = "none";
+          if (saveScaleBtn) saveScaleBtn.style.display = "none";
+          const spChildren = settingsPanelEl ? Array.from(settingsPanelEl.children) : [];
+          spChildren.forEach(el => el.style.opacity = '1');
+          generateScaleSeries(true);
         }
       });
       
@@ -2828,7 +2868,9 @@ metronomeToggle.addEventListener("click", () => {
         }
       });
       
-document.getElementById("timerContainer").addEventListener("click", () => {
+const timerContainerEl = document.getElementById("timerContainer");
+if (timerContainerEl) {
+    timerContainerEl.addEventListener("click", () => {
   let existingInput = document.getElementById("counterInput");
   if (!existingInput) {
     let timerContainer = document.getElementById("timerContainer");
@@ -2875,6 +2917,7 @@ document.getElementById("timerContainer").addEventListener("click", () => {
     });
   }
 });
+}
       
       // DarkMode-Toggle
       const darkModeToggle = document.createElement("span");
@@ -2918,44 +2961,7 @@ document.getElementById("timerContainer").addEventListener("click", () => {
         drawSeries();
       });
       // Füge den Tonleiter-Modus-Button direkt nach dem Karussell ein
-      const scaleModeToggle = document.createElement("button");
-      scaleModeToggle.id = "scaleModeToggle";
-      scaleModeToggle.className = "mode-button";
-      scaleModeToggle.textContent = "🎹";
-      // Füge ihn DOM direkt nach dem Karussell ein (nach modeCarousel, falls vorhanden)
-      const modeCarousel = document.getElementById("modeCarousel");
-      if (modeCarousel && modeCarousel.parentNode) {
-        modeCarousel.parentNode.insertBefore(scaleModeToggle, modeCarousel.nextSibling);
-      } else {
-        // Fallback: vor settingsPanel
-        const settingsPanel = document.getElementById("settingsPanel");
-        if (settingsPanel) settingsPanel.insertBefore(scaleModeToggle, settingsPanel.firstChild);
-      }
 
-      // Erstelle einen Save-Button für den Skalen-Modus
-      const saveScaleBtn = document.createElement("button");
-      saveScaleBtn.id = "saveScaleBtn";
-      saveScaleBtn.textContent = "Speichern";
-      saveScaleBtn.style.display = "none";
-      settingsPanel.appendChild(saveScaleBtn);
-
-      document.getElementById("scaleModeToggle").addEventListener("click", () => {
-        selectedMode = "scale";
-        selectedNotes = [];
-        // Zeige Skalen-Notation für Auswahl
-        generateScaleSeries(false);
-        saveScaleBtn.style.display = "inline-block";
-        // Hide the scale mode button while in scale mode until saving
-        scaleModeToggle.style.display = "none";
-      });
-
-      saveScaleBtn.addEventListener("click", () => {
-        // Nutzer-Auswahl übernehmen und finale Serie generieren
-        // Show the scale mode button again when saving
-        scaleModeToggle.style.display = "inline-block";
-        saveScaleBtn.style.display = "none";
-        generateScaleSeries(true);
-      });
 
       const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle, moveNotationToggle, wizardToggle];
       carouselButtons.forEach(btn => {
@@ -3008,18 +3014,20 @@ document.getElementById("timerContainer").addEventListener("click", () => {
         });
       }
       // Scoreboard-Toggle
-      
+
+      // --- BEGIN: Pencil Mode / Custom Scale Mode Toggle Opacity Logic ---
+      // Suche nach dem Toggle für Pencil Mode (benutzerdefinierte Skala)
+ 
+
       autoSelectMode();
       generateSeries();
-      
-      
-      
+
       updateHeartsDisplay();
       document.addEventListener("keydown", (event) => {
         if (event.code === "Space") { handleMIDIMessage(144, 60, 127); }
       });
-  
-      
+
+
     });
                   
 let melodyContext = {
@@ -3035,40 +3043,62 @@ let notesInCurrentPhase = 0;
 function generateScaleSeries(isFinal = false) {
   seriesCounter = 0;
   correctNoteCount = 0;
-  // Manuelle Notenauswahl aus UI
-  // Verwende globale selectedNotes als manuelle Auswahl
-  const manuallySelectedNotes = selectedNotes.length > 0
-    ? selectedNotes.map(s => s.toLowerCase())
-    : [];
-  // Default-Skala je nach Schlüssel
-  const defaultScaleNotes = selectedClef === "bass"
-    ? ["C2","D2","E2","F2","G2","A2","B2","C3"]
-    : ["C4","D4","E4","F4","G4","A4","B4","C5"];
-  // Bestimme Noten für Serie
-  const notesToUse = manuallySelectedNotes.length > 0
-    ? manuallySelectedNotes.map(pitch => {
-        const [note, octave] = pitch.split("/");
-        return { note, octave: parseInt(octave, 10) };
-      })
-    : defaultScaleNotes.map(s => {
-        const match = s.match(/^([A-G])(\d)$/);
-        return { note: match[1].toLowerCase(), octave: parseInt(match[2], 10) };
+
+  // Auswahl-Phase: nur aktuelle Oktave anzeigen und klickbar machen
+  if (!isFinal) {
+    const octaveNotes = octaveOptions[selectedOctave];
+    currentSeriesSingle = octaveNotes.map(s => {
+      const [n, o] = s.match(/^([A-G])(\d)$/).slice(1);
+      return { note: n.toLowerCase(), octave: parseInt(o, 10), clef: selectedClef, color: 'black' };
+    });
+    drawSeries();
+
+    // Nach dem Rendern Klick-Handler setzen und Vorselektionen markieren
+    setTimeout(() => {
+      const noteEls = document.querySelectorAll("svg g.vf-stavenote");
+      noteEls.forEach((svgNote, idx) => {
+        const pitch = `${currentSeriesSingle[idx].note}/${currentSeriesSingle[idx].octave}`;
+        svgNote.dataset.pitch = pitch;
+        if (selectedNotes.includes(pitch)) svgNote.classList.add("selected");
+        svgNote.addEventListener("click", () => {
+          if (selectedNotes.includes(pitch)) {
+            selectedNotes = selectedNotes.filter(x => x !== pitch);
+            svgNote.classList.remove("selected");
+          } else {
+            selectedNotes.push(pitch);
+            svgNote.classList.add("selected");
+          }
+        });
       });
-    // Baue Auswahl- oder Final-Serie
-      if (!isFinal) {
-        // Auswahlmodus: zeige die komplette Skala (oder Auswahl) einmal
-         currentSeriesSingle = notesToUse.map(({ note, octave }) =>
-           ({ note, octave, clef: selectedClef, color: 'black' }));
-       } else {
-         // Finalmodus: baue die Serie in Länge seriesLength
-         currentSeriesSingle = [];
-         for (let i = 0; i < seriesLength; i++) {
-           const { note, octave } = notesToUse[i % notesToUse.length];
-           currentSeriesSingle.push({ note, octave, clef: selectedClef, color: 'black' });
-        }
-       }
-       drawSeries();
-    }
+    }, 50);
+
+    return;
+  }
+
+  // Final-Phase: endlose Serie aus allen ausgewählten Noten (oder allen Oktaven)
+  let notesToUse = [];
+  if (selectedNotes.length > 0) {
+    notesToUse = selectedNotes.map(p => {
+      const [n, o] = p.split("/");
+      return { note: n, octave: parseInt(o, 10) };
+    });
+  } else {
+    // Wenn nichts selektiert, alle Oktaven zusammen
+    notesToUse = Object.values(octaveOptions)
+      .flat()
+      .map(s => {
+        const [n, o] = s.match(/^([A-G])(\d)$/).slice(1);
+        return { note: n.toLowerCase(), octave: parseInt(o, 10) };
+      });
+  }
+
+  currentSeriesSingle = [];
+  for (let i = 0; i < seriesLength; i++) {
+    const { note, octave } = notesToUse[i % notesToUse.length];
+    currentSeriesSingle.push({ note, octave, clef: selectedClef, color: 'black' });
+  }
+  drawSeries();
+}
 
 const generateSeries = () => {
   if (selectedMode === "scale") {
@@ -3273,6 +3303,15 @@ const generateSeries = () => {
 };
                                             
 selectedNotes = [];
+let scaleSelectionMode = false; // Flag für Scale-Auswahl-Phase
+// Oktaven-Definitionen
+const octaveOptions = {
+  'große Oktave':       ['C2','D2','E2','F2','G2','A2','B2','C3'],
+  'kleine Oktave':      ['C3','D3','E3','F3','G3','A3','B3','C4'],
+  'eingestrichene Oktave': ['C4','D4','E4','F4','G4','A4','B4','C5'],
+  'zweigestrichene Oktave': ['C5','D5','E5','F5','G5','A5','B5','C6']
+};
+let selectedOctave = 'große Oktave';
 const drawSeries = () => {
   // Debug: Log clef context to diagnose undefined issues
   console.log("drawSeries() context:", { selectedMode, selectedClef, firstClef: currentSeriesSingle?.[0]?.clef });
@@ -4126,6 +4165,10 @@ document.addEventListener("DOMContentLoaded", () => {
   #notation {
     margin-top: 10px;
   }
+  /* Scale-Clef-Buttons standardmäßig verbergen */
+  #scaleSelector {
+    display: none;
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qwerty-hancock/0.7.2/qwerty-hancock.min.js"></script>
 </head>
@@ -4134,8 +4177,7 @@ document.addEventListener("DOMContentLoaded", () => {
     <div id="scaleSelector">
       <button class="clef-button" id="trebleBtn">🎼</button>
       <button class="clef-button" id="bassBtn">𝄢</button>
-      <button class="clef-button" id="resetClefBtn">🔁</button>
-    </div>
+      </div>
     <!-- Sicherstellen, dass der noteSelector-Container existiert -->
     <div id="noteSelector" style="display:none;; z-index:-1000;"></div>
     
@@ -4387,6 +4429,8 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.style.cursor = "pointer";
       const settingsPanel = document.getElementById("settingsPanel");
       if (settingsPanel) settingsPanel.appendChild(btn);
+
+
       btn.addEventListener("click", () => {
         if (vk.style.display === "none") {
           vk.style.display = "block";
@@ -4545,7 +4589,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         });
     </script>
-    <button id="confirmScaleSelection">✅ Auswahl übernehmen</button>
+   
     <div id="customModeModal" class="hidden">
         <h2>Benutzerdefiniert</h2>
         <div class="custom-mode-row">
