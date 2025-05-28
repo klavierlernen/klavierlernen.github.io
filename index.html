@@ -2932,10 +2932,29 @@ document.getElementById("timerContainer").addEventListener("click", () => {
         if (settingsPanel) settingsPanel.insertBefore(scaleModeToggle, settingsPanel.firstChild);
       }
 
-      // Event Listener für den neuen Tonleiter-Modus-Button
+      // Erstelle einen Save-Button für den Skalen-Modus
+      const saveScaleBtn = document.createElement("button");
+      saveScaleBtn.id = "saveScaleBtn";
+      saveScaleBtn.textContent = "Speichern";
+      saveScaleBtn.style.display = "none";
+      settingsPanel.appendChild(saveScaleBtn);
+
       document.getElementById("scaleModeToggle").addEventListener("click", () => {
         selectedMode = "scale";
-        generateSeries();
+        selectedNotes = [];
+        // Zeige Skalen-Notation für Auswahl
+        generateScaleSeries(false);
+        saveScaleBtn.style.display = "inline-block";
+        // Hide the scale mode button while in scale mode until saving
+        scaleModeToggle.style.display = "none";
+      });
+
+      saveScaleBtn.addEventListener("click", () => {
+        // Nutzer-Auswahl übernehmen und finale Serie generieren
+        // Show the scale mode button again when saving
+        scaleModeToggle.style.display = "inline-block";
+        saveScaleBtn.style.display = "none";
+        generateScaleSeries(true);
       });
 
       const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle, moveNotationToggle, wizardToggle];
@@ -3013,7 +3032,7 @@ selectedClef = "treble";
 let notesInCurrentPhase = 0;
 
 // Extrahierte Funktion für den Tonleiter-Modus
-function generateScaleSeries() {
+function generateScaleSeries(isFinal = false) {
   seriesCounter = 0;
   correctNoteCount = 0;
   // Manuelle Notenauswahl aus UI
@@ -3035,10 +3054,21 @@ function generateScaleSeries() {
         const match = s.match(/^([A-G])(\d)$/);
         return { note: match[1].toLowerCase(), octave: parseInt(match[2], 10) };
       });
-  // Baue Serie
-  currentSeriesSingle = notesToUse.map(({ note, octave }) => ({ note, octave, clef: selectedClef, color: 'black' }));
-  drawSeries();
-}
+    // Baue Auswahl- oder Final-Serie
+      if (!isFinal) {
+        // Auswahlmodus: zeige die komplette Skala (oder Auswahl) einmal
+         currentSeriesSingle = notesToUse.map(({ note, octave }) =>
+           ({ note, octave, clef: selectedClef, color: 'black' }));
+       } else {
+         // Finalmodus: baue die Serie in Länge seriesLength
+         currentSeriesSingle = [];
+         for (let i = 0; i < seriesLength; i++) {
+           const { note, octave } = notesToUse[i % notesToUse.length];
+           currentSeriesSingle.push({ note, octave, clef: selectedClef, color: 'black' });
+        }
+       }
+       drawSeries();
+    }
 
 const generateSeries = () => {
   if (selectedMode === "scale") {
@@ -3661,6 +3691,12 @@ function scheduleReverseAnimation() {
           }
         }
         
+      // Sofortiges Redraw im Scale-Modus
+      if (selectedMode === "scale") {
+        drawSeries();
+      }
+
+      // Scale-Mode beendet: Serie neu auswerten
       if (sessionCounter <= 0 && !sessionPaused && selectedMode !== "scale") {
         sessionCounter = 0;
         updateTimer();
@@ -3668,12 +3704,18 @@ function scheduleReverseAnimation() {
         return;
       }
       seriesCounter++;
-      if (seriesCounter >= seriesLength && selectedMode !== "scale") {
+      if (selectedMode === "scale") {
+        if (seriesCounter >= currentSeriesSingle.length) {
+          generateScaleSeries(true);
+        }
+        return;
+      }
+      if (seriesCounter >= currentSeriesSingle.length) {
         generateSeries();
-      } else if(selectedMode !== "scale") {
+      } else {
         queueRedraw();
       }
-      if (selectedMode !== "scale") updateTimer();
+      updateTimer();
       }
     };
       const resetGame = () => {
