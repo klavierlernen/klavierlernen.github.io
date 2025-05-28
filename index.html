@@ -773,17 +773,7 @@
           border-radius: 10px;
           cursor: pointer;
         }
-        #noteSelector {
-          position: fixed;
-          bottom: 120px;
-          left: 50%;
-          transform: translateX(-50%);
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-          max-width: 90%;
-          z-index: 99;
-        }
+        
         .selectable-note {
           font-size: 1.5em;
           padding: 8px 10px;
@@ -795,6 +785,11 @@
         .selectable-note.selected {
           background: lightgreen;
         }
+      
+      .vf-note.selected path {
+        stroke: green !important;
+        fill: green !important;
+      }
    
   </style>
   <script>
@@ -805,47 +800,7 @@
       let currentSeriesLeft = [];
       let currentSeriesRight = [];
 
-      const trebleNotes = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
-      const bassNotes = ["C2", "D2", "E2", "F2", "G2", "A2", "B2", "C3"];
-      let selectedClef = "treble";
-      let selectedNotes = [];
 
-      function renderNoteSelector(notes) {
-        const container = document.getElementById("noteSelector");
-        container.innerHTML = "";
-        notes.forEach(note => {
-          const btn = document.createElement("div");
-          btn.className = "selectable-note";
-          btn.textContent = note;
-          btn.addEventListener("click", () => {
-            btn.classList.toggle("selected");
-            if (selectedNotes.includes(note)) {
-              selectedNotes = selectedNotes.filter(n => n !== note);
-            } else {
-              selectedNotes.push(note);
-            }
-          });
-          container.appendChild(btn);
-        });
-      }
-
-      document.getElementById("trebleBtn").addEventListener("click", () => {
-        selectedClef = "treble";
-        renderNoteSelector(trebleNotes);
-      });
-
-      document.getElementById("bassBtn").addEventListener("click", () => {
-        selectedClef = "bass";
-        renderNoteSelector(bassNotes);
-      });
-
-      document.getElementById("resetClefBtn").addEventListener("click", () => {
-        selectedNotes = [];
-        renderNoteSelector(selectedClef === "treble" ? trebleNotes : bassNotes);
-      });
-
-      // Standardmäßig Violinenschlüssel anzeigen
-      renderNoteSelector(trebleNotes);
       
       
       // (hwToggle click event listener will be added later in DOMContentLoaded after settingsPanel.appendChild(hwToggle))
@@ -2962,6 +2917,27 @@ document.getElementById("timerContainer").addEventListener("click", () => {
         localStorage.setItem('notationZoom', notationZoom);
         drawSeries();
       });
+      // Füge den Tonleiter-Modus-Button direkt nach dem Karussell ein
+      const scaleModeToggle = document.createElement("button");
+      scaleModeToggle.id = "scaleModeToggle";
+      scaleModeToggle.className = "mode-button";
+      scaleModeToggle.textContent = "🎹";
+      // Füge ihn DOM direkt nach dem Karussell ein (nach modeCarousel, falls vorhanden)
+      const modeCarousel = document.getElementById("modeCarousel");
+      if (modeCarousel && modeCarousel.parentNode) {
+        modeCarousel.parentNode.insertBefore(scaleModeToggle, modeCarousel.nextSibling);
+      } else {
+        // Fallback: vor settingsPanel
+        const settingsPanel = document.getElementById("settingsPanel");
+        if (settingsPanel) settingsPanel.insertBefore(scaleModeToggle, settingsPanel.firstChild);
+      }
+
+      // Event Listener für den neuen Tonleiter-Modus-Button
+      document.getElementById("scaleModeToggle").addEventListener("click", () => {
+        selectedMode = "scale";
+        generateSeries();
+      });
+
       const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle, moveNotationToggle, wizardToggle];
       carouselButtons.forEach(btn => {
         const item = document.createElement('div');
@@ -3032,10 +3008,43 @@ let melodyContext = {
   direction: 1, // 1 = aufwärts, -1 = abwärts
   scale: ["c", "d", "e", "f", "g", "a", "b"], // C-Dur
 };
-// Füge am Anfang des Skripts (z. B. direkt vor der Funktion generateSeries) hinzu:
+// Stelle sicher, dass selectedClef global initialisiert ist
+selectedClef = "treble";
 let notesInCurrentPhase = 0;
-                                            
+
+// Extrahierte Funktion für den Tonleiter-Modus
+function generateScaleSeries() {
+  seriesCounter = 0;
+  correctNoteCount = 0;
+  // Manuelle Notenauswahl aus UI
+  // Verwende globale selectedNotes als manuelle Auswahl
+  const manuallySelectedNotes = selectedNotes.length > 0
+    ? selectedNotes.map(s => s.toLowerCase())
+    : [];
+  // Default-Skala je nach Schlüssel
+  const defaultScaleNotes = selectedClef === "bass"
+    ? ["C2","D2","E2","F2","G2","A2","B2","C3"]
+    : ["C4","D4","E4","F4","G4","A4","B4","C5"];
+  // Bestimme Noten für Serie
+  const notesToUse = manuallySelectedNotes.length > 0
+    ? manuallySelectedNotes.map(pitch => {
+        const [note, octave] = pitch.split("/");
+        return { note, octave: parseInt(octave, 10) };
+      })
+    : defaultScaleNotes.map(s => {
+        const match = s.match(/^([A-G])(\d)$/);
+        return { note: match[1].toLowerCase(), octave: parseInt(match[2], 10) };
+      });
+  // Baue Serie
+  currentSeriesSingle = notesToUse.map(({ note, octave }) => ({ note, octave, clef: selectedClef, color: 'black' }));
+  drawSeries();
+}
+
 const generateSeries = () => {
+  if (selectedMode === "scale") {
+    generateScaleSeries();
+    return;
+  }
   seriesCounter = 0;
   correctNoteCount = 0;
   // --- Manuelle Notenauswahl aus UI berücksichtigen ---
@@ -3044,8 +3053,57 @@ const generateSeries = () => {
   nextMotivationThreshold = getRandomThreshold();
   document.getElementById("noteNameDisplay").textContent = "";
 
-  let seriesClef, chooseNote;
+  // Einhandmodus: customNoteSeries bevorzugen, sonst fallback
+  if (selectedMode === "left" || selectedMode === "right") {
+    if (typeof customNoteSeries !== "undefined" && customNoteSeries.length > 0) {
+      currentSeriesSingle = customNoteSeries.slice();
+    } else {
+      // Fallback: Standardgenerierung für Einhandmodus
+      function generateRandomSeries() {
+        let handClef = selectedMode === "left" ? "bass" : "treble";
+        let defaultNotes;
+        if (currentRange === "MC") {
+          defaultNotes = handClef === "bass"
+            ? ["f", "g", "a", "b", "c"]
+            : ["c", "d", "e", "f", "g"];
+        } else if (currentRange === "D") {
+          defaultNotes = ["d", "e", "f#", "g", "a"];
+        } else if (currentRange === "F") {
+          defaultNotes = ["f", "g", "a", "bb", "c"];
+        } else {
+          defaultNotes = rangeNotes[currentRange];
+        }
+        let arr = [];
+        for (let i = 0; i < seriesLength; i++) {
+          const randomIndex = Math.floor(Math.random() * defaultNotes.length);
+          const chosenNote = defaultNotes[randomIndex];
+          let noteOctave = handClef === "bass" ? 3 : 4;
+          if (currentRange === "F" && handClef === "treble" && chosenNote.toLowerCase() === "c") {
+            noteOctave = 5;
+          }
+          let accidental = undefined;
+          if (["F", "G"].includes(currentRange)) {
+            if (currentRange === "F" && chosenNote.toLowerCase() === "bb") {
+              accidental = "b";
+            } else if (currentRange === "F" && chosenNote.includes("b") && chosenNote !== "b") {
+              accidental = chosenNote;
+            } else if (currentRange === "G" && (chosenNote.includes("#") || (chosenNote.includes("b") && chosenNote !== "b"))) {
+              accidental = chosenNote;
+            }
+          }
+          arr.push({ note: chosenNote, octave: noteOctave, clef: handClef, color: "black", accidental: accidental });
+        }
+        return arr;
+      }
+      currentSeriesSingle = generateRandomSeries();
+    }
+    seriesCounter = 0;
+    correctNoteCount = 0;
+    drawSeries();
+    return;
+  }
 
+  let seriesClef, chooseNote;
   // Prüfe, ob benutzerdefinierte Einstellungen aktiv sind
   if (window.customModeSettings && window.customModeSettings.clef && window.customModeSettings.range) {
     // Verwende die benutzerdefinierten Einstellungen
@@ -3184,7 +3242,10 @@ const generateSeries = () => {
   drawSeries();
 };
                                             
+selectedNotes = [];
 const drawSeries = () => {
+  // Debug: Log clef context to diagnose undefined issues
+  console.log("drawSeries() context:", { selectedMode, selectedClef, firstClef: currentSeriesSingle?.[0]?.clef });
   const noteAnimals = {
     "c": "🐱", "d": "🐳", "e": "🐷", "f": "🐟",
     "g": "🐤", "a": "🦊", "b": "🐝", "bb": "🦁",
@@ -3213,10 +3274,26 @@ const drawSeries = () => {
   }
 
   const context = renderer.getContext();
+  // Bestimme Clef, mit Fallback auf 'treble' bei ungültigem Wert
   const stave = new Vex.Flow.Stave(10, 40, baseWidth - 20);
-  if (currentSeriesSingle.length) {
-    stave.addClef(currentSeriesSingle[0].clef);
+  let clefToUse = (selectedMode === "scale")
+    ? selectedClef
+    : (currentSeriesSingle && currentSeriesSingle.length > 0)
+      ? currentSeriesSingle[0].clef
+      : selectedClef;
+  // Validiere Clef ohne Absturz, benutze statische Liste als Fallback
+  let availableClefs = ['treble', 'bass', 'alto', 'tenor'];
+  if (Vex.Flow.Tables && typeof Vex.Flow.Tables.currentGlyphs === 'function') {
+    const glyphs = Vex.Flow.Tables.currentGlyphs();
+    if (glyphs && glyphs.clef) {
+      availableClefs = Object.keys(glyphs.clef);
+    }
   }
+  if (!clefToUse || !availableClefs.includes(clefToUse)) {
+    console.warn(`Ungültiger Clef '${clefToUse}', setze Fallback auf 'treble'`);
+    clefToUse = 'treble';
+  }
+  stave.addClef(clefToUse);
 
   if (currentRange === "D") stave.addKeySignature("G");
   else if (currentRange === "F") stave.addKeySignature("F");
@@ -3252,6 +3329,27 @@ const drawSeries = () => {
   staveNotes.forEach(note => voice.addTickable(note));
   new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
   voice.draw(context, stave);
+
+  // Interaktive Noten aktivieren (nur im scale-Modus)
+  if (selectedMode === "scale") {
+    setTimeout(() => {
+      const noteElements = document.querySelectorAll("svg g.vf-stavenote");
+      noteElements.forEach((svgNote, idx) => {
+        svgNote.style.cursor = "pointer";
+        // Speichere Pitch als data-Attribut
+        const pitch = `${currentSeriesSingle[idx].note}/${currentSeriesSingle[idx].octave}`;
+        svgNote.dataset.pitch = pitch;
+        svgNote.addEventListener("click", () => {
+          svgNote.classList.toggle("selected");
+          if (selectedNotes.includes(pitch)) {
+            selectedNotes = selectedNotes.filter(n => n !== pitch);
+          } else {
+            selectedNotes.push(pitch);
+          }
+        });
+      });
+    }, 100);
+  }
 
   // 🐝 Kinder-Modus: Emojis auf die Notenköpfe setzen
   if (kidsMode) {
@@ -3563,19 +3661,19 @@ function scheduleReverseAnimation() {
           }
         }
         
-        if (sessionCounter <= 0 && !sessionPaused) {
-          sessionCounter = 0;
-          updateTimer();
-          startLocalTimer();
-          return;
-        }
-        seriesCounter++;
-        if (seriesCounter >= seriesLength) {
-          generateSeries();
-        } else {
-          queueRedraw();
-        }
+      if (sessionCounter <= 0 && !sessionPaused && selectedMode !== "scale") {
+        sessionCounter = 0;
         updateTimer();
+        startLocalTimer();
+        return;
+      }
+      seriesCounter++;
+      if (seriesCounter >= seriesLength && selectedMode !== "scale") {
+        generateSeries();
+      } else if(selectedMode !== "scale") {
+        queueRedraw();
+      }
+      if (selectedMode !== "scale") updateTimer();
       }
     };
       const resetGame = () => {
@@ -3594,7 +3692,10 @@ function scheduleReverseAnimation() {
         scoreRecorded = false;
         // Setze den Timer-Container (falls genutzt) auf 0
         document.getElementById("timerContainer").textContent = "0";
-        generateSeries();
+        // Nur neues Spiel starten, wenn nicht scale-Modus
+        if (selectedMode !== "scale") {
+          generateSeries();
+        }
         updateHeartsDisplay();
       };
                                             
@@ -3945,6 +4046,10 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 <style>
+  .vf-stavenote.selected path {
+    stroke: green !important;
+    fill: green !important;
+  }
 @keyframes flyOutRight {
   from { opacity: 1; transform: translateX(0); }
   to   { opacity: 0; transform: translateX(100%); }
@@ -3989,7 +4094,8 @@ document.addEventListener("DOMContentLoaded", () => {
       <button class="clef-button" id="bassBtn">𝄢</button>
       <button class="clef-button" id="resetClefBtn">🔁</button>
     </div>
-    <div id="noteSelector"></div>
+    <!-- Sicherstellen, dass der noteSelector-Container existiert -->
+    <div id="noteSelector" style="display:none;; z-index:-1000;"></div>
     
     <div id="streakDisplay"></div>
     <!-- Canvas für Animation (Hintergrund) -->
@@ -4373,8 +4479,31 @@ document.addEventListener("DOMContentLoaded", () => {
             });
           }
         });
+        
+        window.addEventListener("DOMContentLoaded", () => {
+          const confirmBtn = document.getElementById("confirmScaleSelection");
+          if (confirmBtn) {
+            confirmBtn.addEventListener("click", () => {
+              if (selectedMode === "scale" && selectedNotes.length > 0) {
+                localStorage.setItem("customOneHandNotes", JSON.stringify(selectedNotes));
+                selectedMode = "left";
+                seriesCounter = 0;
+                correctNoteCount = 0;
+
+                currentSeriesSingle = Array.from({ length: 1000 }, () => {
+                  const i = Math.floor(Math.random() * selectedNotes.length);
+                  return selectedNotes[i];
+                });
+
+                drawSeries();
+              } else {
+                alert("Bitte mindestens eine Note auswählen, bevor du speicherst!");
+              }
+            });
+          }
+        });
     </script>
-    
+    <button id="confirmScaleSelection">✅ Auswahl übernehmen</button>
     <div id="customModeModal" class="hidden">
         <h2>Benutzerdefiniert</h2>
         <div class="custom-mode-row">
@@ -4543,29 +4672,38 @@ document.addEventListener("DOMContentLoaded", () => {
           display.textContent = `< ${availableNotes[selectedNoteIndex] || "?"} >`;
         }
 
-        document.getElementById("prevNoteBtn").addEventListener("click", () => {
-          selectedNoteIndex = (selectedNoteIndex - 1 + availableNotes.length) % availableNotes.length;
-          updateCorrectionDisplay();
-        });
+        const prevNoteBtn = document.getElementById("prevNoteBtn");
+        if (prevNoteBtn) {
+          prevNoteBtn.addEventListener("click", () => {
+            selectedNoteIndex = (selectedNoteIndex - 1 + availableNotes.length) % availableNotes.length;
+            updateCorrectionDisplay();
+          });
+        }
 
-        document.getElementById("nextNoteBtn").addEventListener("click", () => {
-          selectedNoteIndex = (selectedNoteIndex + 1) % availableNotes.length;
-          updateCorrectionDisplay();
-        });
+        const nextNoteBtn = document.getElementById("nextNoteBtn");
+        if (nextNoteBtn) {
+          nextNoteBtn.addEventListener("click", () => {
+            selectedNoteIndex = (selectedNoteIndex + 1) % availableNotes.length;
+            updateCorrectionDisplay();
+          });
+        }
 
-        document.getElementById("confirmNoteBtn").addEventListener("click", () => {
-          const selected = availableNotes[selectedNoteIndex];
-          if (selected === expectedNote) {
-            updateCorrectionDisplay("correct");
-            setTimeout(() => {
-              document.getElementById("correctionBox").classList.add("hidden");
-              correctionActive = false;
-              resetGame(); // oder nächster Schritt
-            }, 1000);
-          } else {
-            updateCorrectionDisplay("wrong");
-          }
-        });
+        const confirmNoteBtn = document.getElementById("confirmNoteBtn");
+        if (confirmNoteBtn) {
+          confirmNoteBtn.addEventListener("click", () => {
+            const selected = availableNotes[selectedNoteIndex];
+            if (selected === expectedNote) {
+              updateCorrectionDisplay("correct");
+              setTimeout(() => {
+                document.getElementById("correctionBox").classList.add("hidden");
+                correctionActive = false;
+                resetGame(); // oder nächster Schritt
+              }, 1000);
+            } else {
+              updateCorrectionDisplay("wrong");
+            }
+          });
+        }
 
         function handleCorrectionInput(notePlayed) {
           if (!correctionActive) return;
@@ -4629,6 +4767,48 @@ document.addEventListener("DOMContentLoaded", () => {
             });
           }
         
+        const trebleNotes = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
+        const bassNotes = ["C2", "D2", "E2", "F2", "G2", "A2", "B2", "C3"];
+        let selectedClef = "treble";
+        let selectedNotes = [];
+
+        function renderNoteSelector(notes) {
+          const container = document.getElementById("noteSelector");
+          container.innerHTML = "";
+          notes.forEach(note => {
+            const btn = document.createElement("div");
+            btn.className = "selectable-note";
+            btn.textContent = note;
+            btn.addEventListener("click", () => {
+              btn.classList.toggle("selected");
+              if (selectedNotes.includes(note)) {
+                selectedNotes = selectedNotes.filter(n => n !== note);
+              } else {
+                selectedNotes.push(note);
+              }
+            });
+            container.appendChild(btn);
+          });
+        }
+
+        document.getElementById("trebleBtn").addEventListener("click", () => {
+          selectedClef = "treble";
+          renderNoteSelector(trebleNotes);
+        });
+
+        document.getElementById("bassBtn").addEventListener("click", () => {
+          selectedClef = "bass";
+          renderNoteSelector(bassNotes);
+        });
+
+        document.getElementById("resetClefBtn").addEventListener("click", () => {
+          selectedNotes = [];
+          renderNoteSelector(selectedClef === "treble" ? trebleNotes : bassNotes);
+        });
+
+        // Standardmäßig Violinenschlüssel anzeigen
+        renderNoteSelector(trebleNotes);
+        
     
     </script>
     
@@ -4640,3 +4820,52 @@ document.addEventListener("DOMContentLoaded", () => {
 
         
         
+
+    <script>
+    // Wickle alle EventListener und DOM-Zugriffe in DOMContentLoaded
+    window.addEventListener("DOMContentLoaded", () => {
+      // EventListener für #trebleBtn und #bassBtn
+      const trebleBtn = document.getElementById("trebleBtn");
+      if (trebleBtn) {
+        trebleBtn.addEventListener("click", () => {
+          if (typeof selectedMode !== "undefined" && selectedMode === "scale") {
+            selectedClef = "treble";
+            selectedNotes = [];
+            if (typeof generateSeries === "function") generateSeries();
+          } else {
+            selectedClef = "treble";
+          }
+        });
+      }
+      const bassBtn = document.getElementById("bassBtn");
+      if (bassBtn) {
+        bassBtn.addEventListener("click", () => {
+          if (typeof selectedMode !== "undefined" && selectedMode === "scale") {
+            selectedClef = "bass";
+            selectedNotes = [];
+            if (typeof generateSeries === "function") generateSeries();
+          } else {
+            selectedClef = "bass";
+          }
+        });
+      }
+      // Beispiel für weiteren EventListener aus der Aufgabenstellung
+      const confirmScaleSelection = document.getElementById("confirmScaleSelection");
+      if (confirmScaleSelection) {
+        confirmScaleSelection.addEventListener("click", () => {
+          if (typeof selectedMode !== "undefined" && selectedMode === "scale") {
+            localStorage.setItem("customOneHandNotes", JSON.stringify(selectedNotes));
+            selectedMode = "left";
+            seriesCounter = 0;
+            correctNoteCount = 0;
+            // Unendlich randomisierte Serie aus den gewählten Noten erzeugen
+            currentSeriesSingle = Array.from({ length: 1000 }, () => {
+              const i = Math.floor(Math.random() * selectedNotes.length);
+              return selectedNotes[i];
+            });
+            if (typeof drawSeries === "function") drawSeries();
+          }
+        });
+      }
+    });
+    </script>
