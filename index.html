@@ -754,8 +754,48 @@
           border: 1px solid #000;
           border-radius: 4px;
         }
-    
       
+     
+        #scaleSelector {
+          position: fixed;
+          top: 10px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 100;
+          display: flex;
+          gap: 10px;
+        }
+        .clef-button {
+          font-size: 2em;
+          padding: 5px 10px;
+          background: white;
+          border: 2px solid black;
+          border-radius: 10px;
+          cursor: pointer;
+        }
+        #noteSelector {
+          position: fixed;
+          bottom: 120px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          max-width: 90%;
+          z-index: 99;
+        }
+        .selectable-note {
+          font-size: 1.5em;
+          padding: 8px 10px;
+          border: 2px solid black;
+          border-radius: 6px;
+          background: white;
+          cursor: pointer;
+        }
+        .selectable-note.selected {
+          background: lightgreen;
+        }
+   
   </style>
   <script>
       
@@ -765,11 +805,47 @@
       let currentSeriesLeft = [];
       let currentSeriesRight = [];
 
-        // Initialize global homeworkData from storage
-        window.homeworkData = JSON.parse(localStorage.getItem("homeworkData") || "null");
-        // … der restliche bisherige Script-Code …
-      
-      let homeworkData = JSON.parse(localStorage.getItem("homeworkData") || "null");
+      const trebleNotes = ["C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5"];
+      const bassNotes = ["C2", "D2", "E2", "F2", "G2", "A2", "B2", "C3"];
+      let selectedClef = "treble";
+      let selectedNotes = [];
+
+      function renderNoteSelector(notes) {
+        const container = document.getElementById("noteSelector");
+        container.innerHTML = "";
+        notes.forEach(note => {
+          const btn = document.createElement("div");
+          btn.className = "selectable-note";
+          btn.textContent = note;
+          btn.addEventListener("click", () => {
+            btn.classList.toggle("selected");
+            if (selectedNotes.includes(note)) {
+              selectedNotes = selectedNotes.filter(n => n !== note);
+            } else {
+              selectedNotes.push(note);
+            }
+          });
+          container.appendChild(btn);
+        });
+      }
+
+      document.getElementById("trebleBtn").addEventListener("click", () => {
+        selectedClef = "treble";
+        renderNoteSelector(trebleNotes);
+      });
+
+      document.getElementById("bassBtn").addEventListener("click", () => {
+        selectedClef = "bass";
+        renderNoteSelector(bassNotes);
+      });
+
+      document.getElementById("resetClefBtn").addEventListener("click", () => {
+        selectedNotes = [];
+        renderNoteSelector(selectedClef === "treble" ? trebleNotes : bassNotes);
+      });
+
+      // Standardmäßig Violinenschlüssel anzeigen
+      renderNoteSelector(trebleNotes);
       
       
       // (hwToggle click event listener will be added later in DOMContentLoaded after settingsPanel.appendChild(hwToggle))
@@ -2962,6 +3038,9 @@ let notesInCurrentPhase = 0;
 const generateSeries = () => {
   seriesCounter = 0;
   correctNoteCount = 0;
+  // --- Manuelle Notenauswahl aus UI berücksichtigen ---
+  const noteSelectorElements = document.querySelectorAll("#noteSelector .selectable-note.selected");
+  const manuallySelectedNotes = Array.from(noteSelectorElements).map(el => el.textContent.toLowerCase());
   nextMotivationThreshold = getRandomThreshold();
   document.getElementById("noteNameDisplay").textContent = "";
 
@@ -2988,7 +3067,13 @@ const generateSeries = () => {
         customNotes = rangeNotes[currentRange];
       }
     }
-    
+    // --- Effektive Noten bestimmen: manuelle Auswahl hat Vorrang ---
+    let effectiveNotes;
+    if (manuallySelectedNotes.length > 0) {
+      effectiveNotes = manuallySelectedNotes;
+    } else {
+      effectiveNotes = customNotes;
+    }
     chooseNote = () => {
       if (errorNotes.length > 0 && Math.random() < 0.6) {
         const idx = errorNotes.findIndex(note => note.clef === seriesClef);
@@ -2996,8 +3081,8 @@ const generateSeries = () => {
           return errorNotes.splice(idx, 1)[0];
         }
       }
-      const randomIndex = Math.floor(Math.random() * customNotes.length);
-      const chosenNote = customNotes[randomIndex];
+      const randomIndex = Math.floor(Math.random() * effectiveNotes.length);
+      const chosenNote = effectiveNotes[randomIndex];
       let noteOctave = seriesClef === "bass" ? 3 : 4;
       // F-Lage: ensure C is one octave higher in treble clef
       if (currentRange === "F" && seriesClef === "treble" && chosenNote.toLowerCase() === "c") {
@@ -3045,7 +3130,6 @@ const generateSeries = () => {
     } else {
       seriesClef = (selectedMode === "left") ? "bass" : "treble";
     }
-
     chooseNote = () => {
       if (errorNotes.length > 0 && Math.random() < 0.6) {
         const idx = errorNotes.findIndex(note => note.clef === seriesClef);
@@ -3065,8 +3149,15 @@ const generateSeries = () => {
       } else {
         defaultNotes = rangeNotes[currentRange];
       }
-      const randomIndex = Math.floor(Math.random() * defaultNotes.length);
-      const chosenNote = defaultNotes[randomIndex];
+      // --- Effektive Noten bestimmen: manuelle Auswahl hat Vorrang ---
+      let effectiveNotes;
+      if (manuallySelectedNotes.length > 0) {
+        effectiveNotes = manuallySelectedNotes;
+      } else {
+        effectiveNotes = defaultNotes;
+      }
+      const randomIndex = Math.floor(Math.random() * effectiveNotes.length);
+      const chosenNote = effectiveNotes[randomIndex];
       let noteOctave = seriesClef === "bass" ? 3 : 4;
       // F-Lage: ensure C is one octave higher in treble clef
       if (currentRange === "F" && seriesClef === "treble" && chosenNote.toLowerCase() === "c") {
@@ -3892,6 +3983,14 @@ document.addEventListener("DOMContentLoaded", () => {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qwerty-hancock/0.7.2/qwerty-hancock.min.js"></script>
 </head>
 <body>
+    <!-- Direkt nach <body> einfügen -->
+    <div id="scaleSelector">
+      <button class="clef-button" id="trebleBtn">🎼</button>
+      <button class="clef-button" id="bassBtn">𝄢</button>
+      <button class="clef-button" id="resetClefBtn">🔁</button>
+    </div>
+    <div id="noteSelector"></div>
+    
     <div id="streakDisplay"></div>
     <!-- Canvas für Animation (Hintergrund) -->
     <canvas id="animationCanvas"></canvas>
