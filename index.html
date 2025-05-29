@@ -800,6 +800,20 @@
         cursor: pointer;
         padding: 4px 8px;
       }
+    /* Metronome input: borderless, no spinner arrows */
+    #metronomeInput {
+      border: none;
+      background: transparent;
+      outline: none;
+      -moz-appearance: textfield;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    #metronomeInput::-webkit-outer-spin-button,
+    #metronomeInput::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
   </style>
   <script>
       
