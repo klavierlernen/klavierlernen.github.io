@@ -814,6 +814,29 @@
       -webkit-appearance: none;
       margin: 0;
     }
+      
+      /* 1) Settings-Panel beim Long-Press aufklappen */
+      #settingsPanel.expanded {
+        top: 0      !important;
+        bottom: 0   !important;
+        height: auto!important;
+        display: flex!important;
+        flex-direction: column;
+        justify-content: flex-start;
+        overflow-y: auto;
+      }
+
+      /* 2) Draggable Emojis gestalten */
+      .settings-emoji {
+        font-size: 2em;
+        margin: 8px 0;
+        cursor: grab;
+        user-select: none;
+        transition: border 0.2s;
+      }
+      .settings-emoji.drag-over {
+        border: 2px dashed #333;
+      }
   </style>
   <script>
       
@@ -1067,6 +1090,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Hole die Position des Menüs (settingsPanel)
       const settingsPanel = document.getElementById("settingsPanel");
+      const emojiContainer = document.getElementById("settingsEmojiContainer");
       let x, y;
       if (settingsPanel) {
         const rect = settingsPanel.getBoundingClientRect();
@@ -4891,9 +4915,56 @@ document.addEventListener("DOMContentLoaded", () => {
               container.appendChild(btn);
             });
           }
-        
-        
-    
+        </script>
+    <script>
+        // Referenzen
+        const settingsPanel       = document.getElementById('settingsPanel');
+        const emojiContainer      = document.getElementById('settingsEmojiContainer');
+        const emojiItems = emojiContainer ? emojiContainer.querySelectorAll('.settings-emoji') : [];
+
+        // --- A) Long-Press (3 Sekunden) zum Auf-/Zuklappen ---
+        let longPressTimer;
+        settingsPanel.addEventListener('pointerdown', () => {
+          longPressTimer = setTimeout(() => {
+            settingsPanel.classList.toggle('expanded');
+          }, 3000); // 3000 ms = 3 s
+        });
+        ['pointerup','pointerleave','pointercancel'].forEach(evt =>
+          settingsPanel.addEventListener(evt, () => clearTimeout(longPressTimer))
+        );
+        // --- B) Drag-n-Drop zum Umordnen und Speichern ---
+        let dragged = null;
+        emojiItems.forEach(item => {
+          item.addEventListener('dragstart',  e => { dragged = item; });
+          item.addEventListener('dragover',   e => { e.preventDefault(); item.classList.add('drag-over'); });
+          item.addEventListener('dragleave',  () => { item.classList.remove('drag-over'); });
+          item.addEventListener('drop',       e => {
+            e.preventDefault();
+            item.classList.remove('drag-over');
+            if (dragged && dragged !== item) {
+              // Reihenfolge in DOM anpassen
+              const nodes = Array.from(emojiContainer.children);
+              const from = nodes.indexOf(dragged);
+              const to   = nodes.indexOf(item);
+              if (from < to) emojiContainer.insertBefore(dragged, item.nextSibling);
+              else           emojiContainer.insertBefore(dragged, item);
+              // Neue Reihenfolge speichern
+              const order = Array.from(emojiContainer.children).map(el => el.textContent);
+              localStorage.setItem('settingsEmojiOrder', JSON.stringify(order));
+            }
+          });
+        });
+
+        // --- C) Reihenfolge beim Laden wiederherstellen ---
+        const savedOrder = JSON.parse(localStorage.getItem('settingsEmojiOrder')||'[]');
+        if (savedOrder.length) {
+          savedOrder.forEach(sym => {
+            const el = Array.from(emojiContainer.children)
+                            .find(span => span.textContent === sym);
+            if (el) emojiContainer.appendChild(el);
+          });
+        }
+    </script>
     </script>
     
 </body>
