@@ -1334,19 +1334,30 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedMode = handOptions[currentHandIndex].mode;
     let randomMode = false;
     
-    // Verfügbare Lagen
-    const rangeArray = ["C", "D", "F", "G", "MC"];
-    const alternatingRanges = ["C", "D", "MC"]; // Vordefinierte Lagen, die im Hasenmodus alternieren sollen
+    // Verfügbare Quintenzirkel-Tonarten
+    const rangeArray = [
+      "C", "G", "D", "A", "E", "B", "F#", "C#", "Ab", "Eb", "Bb", "F"
+    ];
+    const alternatingRanges = [
+      "C", "G", "D", "A", "E", "B", "F#", "C#", "Ab", "Eb", "Bb", "F"
+    ];
     let currentRangeIndex = 0;
     let currentRange = rangeArray[currentRangeIndex];
     
-    // Wichtig: Definition der rangeNotes – Zuordnung von Lage zu Noten
+    // Zuordnung von Tonart (Quintenzirkel) zu den diatonischen Noten dieser Tonart
     const rangeNotes = {
-      "C": ["c", "d", "e", "f", "g"],
-      "D": ["d", "e", "f#", "g", "a"],
-      "F": ["f", "g", "a", "bb", "c"],
-      "G": ["g", "a", "b", "c", "d"],
-      "MC": ["c", "d", "e", "f", "g"]
+      "C":  ["c",  "d",  "e",  "f",  "g",  "a",  "b"],
+      "G":  ["g",  "a",  "b",  "c",  "d",  "e",  "f#"],
+      "D":  ["d",  "e",  "f#", "g",  "a",  "b",  "c#"],
+      "A":  ["a",  "b",  "c#", "d",  "e",  "f#", "g#"],
+      "E":  ["e",  "f#", "g#", "a",  "b",  "c#", "d#"],
+      "B":  ["b",  "c#", "d#", "e",  "f#", "g#", "a#"],
+      "F#": ["f#", "g#", "a#", "b",  "c#", "d#", "e#"],
+      "C#": ["c#", "d#", "e#", "f#", "g#", "a#", "b#"],
+      "Ab": ["ab", "bb", "c",  "db", "eb", "f",  "g"],
+      "Eb": ["eb", "f",  "g",  "ab", "bb", "c",  "d"],
+      "Bb": ["bb", "c",  "d",  "eb", "f",  "g",  "a"],
+      "F":  ["f",  "g",  "a",  "bb", "c",  "d",  "e"]
     };
     
     let currentSeriesSingle = [];
@@ -1915,7 +1926,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       window.customModeSettings = null;
       currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
       currentRange = rangeArray[currentRangeIndex];
-      document.getElementById("clefTitle").textContent = currentRange + "-Lage";
+      document.getElementById("clefTitle").textContent = currentRange;
       generateSeries();
       updateHeartsDisplay();
     };
@@ -3381,12 +3392,8 @@ const drawSeries = () => {
     console.warn(`Ungültiger Clef '${clefToUse}', setze Fallback auf 'treble'`);
     clefToUse = 'treble';
   }
-  stave.addClef(clefToUse);
-
-  if (currentRange === "D") stave.addKeySignature("G");
-  else if (currentRange === "F") stave.addKeySignature("F");
-  else if (currentRange === "G") stave.addKeySignature("G");
-
+  stave.addClef(clefToUse)
+       .addKeySignature(currentRange);
   stave.setContext(context).draw();
 
   const noteDuration = (window.customModeSettings && window.customModeSettings.noteValue === "8") ? "8" : "q";
