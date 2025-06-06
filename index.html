@@ -3380,7 +3380,10 @@ const drawSeries = () => {
   };
 
   const notationDiv = document.getElementById("notation");
-  const baseWidth = 600;
+  const baseWidth = window.isMobile ? 150 : 600;
+  if (window.isMobile) {
+    notationDiv.style.margin = "0 10px";
+  }
   const ratio = window.devicePixelRatio || 1;
   const height = 300 * ratio;
   notationDiv.style.display = "block";
@@ -4283,6 +4286,15 @@ document.addEventListener("DOMContentLoaded", () => {
     cursor: pointer;
   }
 </style>
+<style>
+  @media screen and (max-width: 768px) {
+    #settingsPanel,
+    #timerContainer,
+    #streakDisplay {
+      display: none !important;
+    }
+  }
+</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qwerty-hancock/0.7.2/qwerty-hancock.min.js"></script>
 </head>
 <body>
@@ -4454,7 +4466,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
               // 3) Einzelnoten-Modus:
               window.isMobile = true;
-              seriesLength = 1;
+              window.seriesLength = 1;
             }
             const settingsPanel = document.getElementById("settingsPanel");
             if (!settingsPanel) return;
@@ -4473,6 +4485,33 @@ document.addEventListener("DOMContentLoaded", () => {
             // Bei Maus- oder Touch-Interaktion den Timer zurücksetzen
             settingsPanel.addEventListener("mouseenter", resetFadeTimer);
             settingsPanel.addEventListener("touchstart", resetFadeTimer);
+
+            // Klick auf den Hintergrund im Mobilmodus: neue Note generieren und Korrekturanzeige öffnen
+            if (window.isMobile) {
+              document.body.addEventListener("click", (e) => {
+                const ignoreIds = [
+                  "mobileHandToggle", "handToggle",
+                  "toneButton", "lageButton",
+                  "settingsPanel", "buttonContainer",
+                  "timerContainer", "streakDisplay"
+                ];
+                if (e.target.id && ignoreIds.includes(e.target.id)) return;
+                // Neue Note erzeugen
+                generateSeries();
+                wizardMode = true;
+                seriesCounter = 0;
+                drawSeries();
+                // Korrekturanzeige anzeigen über bestehende UI
+                const correctRaw = currentSeriesSingle[seriesCounter].note;
+                const choices = ["C","Cis","D","Dis","E","Eis","F","Fis","G","Gis","A","Ais","H"];
+                // Setze expectedNote und availableNotes für vorhandene Korrekturbox
+                expectedNote = correctRaw.toUpperCase();
+                availableNotes = choices;
+                selectedNoteIndex = 0;
+                updateCorrectionDisplay();
+                document.getElementById("correctionBox").classList.remove("hidden");
+              });
+            }
         });
         
         function getAllTrophies() {
@@ -5054,6 +5093,12 @@ document.addEventListener("DOMContentLoaded", () => {
             e.preventDefault();
             item.classList.remove('drag-over');
             if (dragged && dragged !== item) {
+              // Zeige Korrekturanzeige wie im Standardmodus
+              const correctRaw = currentSeriesSingle[seriesCounter].note;
+              // Deutsche Auswahl-Liste wie in der Korrektur-UI
+              const choices = ["C","Cis","D","Dis","E","Eis","F","F'is","G","G'is","A","A'is","H"];
+              showCorrection(correctRaw.toUpperCase(), choices);
+
               // Reihenfolge in DOM anpassen
               const nodes = Array.from(emojiContainer.children);
               const from = nodes.indexOf(dragged);
@@ -5074,25 +5119,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const el = Array.from(emojiContainer.children)
                             .find(span => span.textContent === sym);
             if (el) emojiContainer.appendChild(el);
-          });
-        }
-        
-        // Klick irgendwo im Hintergrund auf Smartphone: neue Einzel-Note + Korrekturanzeige
-        if (window.isMobile) {
-          document.body.addEventListener("click", (e) => {
-            // IDs, bei denen kein neuer Note-Impuls ausgelöst werden soll:
-            const ignoreIds = ["mobileHandToggle", "handToggle", "toneButton", "lageButton"];
-            if (e.target.id && ignoreIds.includes(e.target.id)) return;
-
-            // (a) Neue Note generieren (→ wir landen wieder in generateSeries und malen exakt 1 Note)
-            generateSeries();
-
-            // (b) Korrekturmodus anschalten: Wizard-Mode aktivieren, wir
-            //     setzen seriesCounter auf 0, damit drawSeries() die erste (und einzige) Note anzeigt,
-            //     und rufen drawSeries() erneut auf, damit direkt die Noten-Auswahl kommt.
-            wizardMode = true;
-            seriesCounter = 0;
-            drawSeries();
           });
         }
     </script>
