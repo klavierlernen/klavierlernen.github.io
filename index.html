@@ -310,11 +310,11 @@
     /* ================================= */
     /* 3D-Stil für das Lagen-Rechteck    */
     /* ================================= */
-    #clefTitle {
+    #clefTitle, #lageButton, #toneButton {
         text-transform: uppercase;
         font-weight: bold;
-      background: #d0e8d0;
-      border: 2px solid #b7d3b7;
+      background: white;
+      border: 2px solid black;
       border-radius: 8px;
       box-shadow:
         0 6px 0 black,
@@ -3067,9 +3067,9 @@ document.getElementById("timerContainer").addEventListener("click", () => {
       }
       // Scoreboard-Toggle
 
-      // --- BEGIN: Pencil Mode / Custom Scale Mode Toggle Opacity Logic ---
-      // Suche nach dem Toggle für Pencil Mode (benutzerdefinierte Skala)
- 
+      // --- Quintenzirkel & Lagen: Definition der verfügbaren Lagen und Tonarten ---
+      // Verfügbare Lagen und Quintenzirkel-Tonarten
+     
 
       autoSelectMode();
       generateSeries();
@@ -3131,6 +3131,34 @@ function generateScaleSeries(isFinal = false) {
 }
 
 const generateSeries = () => {
+    // Wenn im Smartphone-Lernmodus: nur exakt 1 Note generieren und zeichnen
+    if (window.isMobile) {
+      // (a) Prüfe, ob wir im Einhand-/Treble-/Bass-Modus sind
+      const handClef = (selectedMode === "left") ? "bass" : "treble";
+
+      // (b) Wähle genau eine zufällige Note aus rangeNotes[currentRange]
+      const notes = rangeNotes[currentRange] || [];
+      const idx = Math.floor(Math.random() * notes.length);
+      const chosen = notes[idx];
+
+      // (c) Setze passende Oktave (Bass=3, Treble=4; F-Lage-C evtl. +1)
+      let octave = (handClef === "bass") ? 3 : 4;
+      if (currentRange === "F" && handClef === "treble" && chosen.toLowerCase() === "c") {
+        octave = 5;
+      }
+
+      // (d) Baue ein einzelnes Note-Objekt und zeichne es
+      currentSeriesSingle = [{
+        note: chosen,
+        octave: octave,
+        clef: handClef,
+        color: "black"
+      }];
+      drawSeries();
+
+      // (e) Verlasse die gesamte Serie-Funktion, damit nichts weiter passiert
+      return;
+    }
   if (selectedMode === "scale") {
     generateScaleSeries();
     return;
@@ -3392,8 +3420,11 @@ const drawSeries = () => {
     console.warn(`Ungültiger Clef '${clefToUse}', setze Fallback auf 'treble'`);
     clefToUse = 'treble';
   }
-  stave.addClef(clefToUse)
-       .addKeySignature(currentRange);
+    stave.addClef(clefToUse);
+    // Nur für echte Quintenzirkel-Tonarten ein Key Signature setzen
+    if (["A", "E", "B", "F#", "C#", "Ab", "Eb", "Bb"].includes(currentRange)) {
+      stave.addKeySignature(currentRange);
+    }
   stave.setContext(context).draw();
 
   const noteDuration = (window.customModeSettings && window.customModeSettings.noteValue === "8") ? "8" : "q";
@@ -3552,7 +3583,7 @@ const drawSeries = () => {
         if (notationDiv) {
           notationDiv.style.opacity = "0.5";
         }
-        pauseRemaining = 300; // 5 Minuten = 300 Sekunden
+        pauseRemaining = 10; // 10 Sekunden
         updateLocalTimer();
         pauseInterval = setInterval(() => {
           pauseRemaining--;
@@ -3705,7 +3736,15 @@ function scheduleReverseAnimation() {
           addCircle("negative");
         if (noteDisplay) {
           const correctRaw = currentSeriesSingle[seriesCounter].note;
-          const correctDisplay = (correctRaw === "b" ? "h" : correctRaw);
+          // Deutsche Darstellung: "#" → "is", "b" (H) → "H"
+          let correctDisplay;
+          if (correctRaw.endsWith("#")) {
+            correctDisplay = correctRaw.charAt(0).toUpperCase() + "is";
+          } else if (correctRaw === "b") {
+            correctDisplay = "H";
+          } else {
+            correctDisplay = correctRaw.toUpperCase();
+          }
           if (kidsMode) {
             const emojiMap = {
               "c": "🐱", "d": "🐳", "e": "🐷", "f": "🐟",
@@ -3721,14 +3760,33 @@ function scheduleReverseAnimation() {
             if (wizardMode) {
               // Dynamische Auswahl basierend auf Custom Mode Settings für die aktuelle Hand
               const correctRaw = currentSeriesSingle[seriesCounter].note;
-              const correctLetter = (correctRaw.toUpperCase() === "B" ? "H" : correctRaw.toUpperCase());
+              // Deutsche Darstellung für Wizard-Auswahl
+              let correctLetter;
+              if (correctRaw.endsWith("#")) {
+                correctLetter = correctRaw.charAt(0).toUpperCase() + "is";
+              } else if (correctRaw === "b") {
+                correctLetter = "H";
+              } else {
+                correctLetter = correctRaw.toUpperCase();
+              }
               // Determine available notes for current hand
               const handNotes = (selectedMode === "left"
                 ? window.customModeSettings?.leftNotes
                 : window.customModeSettings?.rightNotes) || [];
-              const defaultNotes = ["C","D","E","F","G","A","H","C"];
+              // Deutsche „is“-Schreibweise für Auswahlmöglichkeiten
+              const defaultNotes = ["C","Cis","D","Dis","E","Eis","F","Fis","G","Gis","A","Ais","H","C"];
               const choices = handNotes.length > 0
-                ? handNotes.map(n => n.toUpperCase().replace("B", "H"))
+                ? handNotes.map(n => {
+                    // Deutsche Darstellung für Auswahl: "#" → "is", "b" → "H"
+                    let upper = n.toLowerCase();
+                    if (upper.endsWith("#")) {
+                      return upper.charAt(0).toUpperCase() + "is";
+                    } else if (upper === "b") {
+                      return "H";
+                    } else {
+                      return upper.toUpperCase();
+                    }
+                  })
                 : defaultNotes;
               let html = `<span style="color:red;">${playedNoteDisplay}</span> <span style="color:black;">→</span> <span style="color:black; margin:0 5px;">?</span> <span style="color:black; margin:0 5px;"></span> `;
               choices.forEach(letter => {
@@ -4280,13 +4338,43 @@ document.addEventListener("DOMContentLoaded", () => {
           <button id="confirmNoteBtn">OK</button>
         </div>
         <div id="buttonContainer">
-            <div id="clefTitle" onclick="cycleRange()">C-Lage</div>
+            <div id="lageButton" onclick="cycleLage()">C-Lage</div>
+            <div id="toneButton" onclick="cycleTone()">A</div>
             <div id="heartsContainer" style="margin-left:10px;"></div>
         </div>
     </div>
     <!-- Einstellungen-Menü -->
     
     <script>
+        // Separate Arrays für alte Lagen und Quintenzirkel-Tonarten
+        const lageArray = ["C", "D", "F", "G", "MC"];
+        const toneArray = ["A", "E", "B", "F#", "C#", "Ab", "Eb", "Bb"];
+        let currentLageIndex = 0;
+        let currentToneIndex = 0;
+        // Initialisiere currentRange auf die erste Lage
+        currentRange = lageArray[currentLageIndex];
+
+        // Funktion zum Wechseln der alten Lagen
+        function cycleLage() {
+          currentLageIndex = (currentLageIndex + 1) % lageArray.length;
+          currentRange = lageArray[currentLageIndex];
+          document.getElementById("lageButton").textContent = currentRange + "-Lage";
+          document.getElementById("lageButton").style.opacity = "1";
+          document.getElementById("toneButton").style.opacity = "0.5";
+          generateSeries();
+        }
+        window.cycleLage = cycleLage;
+
+        // Funktion zum Wechseln der Quintenzirkel-Tonarten
+        function cycleTone() {
+          currentToneIndex = (currentToneIndex + 1) % toneArray.length;
+          currentRange = toneArray[currentToneIndex];
+          document.getElementById("toneButton").textContent = currentRange;
+          document.getElementById("toneButton").style.opacity = "1";
+          document.getElementById("lageButton").style.opacity = "0.5";
+          generateSeries();
+        }
+        window.cycleTone = cycleTone;
         /* Falls im Pause-Modus: Aktualisiere Fortschrittsbalken und verbleibende Zeit (mm:ss) */
         function updatePauseProgress() {
             const progressBar = document.getElementById("pauseProgress");
@@ -4331,6 +4419,43 @@ document.addEventListener("DOMContentLoaded", () => {
     
     <script>
         document.addEventListener("DOMContentLoaded", () => {
+            // --- Smartphone-Lernmodus: UI anpassen, Hand-Toggle duplizieren ---
+            const isMobile = window.innerWidth <= 768;
+            if (isMobile) {
+              // 1) Elemente ausblenden
+              const settingsPanel = document.getElementById("settingsPanel");
+              if (settingsPanel) settingsPanel.style.display = "none";
+              const timerContainer = document.getElementById("timerContainer");
+              if (timerContainer) timerContainer.style.display = "none";
+              const streakDisplay = document.getElementById("streakDisplay");
+              if (streakDisplay) streakDisplay.style.display = "none";
+              const btnContainer = document.getElementById("buttonContainer");
+              if (btnContainer) btnContainer.style.display = "none";
+
+              // 2) Hand-Anzeige unten mittig klonen
+              const handToggle = document.getElementById("handToggle");
+              if (handToggle) {
+                const mobileHand = handToggle.cloneNode(true);
+                mobileHand.id = "mobileHandToggle";
+                Object.assign(mobileHand.style, {
+                  position: "fixed",
+                  bottom: "20px",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  fontSize: "2em",
+                  cursor: "pointer",
+                  zIndex: 1000
+                });
+                document.body.appendChild(mobileHand);
+                mobileHand.addEventListener("click", () => {
+                  handToggle.click();
+                });
+              }
+
+              // 3) Einzelnoten-Modus:
+              window.isMobile = true;
+              seriesLength = 1;
+            }
             const settingsPanel = document.getElementById("settingsPanel");
             if (!settingsPanel) return;
             let fadeTimeout;
@@ -4951,13 +5076,27 @@ document.addEventListener("DOMContentLoaded", () => {
             if (el) emojiContainer.appendChild(el);
           });
         }
+        
+        // Klick irgendwo im Hintergrund auf Smartphone: neue Einzel-Note + Korrekturanzeige
+        if (window.isMobile) {
+          document.body.addEventListener("click", (e) => {
+            // IDs, bei denen kein neuer Note-Impuls ausgelöst werden soll:
+            const ignoreIds = ["mobileHandToggle", "handToggle", "toneButton", "lageButton"];
+            if (e.target.id && ignoreIds.includes(e.target.id)) return;
+
+            // (a) Neue Note generieren (→ wir landen wieder in generateSeries und malen exakt 1 Note)
+            generateSeries();
+
+            // (b) Korrekturmodus anschalten: Wizard-Mode aktivieren, wir
+            //     setzen seriesCounter auf 0, damit drawSeries() die erste (und einzige) Note anzeigt,
+            //     und rufen drawSeries() erneut auf, damit direkt die Noten-Auswahl kommt.
+            wizardMode = true;
+            seriesCounter = 0;
+            drawSeries();
+          });
+        }
     </script>
-    </script>
-    
 </body>
-</script>
-</head>
-<body>
 </html>
 
         
