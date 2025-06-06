@@ -2281,6 +2281,122 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
           generateSeries();
         }
       });
+      
+      // Zeichne den Crayon-Button für Scale-Modus
+      const customModeToggle = document.createElement("span");
+      customModeToggle.id = "customModeToggle";
+      customModeToggle.textContent = "🖍️";
+      customModeToggle.style.cursor = "pointer";
+      customModeToggle.style.marginTop = "10px";
+      settingsPanel.appendChild(customModeToggle);
+      // Buttons für Reset und Speichern im Scale-Modus
+      const resetScaleBtn = document.createElement("span");
+      resetScaleBtn.id = "resetScaleBtn";
+      resetScaleBtn.textContent = "🔁";
+      resetScaleBtn.style.cursor = "pointer";
+      resetScaleBtn.style.display = "none";
+      settingsPanel.appendChild(resetScaleBtn);
+      resetScaleBtn.addEventListener("click", () => {
+        // Reset selection mode and clear stored notes for this octave
+        scaleSelectionMode = true;
+        if (window.selectedNotesByOctave) {
+          window.selectedNotesByOctave[selectedOctave] = [];
+        }
+        selectedNotes = [];
+        // Entferne visuelle Selektion in der SVG
+        document.querySelectorAll("svg g.vf-stavenote.selected").forEach(svgNote => {
+          svgNote.classList.remove("selected");
+          // Reset color to black
+          svgNote.querySelectorAll('path, circle, ellipse').forEach(shape => {
+            shape.setAttribute('fill', 'black');
+            shape.setAttribute('stroke', 'black');
+          });
+        });
+        // Skala neu anzeigen
+        generateScaleSeries(false);
+      });
+      
+      
+      const saveScaleBtn = document.createElement("span");
+      saveScaleBtn.id = "saveScaleBtn";
+      saveScaleBtn.textContent = "✅";
+      saveScaleBtn.style.cursor = "pointer";
+      saveScaleBtn.style.display = "none";
+      settingsPanel.appendChild(saveScaleBtn);
+      saveScaleBtn.addEventListener("click", () => {
+        // Wechsle in Final-Phase und starte unendliche Serie
+        scaleSelectionMode = false;
+        resetScaleBtn.style.display = "none";
+        saveScaleBtn.style.display = "none";
+        // Merge all per-octave selections into global selectedNotes
+        if (window.selectedNotesByOctave) {
+          selectedNotes = [].concat(...Object.values(window.selectedNotesByOctave));
+        }
+        // Hide octave selector on save
+        const sel = document.getElementById("scaleSelector");
+        if (sel) sel.style.display = "none";
+        generateScaleSeries(true);
+      });
+
+      // Oktavenauswahl-Container
+      const scaleSelector = document.createElement("div");
+      scaleSelector.id = "scaleSelector";
+      scaleSelector.style.display = "none";
+      scaleSelector.style.gap = "8px";
+      settingsPanel.appendChild(scaleSelector);
+
+      // Buttons für jede Oktave
+      Object.keys(octaveOptions).forEach(label => {
+        const btn = document.createElement("button");
+        btn.textContent = label;
+        btn.style.cursor = "pointer";
+        btn.addEventListener("click", () => {
+          // Setze Octave und passenden Clef: tiefe Oktaven links (Bass), hohe Oktaven rechts (Treble)
+          selectedOctave = label;
+          if (label === 'große Oktave' || label === 'kleine Oktave') {
+            selectedClef = 'bass';
+          } else {
+            selectedClef = 'treble';
+          }
+          // Anzeige und Rendern aktualisieren
+          const sel = document.getElementById("scaleSelector");
+          if (sel) sel.style.display = "flex";
+          generateScaleSeries(false);
+        });
+        scaleSelector.appendChild(btn);
+      });
+
+      customModeToggle.addEventListener("click", () => {
+        // Toggle zwischen Auswahl- und Final-Phase im Scale-Modus
+        if (!scaleSelectionMode) {
+          // Auswahlphase starten
+          selectedMode = "scale";
+          scaleSelectionMode = true;
+          sessionPaused = false;
+          seriesCounter = 0;
+          correctNoteCount = 0;
+          // Timer anzeigen und aktualisieren
+          document.getElementById("timerContainer").style.display = "flex";
+          updateTimer();
+          // Module ausblenden, Settings sichtbar
+          const modeCarousel = document.getElementById("modeCarousel");
+          if (modeCarousel) modeCarousel.style.display = "none";
+          document.getElementById("settingsPanel").style.display = "flex";
+          // Tonleiter zur Auswahl anzeigen
+          generateScaleSeries(false);
+          resetScaleBtn.style.display = "inline";
+          saveScaleBtn.style.display = "inline";
+          scaleSelector.style.display = "flex";
+        } else {
+          // Finalphase: fortlaufende Serie generieren
+          scaleSelector.style.display = "none";
+          scaleSelectionMode = false;
+          generateScaleSeries(true);
+          resetScaleBtn.style.display = "none";
+          saveScaleBtn.style.display = "none";
+        }
+      });
+      
       // Randomtoggle
       const randomToggle = document.createElement("span");
       randomToggle.id = "randomToggle";
@@ -2631,120 +2747,7 @@ metronomeToggle.addEventListener("click", () => {
       });
       
       
-      // Zeichne den Crayon-Button für Scale-Modus
-      const customModeToggle = document.createElement("span");
-      customModeToggle.id = "customModeToggle";
-      customModeToggle.textContent = "🖍️";
-      customModeToggle.style.cursor = "pointer";
-      customModeToggle.style.marginTop = "10px";
-      settingsPanel.appendChild(customModeToggle);
-      // Buttons für Reset und Speichern im Scale-Modus
-      const resetScaleBtn = document.createElement("span");
-      resetScaleBtn.id = "resetScaleBtn";
-      resetScaleBtn.textContent = "🔁";
-      resetScaleBtn.style.cursor = "pointer";
-      resetScaleBtn.style.display = "none";
-      settingsPanel.appendChild(resetScaleBtn);
-      resetScaleBtn.addEventListener("click", () => {
-        // Reset selection mode and clear stored notes for this octave
-        scaleSelectionMode = true;
-        if (window.selectedNotesByOctave) {
-          window.selectedNotesByOctave[selectedOctave] = [];
-        }
-        selectedNotes = [];
-        // Entferne visuelle Selektion in der SVG
-        document.querySelectorAll("svg g.vf-stavenote.selected").forEach(svgNote => {
-          svgNote.classList.remove("selected");
-          // Reset color to black
-          svgNote.querySelectorAll('path, circle, ellipse').forEach(shape => {
-            shape.setAttribute('fill', 'black');
-            shape.setAttribute('stroke', 'black');
-          });
-        });
-        // Skala neu anzeigen
-        generateScaleSeries(false);
-      });
       
-      
-      const saveScaleBtn = document.createElement("span");
-      saveScaleBtn.id = "saveScaleBtn";
-      saveScaleBtn.textContent = "✅";
-      saveScaleBtn.style.cursor = "pointer";
-      saveScaleBtn.style.display = "none";
-      settingsPanel.appendChild(saveScaleBtn);
-      saveScaleBtn.addEventListener("click", () => {
-        // Wechsle in Final-Phase und starte unendliche Serie
-        scaleSelectionMode = false;
-        resetScaleBtn.style.display = "none";
-        saveScaleBtn.style.display = "none";
-        // Merge all per-octave selections into global selectedNotes
-        if (window.selectedNotesByOctave) {
-          selectedNotes = [].concat(...Object.values(window.selectedNotesByOctave));
-        }
-        // Hide octave selector on save
-        const sel = document.getElementById("scaleSelector");
-        if (sel) sel.style.display = "none";
-        generateScaleSeries(true);
-      });
-
-      // Oktavenauswahl-Container
-      const scaleSelector = document.createElement("div");
-      scaleSelector.id = "scaleSelector";
-      scaleSelector.style.display = "none";
-      scaleSelector.style.gap = "8px";
-      settingsPanel.appendChild(scaleSelector);
-
-      // Buttons für jede Oktave
-      Object.keys(octaveOptions).forEach(label => {
-        const btn = document.createElement("button");
-        btn.textContent = label;
-        btn.style.cursor = "pointer";
-        btn.addEventListener("click", () => {
-          // Setze Octave und passenden Clef: tiefe Oktaven links (Bass), hohe Oktaven rechts (Treble)
-          selectedOctave = label;
-          if (label === 'große Oktave' || label === 'kleine Oktave') {
-            selectedClef = 'bass';
-          } else {
-            selectedClef = 'treble';
-          }
-          // Anzeige und Rendern aktualisieren
-          const sel = document.getElementById("scaleSelector");
-          if (sel) sel.style.display = "flex";
-          generateScaleSeries(false);
-        });
-        scaleSelector.appendChild(btn);
-      });
-
-      customModeToggle.addEventListener("click", () => {
-        // Toggle zwischen Auswahl- und Final-Phase im Scale-Modus
-        if (!scaleSelectionMode) {
-          // Auswahlphase starten
-          selectedMode = "scale";
-          scaleSelectionMode = true;
-          sessionPaused = false;
-          seriesCounter = 0;
-          correctNoteCount = 0;
-          // Timer anzeigen und aktualisieren
-          document.getElementById("timerContainer").style.display = "flex";
-          updateTimer();
-          // Module ausblenden, Settings sichtbar
-          const modeCarousel = document.getElementById("modeCarousel");
-          if (modeCarousel) modeCarousel.style.display = "none";
-          document.getElementById("settingsPanel").style.display = "flex";
-          // Tonleiter zur Auswahl anzeigen
-          generateScaleSeries(false);
-          resetScaleBtn.style.display = "inline";
-          saveScaleBtn.style.display = "inline";
-          scaleSelector.style.display = "flex";
-        } else {
-          // Finalphase: fortlaufende Serie generieren
-          scaleSelector.style.display = "none";
-          scaleSelectionMode = false;
-          generateScaleSeries(true);
-          resetScaleBtn.style.display = "none";
-          saveScaleBtn.style.display = "none";
-        }
-      });
       
       
 
