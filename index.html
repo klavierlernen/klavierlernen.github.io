@@ -840,6 +840,40 @@
       .settings-emoji.drag-over {
         border: 2px dashed #333;
       }
+      
+      /* ----------------------------------------
+         Grid für alle Notennamen unter der Notation
+         ---------------------------------------- */
+      #noteChoiceGrid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        max-width: 300px;
+        margin: 20px auto;       /* Zentriert unter dem Notensystem */
+        text-align: center;
+      }
+      #noteChoiceGrid.hidden {
+        display: none !important;
+      }
+      #noteChoiceGrid button {
+        padding: 10px;
+        font-size: 1.2em;
+        border: 1px solid #000;
+        border-radius: 4px;
+        background-color: #fff;
+        cursor: pointer;
+      }
+      /* Zustände nach Klick (richtig/falsch) */
+      #noteChoiceGrid button.correct {
+        background-color: #c8e6c9;  /* Hellgrün */
+        border-color: #388e3c;
+        color: #388e3c;
+      }
+      #noteChoiceGrid button.wrong {
+        background-color: #ffcdd2;  /* Hellrot */
+        border-color: #d32f2f;
+        color: #d32f2f;
+      }
   </style>
   <script>
       
@@ -920,6 +954,47 @@ let wizardMode = true;
       
 // === Touch‐based positioning for the notation crosshair ===
 document.addEventListener('DOMContentLoaded', () => {
+    // Funktion, die unter dem Notensystem ein 4×4-Grid aller Notennamen anzeigt
+    function showNoteChoiceGrid() {
+      const grid = document.getElementById("noteChoiceGrid");
+      const choices = ["C","Cis","D","Dis","E","Eis","F","Fis","G","Gis","A","Ais","H"];
+      // Leere eventuell vorhandene Buttons
+      grid.innerHTML = "";
+
+      // Hol die gerade gezeichnete Note (im Mobilmodus ist das immer nur eine Einzel-Note)
+      const correctRaw = currentSeriesSingle[0].note;
+      // Wandle sie um in deutsche Notenschreibweise (z.B. "c#" → "Cis", "b" → "H")
+      let expected = correctRaw.endsWith("#")
+        ? correctRaw.charAt(0).toUpperCase() + "is"
+        : (correctRaw === "b" ? "H" : correctRaw.toUpperCase());
+
+      // Erstelle pro Eintrag in choices einen Button
+      choices.forEach(name => {
+        const btn = document.createElement("button");
+        btn.textContent = name;
+        btn.addEventListener("click", () => {
+          if (name === expected) {
+            btn.classList.add("correct");
+          } else {
+            btn.classList.add("wrong");
+            // Markiere zusätzlich den korrekten Button (falls er noch sichtbar ist)
+            const correctBtn = Array.from(grid.children)
+              .find(el => el.textContent === expected);
+            if (correctBtn) correctBtn.classList.add("correct");
+          }
+          // Nach 1 Sekunde: Grid wieder ausblenden, neue Note generieren und erneut anzeigen
+          setTimeout(() => {
+            grid.classList.add("hidden");
+            generateSeries();       // neue Einzel-Note im Mobilmodus
+            showNoteChoiceGrid();   // und wieder das Grid anzeigen
+          }, 1000);
+        });
+        grid.appendChild(btn);
+      });
+
+      // Grid sichtbar machen
+      grid.classList.remove("hidden");
+    }
   const notation = document.getElementById('notation');
   if (!notation) return;
 
@@ -1344,20 +1419,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentRangeIndex = 0;
     let currentRange = rangeArray[currentRangeIndex];
     
-    // Zuordnung von Tonart (Quintenzirkel) zu den diatonischen Noten dieser Tonart
+    // Zuordnung von Tonart (Quintenzirkel) zu den ersten fünf diatonischen Noten dieser Tonart
     const rangeNotes = {
-      "C":  ["c",  "d",  "e",  "f",  "g",  "a",  "b"],
-      "G":  ["g",  "a",  "b",  "c",  "d",  "e",  "f#"],
-      "D":  ["d",  "e",  "f#", "g",  "a",  "b",  "c#"],
-      "A":  ["a",  "b",  "c#", "d",  "e",  "f#", "g#"],
-      "E":  ["e",  "f#", "g#", "a",  "b",  "c#", "d#"],
-      "B":  ["b",  "c#", "d#", "e",  "f#", "g#", "a#"],
-      "F#": ["f#", "g#", "a#", "b",  "c#", "d#", "e#"],
-      "C#": ["c#", "d#", "e#", "f#", "g#", "a#", "b#"],
-      "Ab": ["ab", "bb", "c",  "db", "eb", "f",  "g"],
-      "Eb": ["eb", "f",  "g",  "ab", "bb", "c",  "d"],
-      "Bb": ["bb", "c",  "d",  "eb", "f",  "g",  "a"],
-      "F":  ["f",  "g",  "a",  "bb", "c",  "d",  "e"]
+      "C":  ["c",  "d",  "e",  "f",  "g"],
+      "G":  ["g",  "a",  "b",  "c",  "d"],
+      "D":  ["d",  "e",  "f#", "g",  "a"],
+      "A":  ["a",  "b",  "c#", "d",  "e"],
+      "E":  ["e",  "f#", "g#", "a",  "b"],
+      "B":  ["b",  "c#", "d#", "e",  "f#"],
+      "F#": ["f#", "g#", "a#", "b",  "c#"],
+      "C#": ["c#", "d#", "e#", "f#", "g#"],
+      "Ab": ["ab", "bb", "c",  "db", "eb"],
+      "Eb": ["eb", "f",  "g",  "ab", "bb"],
+      "Bb": ["bb", "c",  "d",  "eb", "f"],
+      "F":  ["f",  "g",  "a",  "bb", "c"]
     };
     
     let currentSeriesSingle = [];
@@ -4340,6 +4415,7 @@ document.addEventListener("DOMContentLoaded", () => {
     <div id="mainContent">
        
         <div id="notation"></div>
+        <div id="noteChoiceGrid" class="hidden"></div>
         <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase; z-index: 1000; pointer-events: auto;"></div>
         <div id="correctionBox" class="hidden">
           <div id="correctionChoices">
