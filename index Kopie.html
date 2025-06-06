@@ -281,7 +281,6 @@
       position: fixed;
       top: 150%;
       right: 20px;
-      transform: translateY(-15%);
       display: none; /* wird später per JS auf 'flex' gesetzt */
       flex-direction: column;
       align-items: center;
@@ -297,7 +296,7 @@
         0 6px 0 black,                 /* „fester“ Schatten für die 3D-Kante */
         0 6px 6px rgba(0, 0, 0, 0.2);    /* Weicher Schlagschatten */
       padding: 15px 24px;                /* Innenabstand */
-      margin: 0;                         /* Außenabstand */
+      margin: 8px;                       /* Außenabstand */
       font-size: 1.2em;                  /* Schriftgröße */
       text-align: center;
       color: black;
@@ -630,25 +629,23 @@
       font-weight: bold;
     }
     /* Carousel container and track */
-    /* Carousel container und Track nun vertikal gestapelt */
     #carouselContainer {
       position: relative;
-      width: 100%;
-      overflow-y: auto;      /* vertikales Scrollen erlauben */
+      width: 40px;
+      height: 40px;
+      overflow: hidden;
       margin: 0 auto;
-      display: flex;
-      flex-direction: column; /* Items untereinander anordnen */
     }
-
     #carouselTrack {
-      display: block;
-      width: 100%;
+      display: flex;
+      height: 100%;
+      transition: transform 0.3s ease;
     }
-
     .carouselItem {
-      width: 100%;
-      display: block;
-      margin-bottom: 8px;     /* Abstand zwischen den Items */
+      flex: 0 0 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
       
       @keyframes flyOutRight {
@@ -820,7 +817,7 @@
       
       /* 1) Settings-Panel beim Long-Press aufklappen */
       #settingsPanel.expanded {
-        top: 160%      !important;
+        top: 0      !important;
         bottom: 0   !important;
         height: auto!important;
         display: flex!important;
@@ -2443,7 +2440,18 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
         showHomework();
       }
 
-      
+      // 🧙🏼 Wizard-Modus Toggle im Karussell
+      const wizardToggle = document.createElement("span");
+      wizardToggle.id = "wizardToggle";
+      wizardToggle.textContent = "🧙🏼";
+      wizardToggle.style.cursor = "pointer";
+      wizardToggle.style.opacity = "1";
+      settingsPanel.appendChild(wizardToggle);
+      let wizardMode = true;
+      wizardToggle.addEventListener("click", () => {
+        wizardMode = !wizardMode;
+        wizardToggle.style.opacity = wizardMode ? "1" : "0.5";
+      });
       
       const blobToggle = document.createElement("span");
       blobToggle.id = "blobToggle";
@@ -2964,7 +2972,12 @@ document.getElementById("timerContainer").addEventListener("click", () => {
   }
 });
       
-      
+      // DarkMode-Toggle
+      const darkModeToggle = document.createElement("span");
+      darkModeToggle.id = "darkModeToggle";
+      darkModeToggle.textContent = "🌙";
+      settingsPanel.appendChild(darkModeToggle);
+      darkModeToggle.addEventListener("click", toggleDarkMode);
 
       // Animated carousel using a sliding track
       const carouselContainer = document.createElement('div');
@@ -3832,15 +3845,23 @@ function scheduleReverseAnimation() {
   
   function checkOrientation() {
     const settingsPanel = document.getElementById("settingsPanel");
-    if (!settingsPanel) return;
-    // Immer rechtsbündig und vertikal mittig platzieren
-    settingsPanel.style.top = "50%";
-    settingsPanel.style.right = "20px";
-    settingsPanel.style.left = "";
-    settingsPanel.style.transform = "translateY(-50%)";
-    // Icons untereinander anordnen
-    settingsPanel.style.flexDirection = "column";
-  }
+    if (!settingsPanel) return; // Falls das Element nicht existiert, beende die Funktion
+    if (window.innerWidth > window.innerHeight) {
+         // Querformat (Landscape): Menü rechts, horizontal ausgerichtet
+         settingsPanel.style.top = "29%";
+         settingsPanel.style.right = "20px";
+         settingsPanel.style.left = "";
+         settingsPanel.style.transform = "";
+         settingsPanel.style.flexDirection = "row";
+    } else {
+         // Hochformat (Portrait): Menü oben mittig, vertikal ausgerichtet
+         settingsPanel.style.top = "10px";
+         settingsPanel.style.left = "50%";
+         settingsPanel.style.right = "";
+         settingsPanel.style.transform = "translateX(-50%)";
+         settingsPanel.style.flexDirection = "column";
+    }
+}
   window.addEventListener("resize", checkOrientation);
   checkOrientation();
   
