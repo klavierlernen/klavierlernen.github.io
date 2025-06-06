@@ -1919,9 +1919,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       generateSeries();
       updateHeartsDisplay();
     };
-    const toggleDarkMode = () => {
-      document.body.classList.toggle("dark-mode");
-    };
+    
     // Passive Listener für Touch-Events in setupFadeOnHover
     const setupFadeOnHover = (element) => {
       element.addEventListener("mouseenter", () => element.classList.remove("faded"));
@@ -3003,7 +3001,7 @@ document.getElementById("timerContainer").addEventListener("click", () => {
       // Füge den Tonleiter-Modus-Button direkt nach dem Karussell ein
 
 
-      const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, darkModeToggle, moveNotationToggle, wizardToggle];
+      const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, moveNotationToggle];
       carouselButtons.forEach(btn => {
         const item = document.createElement('div');
         item.className = 'carouselItem';
