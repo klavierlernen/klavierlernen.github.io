@@ -3297,13 +3297,13 @@ const generateSeries = () => {
   }
 
   let seriesClef, chooseNote;
-  // Prüfe, ob benutzerdefinierte Einstellungen aktiv sind
-  if (window.customModeSettings && window.customModeSettings.clef && window.customModeSettings.range) {
-    // Verwende die benutzerdefinierten Einstellungen
-    seriesClef = window.customModeSettings.clef; // z.B. 'treble' oder 'bass'
-    currentRange = window.customModeSettings.range; // Aktualisiere die globale Lage
-    // Wähle die Noten basierend auf der ausgewählten Hand (left/right)
-    let customNotes = (selectedMode === "left") ? window.customModeSettings.leftNotes : window.customModeSettings.rightNotes;
+    // Prüfe, ob benutzerdefinierte Einstellungen aktiv sind
+    if (window.customModeSettings && window.customModeSettings.clef && window.customModeSettings.range) {
+      // Verwende die benutzerdefinierten Einstellungen
+      seriesClef = window.customModeSettings.clef; // z.B. 'treble' oder 'bass'
+      currentRange = window.customModeSettings.range; // Aktualisiere die globale Lage
+      // Wähle die Noten basierend auf der ausgewählten Hand (left/right)
+      let customNotes = (selectedMode === "left") ? window.customModeSettings.leftNotes : window.customModeSettings.rightNotes;
     // Fallback, falls keine Noten ausgewählt wurden
     if (!customNotes || customNotes.length === 0) {
       if (currentRange === "MC") {
