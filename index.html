@@ -157,14 +157,7 @@
       border-radius: 20px;
       transition: width 1s linear;
     }
-    /* Verbleibende Zeit im Format mm:ss */
-    #pauseTime {
-      font-size: 14px;
-      color: #000;
-      white-space: nowrap;
-      margin-left: 10px;
-      font-weight: bold;
-    }
+    
     /* Kachelwand im Pausenmodus – Füllt den restlichen Raum wie eine Tapete */
     #pauseTiles {
       flex-grow: 1;
@@ -1950,8 +1943,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
             <div id="pauseHeader">SESSION PAUSIERT</div>
             <div id="pauseProgressContainer">
               <div id="pauseProgress"></div>
-              <div id="pauseTime" style="position:absolute; left:0; top:0; font-size:14px; color:#000; padding:0 5px;"></div>
-            </div>
+              
           </div>
           <div id="pauseTiles"></div>
         `;
@@ -4499,16 +4491,12 @@ document.addEventListener("DOMContentLoaded", () => {
         window.cycleTone = cycleTone;
         /* Falls im Pause-Modus: Aktualisiere Fortschrittsbalken und verbleibende Zeit (mm:ss) */
         function updatePauseProgress() {
-            const progressBar = document.getElementById("pauseProgress");
-            const timeDisplay = document.getElementById("pauseTime");
-            if (progressBar && pauseDuration > 0) {
-                const percent = ((pauseDuration - pauseRemaining) / pauseDuration) * 100;
-                progressBar.style.width = percent + "%";
-                if (timeDisplay) {
-                    const m = Math.floor(pauseRemaining / 60);
-                    const s = pauseRemaining % 60;
-                    timeDisplay.textContent = (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
-                }
+          const progress = document.getElementById("pauseProgress");
+          if (!progress) return;
+          const percent = Math.max(0, Math.min(1, 1 - pauseRemaining / pauseDuration));
+          progress.style.width = `${percent * 100}%`;
+          progress.textContent = `${sessionCounter} Noten`;
+        }
             }
         }
         
@@ -5326,6 +5314,15 @@ document.addEventListener("DOMContentLoaded", () => {
         
         document.addEventListener("DOMContentLoaded", () => {
           drawLageProgress(currentRange, lageProgress[currentRange] || 0);
+        });
+        
+        document.getElementById("pauseProgressContainer").addEventListener("click", () => {
+          const newVal = parseInt(customPrompt("Wie viele Noten willst du noch üben?"), 10);
+          if (!isNaN(newVal) && newVal > 0) {
+            sessionCounter = newVal;
+            updateTimer();
+            updatePauseProgress();
+          }
         });
     </script>
 </body>
