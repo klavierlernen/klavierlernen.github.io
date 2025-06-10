@@ -874,6 +874,30 @@
         border-color: #d32f2f;
         color: #d32f2f;
       }
+      
+      #lageProgressCircle {
+        width: 60px;
+        height: 60px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 5px;
+      }
+      .lage-progress-svg {
+        position: absolute;
+        top: 0; left: 0;
+      }
+      .lage-progress-text {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #333;
+        pointer-events: none;
+        user-select: none;
+      }
   </style>
   <script>
       
@@ -4427,6 +4451,8 @@ document.addEventListener("DOMContentLoaded", () => {
           <button id="confirmNoteBtn">OK</button>
         </div>
         <div id="buttonContainer">
+              <div id="lageProgressCircle"></div>
+            
             <div id="lageButton" onclick="cycleLage()">C-Lage</div>
             <div id="toneButton" onclick="cycleTone()">A</div>
             <div id="heartsContainer" style="margin-left:10px;"></div>
@@ -5198,6 +5224,102 @@ document.addEventListener("DOMContentLoaded", () => {
             if (el) emojiContainer.appendChild(el);
           });
         }
+        
+        const lageColors = {
+          "C": "#007AFF",  // blau
+          "G": "#34C759",  // grün
+          "D": "#FF9500",  // orange
+          "A": "#FF2D55",  // pink/rot
+          "E": "#AF52DE",  // violett
+          "B": "#FFD60A",  // gelb
+          "F#": "#FF375F",
+          "C#": "#5AC8FA",
+          "Ab": "#4CD964",
+          "Eb": "#5856D6",
+          "Bb": "#FFCC00",
+          "F": "#FF3B30"
+        };
+        
+        let lageProgress = JSON.parse(localStorage.getItem("lageProgress") || "{}");
+        // Initialisieren, falls noch nicht vorhanden
+        rangeArray.forEach(lage => {
+          if (!lageProgress[lage]) lageProgress[lage] = 0;
+        });
+        
+        function drawLageProgress(lage, value) {
+          const color = lageColors[lage] || "#007AFF";
+          const circle = document.getElementById("lageProgressCircle");
+          circle.innerHTML = ""; // clear previous
+
+          // SVG Kreis
+          const size = 60;
+          const stroke = 7;
+          const radius = (size/2) - (stroke/2);
+          const circumference = 2 * Math.PI * radius;
+          const progress = Math.max(0, Math.min(100, value)); // clamp
+          const offset = circumference * (1 - progress/100);
+
+          const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          svg.setAttribute("width", size);
+          svg.setAttribute("height", size);
+          svg.classList.add("lage-progress-svg");
+
+          // Hintergrund-Kreis
+          const bgCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          bgCircle.setAttribute("cx", size/2);
+          bgCircle.setAttribute("cy", size/2);
+          bgCircle.setAttribute("r", radius);
+          bgCircle.setAttribute("stroke", "#eee");
+          bgCircle.setAttribute("stroke-width", stroke);
+          bgCircle.setAttribute("fill", "none");
+
+          // Progress-Kreis
+          const fgCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          fgCircle.setAttribute("cx", size/2);
+          fgCircle.setAttribute("cy", size/2);
+          fgCircle.setAttribute("r", radius);
+          fgCircle.setAttribute("stroke", color);
+          fgCircle.setAttribute("stroke-width", stroke);
+          fgCircle.setAttribute("fill", "none");
+          fgCircle.setAttribute("stroke-linecap", "round");
+          fgCircle.setAttribute("stroke-dasharray", circumference);
+          fgCircle.setAttribute("stroke-dashoffset", offset);
+          fgCircle.setAttribute("transform", `rotate(-90 ${size/2} ${size/2})`);
+
+          svg.appendChild(bgCircle);
+          svg.appendChild(fgCircle);
+
+          circle.appendChild(svg);
+
+          // Prozentzahl in die Mitte
+          const txt = document.createElement("div");
+          txt.className = "lage-progress-text";
+          txt.textContent = progress + "%";
+          circle.appendChild(txt);
+        }
+        
+        function updateLageProgress(correct) {
+          // aktuelle Lage aus globalem State:
+          const lage = currentRange;
+          let val = lageProgress[lage] || 0;
+          if (correct) {
+            val += 4; // z.B. 4% für richtige Note
+          } else {
+            val -= 8; // z.B. 8% Abzug für Fehler
+          }
+          val = Math.max(0, Math.min(100, val));
+          lageProgress[lage] = val;
+          localStorage.setItem("lageProgress", JSON.stringify(lageProgress));
+          drawLageProgress(lage, val);
+        }
+        
+        function onLageChanged(newLage) {
+          drawLageProgress(newLage, lageProgress[newLage] || 0);
+        }
+        
+        document.addEventListener("DOMContentLoaded", () => {
+          drawLageProgress(currentRange, lageProgress[currentRange] || 0);
+        });
     </script>
 </body>
 </html>
