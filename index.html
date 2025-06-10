@@ -157,7 +157,14 @@
       border-radius: 20px;
       transition: width 1s linear;
     }
-    
+    /* Verbleibende Zeit im Format mm:ss */
+    #pauseTime {
+      font-size: 14px;
+      color: #000;
+      white-space: nowrap;
+      margin-left: 10px;
+      font-weight: bold;
+    }
     /* Kachelwand im Pausenmodus – Füllt den restlichen Raum wie eine Tapete */
     #pauseTiles {
       flex-grow: 1;
@@ -431,7 +438,7 @@
     }
     #welcomeMessage {
       font-size: 2.5em;
-      color: black;
+      color: white;
       margin-bottom: 20px;
       font-weight: bold;
     }
@@ -1943,7 +1950,8 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
             <div id="pauseHeader">SESSION PAUSIERT</div>
             <div id="pauseProgressContainer">
               <div id="pauseProgress"></div>
-              
+              <div id="pauseTime" style="position:absolute; left:0; top:0; font-size:14px; color:#000; padding:0 5px;"></div>
+            </div>
           </div>
           <div id="pauseTiles"></div>
         `;
@@ -4338,19 +4346,6 @@ document.addEventListener("DOMContentLoaded", () => {
     font-size: 0.9em;
     line-height: 1;
   }
-  /* Fortschrittsbalken im Pause-Overlay: Pastellfarbe */
-  #pauseProgress {
-    height: 100%;
-    width: 0%;
-    background: #a0c4ff; /* sanftes Pastellblau */
-    border-radius: 20px;
-    transition: width 1s linear;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: bold;
-    color: black;
-  }
 @keyframes flyOutRight {
   from { opacity: 1; transform: translateX(0); }
   to   { opacity: 0; transform: translateX(100%); }
@@ -4504,12 +4499,16 @@ document.addEventListener("DOMContentLoaded", () => {
         window.cycleTone = cycleTone;
         /* Falls im Pause-Modus: Aktualisiere Fortschrittsbalken und verbleibende Zeit (mm:ss) */
         function updatePauseProgress() {
-          const progress = document.getElementById("pauseProgress");
-          if (!progress) return;
-          const percent = Math.max(0, Math.min(1, 1 - pauseRemaining / pauseDuration));
-          progress.style.width = `${percent * 100}%`;
-          progress.textContent = `${sessionCounter} Noten`;
-        }
+            const progressBar = document.getElementById("pauseProgress");
+            const timeDisplay = document.getElementById("pauseTime");
+            if (progressBar && pauseDuration > 0) {
+                const percent = ((pauseDuration - pauseRemaining) / pauseDuration) * 100;
+                progressBar.style.width = percent + "%";
+                if (timeDisplay) {
+                    const m = Math.floor(pauseRemaining / 60);
+                    const s = pauseRemaining % 60;
+                    timeDisplay.textContent = (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+                }
             }
         }
         
@@ -5328,7 +5327,6 @@ document.addEventListener("DOMContentLoaded", () => {
         document.addEventListener("DOMContentLoaded", () => {
           drawLageProgress(currentRange, lageProgress[currentRange] || 0);
         });
-        
     </script>
 </body>
 </html>
