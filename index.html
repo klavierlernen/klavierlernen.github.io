@@ -3826,6 +3826,7 @@ function scheduleReverseAnimation() {
           correctNoteCount++;
           removeFromErrorNotes(currentSeriesSingle[seriesCounter]);
           addCircle("positive");
+          updateLageProgress(true);
         if (noteDisplay) {
           noteDisplay.innerHTML = '<span style="color:' + displayColor + ';">' + playedNoteDisplay + '</span>';
         }
@@ -3836,6 +3837,7 @@ function scheduleReverseAnimation() {
           currentSeriesSingle[seriesCounter].color = "red";
           errorNotes.push(currentSeriesSingle[seriesCounter]);
           addCircle("negative");
+          updateLageProgress(false);
         if (noteDisplay) {
           const correctRaw = currentSeriesSingle[seriesCounter].note;
           // Deutsche Darstellung: "#" → "is", "b" (H) → "H"
