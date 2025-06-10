@@ -1455,7 +1455,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Zuordnung von Tonart (Quintenzirkel) zu den ersten fünf diatonischen Noten dieser Tonart
     const rangeNotes = {
       "C":  ["c",  "d",  "e",  "f",  "g"],
-      "G":  ["g/4", "a/4", "b/4", "c/5", "d/5"],
+      "G":  ["g", "a", "b", "c", "d"],
       "D":  ["d",  "e",  "f#", "g",  "a"],
       "A":  ["a",  "b",  "c#", "d",  "e"],
       "E":  ["e",  "f#", "g#", "a",  "b"],
@@ -3237,6 +3237,17 @@ function generateScaleSeries(isFinal = false) {
   }
   drawSeries();
 }
+      
+      // Gibt für einen Roh-Ton und eine Lage den vollständigen VexFlow-Key zurück
+      function getNoteKey(rawNote, range) {
+        const pitch = rawNote.toLowerCase();
+        let octave = 4; // Standard-Oktave
+        // Spezialfall G-Lage: C und D eine Oktave höher
+        if (range === "G" && (pitch === "c" || pitch === "d")) {
+          octave = 5;
+        }
+        return pitch + "/" + octave;
+      }
 
 const generateSeries = () => {
     // Wenn im Smartphone-Lernmodus: nur exakt 1 Note generieren und zeichnen
@@ -3252,6 +3263,10 @@ const generateSeries = () => {
       // (c) Setze passende Oktave (Bass=3, Treble=4; F-Lage-C evtl. +1)
       let octave = (handClef === "bass") ? 3 : 4;
       if (currentRange === "F" && handClef === "treble" && chosen.toLowerCase() === "c") {
+        octave = 5;
+      }
+      // G-Lage: C und D eine Oktave höher
+      if (currentRange === "G" && ["c", "d"].includes(chosen.toLowerCase())) {
         octave = 5;
       }
 
@@ -3294,6 +3309,10 @@ const generateSeries = () => {
         let octave = handClef === "bass" ? 3 : 4;
         // F-Lage: C eine Oktave höher
         if (currentRange === "F" && handClef === "treble" && chosen.toLowerCase() === "c") {
+          octave = 5;
+        }
+        // G-Lage: C und D eine Oktave höher
+        if (currentRange === "G" && ["c", "d"].includes(chosen.toLowerCase())) {
           octave = 5;
         }
         currentSeriesSingle.push({ note: chosen, octave: octave, clef: handClef, color: "black" });
@@ -3386,6 +3405,10 @@ const generateSeries = () => {
       let noteOctave = seriesClef === "bass" ? 3 : 4;
       // F-Lage: ensure C is one octave higher in treble clef
       if (currentRange === "F" && seriesClef === "treble" && chosenNote.toLowerCase() === "c") {
+        noteOctave = 5;
+      }
+      // G-Lage: C und D eine Oktave höher
+      if (currentRange === "G" && ["c", "d"].includes(chosenNote.toLowerCase())) {
         noteOctave = 5;
       }
       let accidental = undefined;
