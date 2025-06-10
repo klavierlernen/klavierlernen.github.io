@@ -4338,6 +4338,19 @@ document.addEventListener("DOMContentLoaded", () => {
     font-size: 0.9em;
     line-height: 1;
   }
+  /* Fortschrittsbalken im Pause-Overlay: Pastellfarbe */
+  #pauseProgress {
+    height: 100%;
+    width: 0%;
+    background: #a0c4ff; /* sanftes Pastellblau */
+    border-radius: 20px;
+    transition: width 1s linear;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    color: black;
+  }
 @keyframes flyOutRight {
   from { opacity: 1; transform: translateX(0); }
   to   { opacity: 0; transform: translateX(100%); }
@@ -5316,14 +5329,6 @@ document.addEventListener("DOMContentLoaded", () => {
           drawLageProgress(currentRange, lageProgress[currentRange] || 0);
         });
         
-        document.getElementById("pauseProgressContainer").addEventListener("click", () => {
-          const newVal = parseInt(customPrompt("Wie viele Noten willst du noch üben?"), 10);
-          if (!isNaN(newVal) && newVal > 0) {
-            sessionCounter = newVal;
-            updateTimer();
-            updatePauseProgress();
-          }
-        });
     </script>
 </body>
 </html>
