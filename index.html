@@ -3817,7 +3817,7 @@ function scheduleReverseAnimation() {
                 : defaultNotes;
               let html = `<span style="color:red;">${playedNoteDisplay}</span> <span style="color:black;">→</span> <span style="color:black; margin:0 5px;">?</span> <span style="color:black; margin:0 5px;"></span> `;
               choices.forEach(letter => {
-                html += `<span class="correction-letter" style="opacity:0.5; margin:0 5px; cursor:pointer;">${letter}</span>`;
+                html += `<span class="correction-letter" style="opacity:0.5; margin:0 2px; padding:2px 4px; display:inline-block; cursor:pointer;">${letter}</span>`;
               });
               html += ` <span style="color:black; margin:0 5px;"></span>`;
               noteDisplay.innerHTML = html;
@@ -4262,6 +4262,10 @@ document.addEventListener("DOMContentLoaded", () => {
   .vf-stavenote.selected path {
     stroke: green !important;
     fill: green !important;
+  }
+  .correction-letter {
+    font-size: 0.9em;
+    line-height: 1;
   }
 @keyframes flyOutRight {
   from { opacity: 1; transform: translateX(0); }
