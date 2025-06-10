@@ -943,15 +943,13 @@
     eingestr: { notes: ["c","d","e","f","g","a","b"], baseOctave: 5 },
     zweigestr:{ notes: ["c","d","e","f","g","a","b"], baseOctave: 6 },
   };
-  
+
 let wizardMode = true;
-   let correctionActive = false;
-   let availableNotes = [];
-   let selectedNoteIndex = 0;
-   let expectedNote = "";
-   
-   
-      
+let correctionActive = false;
+let availableNotes = [];
+let selectedNoteIndex = 0;
+let expectedNote = "";
+
 // === Touch‐based positioning for the notation crosshair ===
 document.addEventListener('DOMContentLoaded', () => {
     // Funktion, die unter dem Notensystem ein 4×4-Grid aller Notennamen anzeigt
@@ -1003,6 +1001,33 @@ document.addEventListener('DOMContentLoaded', () => {
       // Grid sichtbar machen
       grid.classList.remove("hidden");
     }
+// --- Correction overlay: after .correction-letter click, hide overlay and start next exercise after 1s ---
+// (Insert this logic where the correction overlay is created and .correction-letter listeners are attached)
+// (Find the section where you build the correction overlay and attach click listeners to .correction-letter)
+// Example:
+// choices.forEach(letter => {
+//   html += `<span class="correction-letter" ...>${letter}</span>`;
+// });
+// Shortly after:
+// document.querySelectorAll('.correction-letter').forEach(elem => {
+//   elem.addEventListener('click', () => {
+//     // existing correct/wrong logic...
+//   });
+// });
+//
+// Now, inside that addEventListener('click', ...) callback, after marking .wrong/.correct, insert:
+// (This ensures, sowohl bei falscher als auch bei richtiger Antwort, nach 1 Sekunde das Overlay verschwindet und die nächste Note geladen wird.)
+//
+// Example patch:
+// elem.addEventListener('click', () => {
+//   // ...existing logic...
+//   setTimeout(() => {
+//     const box = document.getElementById("correctionBox");
+//     if (box) box.style.display = "none";
+//     correctionActive = false;
+//     generateSeries();
+//   }, 1000);
+// });
   const notation = document.getElementById('notation');
   if (!notation) return;
 
@@ -1430,7 +1455,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Zuordnung von Tonart (Quintenzirkel) zu den ersten fünf diatonischen Noten dieser Tonart
     const rangeNotes = {
       "C":  ["c",  "d",  "e",  "f",  "g"],
-      "G":  ["g",  "a",  "b",  "c",  "d"],
+      "G":  ["g/4", "a/4", "b/4", "c/5", "d/5"],
       "D":  ["d",  "e",  "f#", "g",  "a"],
       "A":  ["a",  "b",  "c#", "d",  "e"],
       "E":  ["e",  "f#", "g#", "a",  "b"],
