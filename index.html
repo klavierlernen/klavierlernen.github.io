@@ -3275,6 +3275,8 @@ function generateScaleSeries(isFinal = false) {
       }
 
 const generateSeries = () => {
+  // Update progressbar for current Lage whenever a new series is loaded
+  drawLageProgress(currentRange, lageProgress[currentRange] || 0);
     // Wenn im Smartphone-Lernmodus: nur exakt 1 Note generieren und zeichnen
     if (window.isMobile) {
       // (a) Prüfe, ob wir im Einhand-/Treble-/Bass-Modus sind
