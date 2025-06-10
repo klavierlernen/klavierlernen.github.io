@@ -883,6 +883,7 @@
         align-items: center;
         justify-content: center;
         margin: 5px;
+        border: 3px;
       }
       .lage-progress-svg {
         position: absolute;
@@ -5258,7 +5259,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           // SVG Kreis
           const size = 60;
-          const stroke = 7;
+          const stroke = 12;
           const radius = (size/2) - (stroke/2);
           const circumference = 2 * Math.PI * radius;
           const progress = Math.max(0, Math.min(100, value)); // clamp
