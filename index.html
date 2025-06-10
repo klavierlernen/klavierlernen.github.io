@@ -957,7 +957,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Funktion, die unter dem Notensystem ein 4×4-Grid aller Notennamen anzeigt
     function showNoteChoiceGrid() {
       const grid = document.getElementById("noteChoiceGrid");
-      const choices = ["C","Cis","D","Dis","E","Eis","F","Fis","G","Gis","A","Ais","H"];
+      // Dynamically derive only the 5 active notes for the current Lage
+      const choices = rangeNotes[currentRange].map(raw => {
+        // German sharp names: e.g. "c#" → "Cis"
+        if (raw.endsWith("#")) {
+          return raw.charAt(0).toUpperCase() + "is";
+        }
+        // German B (H)
+        return raw === "b" ? "H" : raw.toUpperCase();
+      });
       // Leere eventuell vorhandene Buttons
       grid.innerHTML = "";
 
