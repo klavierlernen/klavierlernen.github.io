@@ -883,7 +883,19 @@
         color: #333;
         pointer-events: none;
         user-select: none;
-        display: none;
+        
+      }
+      
+      #remainingNotesDisplay {
+        position: absolute;
+        right: 10px;
+        top: 0;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        font-size: 0.9em;
+        font-weight: bold;
+        color: #000;
       }
   </style>
   <script>
@@ -1104,7 +1116,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.addEventListener("DOMContentLoaded", () => {
         const timerElem = document.getElementById("timerContainer");
         // Beispiel: Direkt eine Info setzen
-        timerElem.textContent = `${sessionCounter} Noten, vsl. 00:00 min`;
+        timerElem.textContent = `${sessionCounter}, vsl. 00:00 min`;
         // Oder den Timer sofort updaten, falls du eine Funktion hast:
         updateTimer();
       // Entfernt: Doppele Aufruf von startTutorialSequence() wurde entfernt,
@@ -1532,7 +1544,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let seconds = Math.floor(predictedTimeSec % 60);
         let timeStr = (minutes < 10 ? "0" + minutes : minutes) + ":" + (seconds < 10 ? "0" + seconds : seconds);
         
-        timerElem.textContent = `${sessionCounter} Noten, vsl. ${timeStr} min`;
+        timerElem.textContent = `vsl. ${timeStr} min`;
       };
       
       function updatePauseTiles() {
@@ -1935,6 +1947,7 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
             <div id="pauseProgressContainer">
               <div id="pauseProgress"></div>
               <div id="pauseTime" style="position:absolute; left:0; top:0; font-size:14px; color:#000; padding:0 5px;"></div>
+              <div id="remainingNotesDisplay">${sessionCounter}</div>
             </div>
           </div>
           <div id="pauseTiles"></div>
@@ -4407,8 +4420,9 @@ document.addEventListener("DOMContentLoaded", () => {
         <div id="pauseInfo">
             <div id="pauseHeader">SESSION PAUSIERT</div>
             <div id="pauseProgressContainer">
-                <div id="pauseProgress"></div>
-                <div id="pauseTime" style="position:absolute; left:0; top:0; font-size:14px; color:#000; padding:0 5px;"></div>
+              <div id="pauseProgress"></div>
+              <div id="pauseTime" style="position:absolute; left:0; top:0; font-size:14px; color:#000; padding:0 5px;"></div>
+              <div id="remainingNotesDisplay">${sessionCounter}</div>
             </div>
         </div>
         <!-- Kachelwand -->
@@ -4483,6 +4497,8 @@ document.addEventListener("DOMContentLoaded", () => {
         window.cycleTone = cycleTone;
         /* Falls im Pause-Modus: Aktualisiere Fortschrittsbalken und verbleibende Zeit (mm:ss) */
         function updatePauseProgress() {
+            const noteDisplay = document.getElementById("remainingNotesDisplay");
+            if (noteDisplay) noteDisplay.textContent = `${sessionCounter} Noten`;
             const progressBar = document.getElementById("pauseProgress");
             const timeDisplay = document.getElementById("pauseTime");
             if (progressBar && pauseDuration > 0) {
@@ -5285,8 +5301,77 @@ document.addEventListener("DOMContentLoaded", () => {
           // Prozentzahl in die Mitte
           const txt = document.createElement("div");
           txt.className = "lage-progress-text";
-          txt.textContent = progress + "%";
+          txt.style.fontSize = "0.7em";
+          txt.textContent = `${sessionCounter}`;
           circle.appendChild(txt);
+
+          // Add click handler to circle for sessionCounter overlay input
+          circle.style.cursor = "pointer";
+
+          // Bestehendes Eingabefeld entfernen, falls vorhanden
+          const existingInput = document.getElementById("counterInputOverlay");
+          if (existingInput) existingInput.remove();
+
+          circle.addEventListener("click", () => {
+            const overlay = document.createElement("div");
+            overlay.id = "counterInputOverlay";
+            Object.assign(overlay.style, {
+              position: "fixed",
+              top: "0",
+              left: "0",
+              width: "100vw",
+              height: "100vh",
+              background: "rgba(0,0,0,0.6)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: "5000"
+            });
+
+            const inputBox = document.createElement("div");
+            Object.assign(inputBox.style, {
+              background: "#fff",
+              padding: "20px",
+              borderRadius: "10px",
+              textAlign: "center",
+              fontSize: "1.2em"
+            });
+
+            const label = document.createElement("label");
+            label.textContent = "Anzahl der Noten:";
+            label.style.display = "block";
+            label.style.marginBottom = "10px";
+
+            const input = document.createElement("input");
+            input.type = "number";
+            input.min = "1";
+            input.value = sessionCounter;
+            input.style.width = "100px";
+            input.style.fontSize = "1.2em";
+
+            const btn = document.createElement("button");
+            btn.textContent = "OK";
+            btn.style.marginTop = "15px";
+            btn.style.padding = "6px 12px";
+            btn.style.fontSize = "1em";
+            btn.style.cursor = "pointer";
+
+            btn.onclick = () => {
+              const parsed = parseInt(input.value);
+              if (!isNaN(parsed) && parsed > 0) {
+                sessionCounter = parsed;
+                localStorage.setItem("customSessionCounter", sessionCounter);
+                drawLageProgress(lage, value);
+              }
+              overlay.remove();
+            };
+
+            inputBox.appendChild(label);
+            inputBox.appendChild(input);
+            inputBox.appendChild(btn);
+            overlay.appendChild(inputBox);
+            document.body.appendChild(overlay);
+          });
         }
         
         function updateLageProgress(correct) {
@@ -5302,6 +5387,7 @@ document.addEventListener("DOMContentLoaded", () => {
           lageProgress[lage] = val;
           localStorage.setItem("lageProgress", JSON.stringify(lageProgress));
           drawLageProgress(lage, val);
+          // Ensure the display is updated after progress change
         }
         
         function onLageChanged(newLage) {
