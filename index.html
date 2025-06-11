@@ -4443,6 +4443,15 @@ document.addEventListener("DOMContentLoaded", () => {
     <!-- Hauptinhalt -->
     <div id="settingsPanel" style="position: fixed; top: 20%; right: 10px; background: rgba(255,255,255,0.8); padding: 10px; border: 2.5px solid #000; border-radius: 8px; z-index: 200;"></div>
     <div id="mainContent">
+      <div id="newsPopup" style="display:none; position:fixed; top:20px; left:20px; background:#fff; border:2px solid #000; border-radius:10px; padding:20px; max-width:300px; z-index:9999; box-shadow:0 4px 10px rgba(0,0,0,0.2);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong>🆕 Neuigkeiten</strong>
+          <span id="newsPopupClose" style="cursor:pointer; font-weight:bold;">✖</span>
+        </div>
+        <div id="newsPopupContent" style="margin-top:10px; text-align: justify;">
+          Willkommen zur neuen Version! 🎉 Wir haben das Design minimalisitischer gestaltet.<p> Zudem findest du nun eine Fortschrittsanzeige neben dem Lagen-Button. Hier wird dir angezeigt, wie gut du derzeit in jeder Lage bist. Den Counter der zu spielenden Noten haben wir auch dort hin verschoben. Auch das Menü wurde etwas vereinfacht.
+        </div>
+      </div>
        
         <div id="notation"></div>
         <div id="noteChoiceGrid" class="hidden"></div>
@@ -5396,6 +5405,25 @@ document.addEventListener("DOMContentLoaded", () => {
         
         document.addEventListener("DOMContentLoaded", () => {
           drawLageProgress(currentRange, lageProgress[currentRange] || 0);
+        });
+        // News-Popup-Block
+        document.addEventListener("DOMContentLoaded", () => {
+          const newsId = "v1.3-update"; // Diese ID bei jeder neuen Nachricht ändern
+          const cookieKey = "newsDismissed_" + newsId;
+          const dismissed = localStorage.getItem(cookieKey);
+
+          if (!dismissed) {
+            const popup = document.getElementById("newsPopup");
+            if (popup) popup.style.display = "block";
+
+            const closeBtn = document.getElementById("newsPopupClose");
+            if (closeBtn) {
+              closeBtn.addEventListener("click", () => {
+                popup.style.display = "none";
+                localStorage.setItem(cookieKey, "true");
+              });
+            }
+          }
         });
     </script>
 </body>
