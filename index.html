@@ -1307,6 +1307,34 @@ function saveButtonEffect() {
   
   // Hole die Position des Menüs (settingsPanel)
   const settingsPanel = document.getElementById("settingsPanel");
+
+  // --- Geometriemodus-Logik für Emoji-Anzeige ---
+  // Suche nach dem Geometriemodus-Toggle (z.B. Button mit id "geometryToggle")
+  const geometryToggle = document.getElementById("geometryToggle");
+  if (geometryToggle) {
+    geometryToggle.addEventListener("click", function () {
+      setTimeout(() => {
+        const isActive = geometryToggle.classList.contains("active") || geometryToggle.dataset.active === "true";
+        const keepEmojis = ["📐", "➕", "➖"].map(e => e.trim());
+        document.querySelectorAll('#settingsPanel span.settings-emoji').forEach(emoji => {
+          const emojiChar = [...emoji.textContent.trim()][0];
+          if (isActive) {
+            // Nur 📐, ➕, ➖ behalten
+            if (!keepEmojis.includes(emojiChar)) {
+              emoji.classList.add("hidden-during-geometry");
+              emoji.style.display = "none";
+            }
+          } else {
+            // Alle wieder einblenden
+            if (emoji.classList.contains("hidden-during-geometry")) {
+              emoji.style.display = '';
+              emoji.classList.remove("hidden-during-geometry");
+            }
+          }
+        });
+      }, 10);
+    });
+  }
   const emojiContainer = document.getElementById("settingsEmojiContainer");
   let x, y;
   if (settingsPanel) {
@@ -3860,27 +3888,43 @@ noteElements.forEach((svgNote, idx) => {
 
 // 🐝 Kinder-Modus: Emojis auf die Notenköpfe setzen
 if (kidsMode) {
-const svg = notationDiv.querySelector("svg");
-if (!svg) return;
+  const svg = notationDiv.querySelector("svg");
+  if (!svg) return;
 
-svg.querySelectorAll(".note-emoji").forEach(el => el.remove());
+  svg.querySelectorAll(".note-emoji").forEach(el => el.remove());
 
-staveNotes.forEach((note, index) => {
-  const coords = note.getModifierStartXY(Vex.Flow.Modifier.Position.LEFT, 0);
-  const emoji = noteAnimals[currentSeriesSingle[index].note.toLowerCase()] || "❓";
-  const centerX = coords.x + 8;
-  const centerY = coords.y - 2;
+  staveNotes.forEach((note, index) => {
+    const coords = note.getModifierStartXY(Vex.Flow.Modifier.Position.LEFT, 0);
+    const emoji = noteAnimals[currentSeriesSingle[index].note.toLowerCase()] || "❓";
+    const centerX = coords.x + 8;
+    const centerY = coords.y - 2;
 
-  const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-  text.setAttribute("x", centerX);
-  text.setAttribute("y", centerY); // kleiner Feintuning-Wert
-  text.setAttribute("text-anchor", "middle");
-  text.setAttribute("dominant-baseline", "middle");
-  text.setAttribute("font-size", "30"); // etwas größer als Notenkopf
-  text.setAttribute("class", "note-emoji");
-  text.textContent = emoji;
-  svg.appendChild(text);
-});
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("x", centerX);
+    text.setAttribute("y", centerY); // kleiner Feintuning-Wert
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("dominant-baseline", "middle");
+    text.setAttribute("font-size", "30"); // etwas größer als Notenkopf
+    text.setAttribute("class", "note-emoji");
+    text.textContent = emoji;
+    svg.appendChild(text);
+    // Geometrie-Modus: Emoji-Klick-Handler
+    text.style.cursor = "pointer";
+    text.addEventListener("click", function (event) {
+      // 1. Position und Größe speichern
+      if (typeof saveEmojiPositionAndSize === "function") {
+        saveEmojiPositionAndSize(event.target);
+      }
+      // 2. Geometrie-Modus speichern
+      if (typeof saveGeometryMode === "function") {
+        saveGeometryMode();
+      }
+      // 3. Geometrie-Modus beenden / schließen
+      if (typeof closeGeometryMode === "function") {
+        closeGeometryMode();
+      }
+    });
+  });
 }
 
 // Dreieck-Markierung für aktive Note
@@ -5727,6 +5771,27 @@ document.addEventListener("DOMContentLoaded", function() {
       if (isCorrect) data[name][range] += 1;
       localStorage.setItem("playerStats", JSON.stringify(data));
     }
+    
+    document.addEventListener("dblclick", () => {
+      const geometryToggle = document.getElementById("geometryToggle");
+      if (geometryToggle) {
+        geometryToggle.click(); // Toggle den Geometriemodus
+      }
+    });
+    
+    let lastTap = 0;
+    document.addEventListener("touchend", function(e) {
+      const currentTime = new Date().getTime();
+      const tapLength = currentTime - lastTap;
+      if (tapLength < 300 && tapLength > 0) {
+        // Doppeltipp erkannt
+        const geometryToggle = document.getElementById("geometryToggle");
+        if (geometryToggle) {
+          geometryToggle.click();
+        }
+      }
+      lastTap = currentTime;
+    });
 </script>
 <div id="chordModal">
   <h2>Akkordauswahl</h2>
