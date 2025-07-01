@@ -295,6 +295,10 @@ body.dark-mode #gameOverOverlay {
   color: #000;
   box-sizing: border-box;
   transition: transform 0.2s, box-shadow 0.2s, opacity 0.5s ease;
+  max-height: 90vh;        /* auf 90 % der Bildschirmhöhe begrenzt */
+    overflow-y: auto;        /* erlaubt vertikales Scrollen */
+    box-sizing: border-box;  /* padding wird bei Höhe mitgerechnet */
+    padding: 1rem; 
 }
 
 /* ================================= */
