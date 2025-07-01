@@ -17,10 +17,7 @@ See how it works: https://drive.google.com/file/d/1v_aTnOTJi2T-VUTVt4Wx8_kHbTGTi
 - **Adaptive Learning System:** Frequently missed notes are repeated more often.
 - **Range Training:** Practice in C, D, F, G and mixed clef ranges.
 - **Motivation System:** Animated effects, encouragement text, and pause screens with trophies.
-- **Trophy Wall:** Unlockable emoji trophies for performance (speed, accuracy, streaks, rhythm).
 - **Break & Focus Phases:** Adaptive pause system when cognitive fatigue is detected.
-- **Statistics Dashboard:** Tracks app time, error rate, streaks, and learning quality graph.
-- **Dark Mode:** Eye-friendly display for low-light environments.
 - **Desktop & Mobile Friendly.**
 - **PWA Ready:** Installable on the home screen as a web app.
 
@@ -31,6 +28,7 @@ See how it works: https://drive.google.com/file/d/1v_aTnOTJi2T-VUTVt4Wx8_kHbTGTi
 - [Canvas Confetti](https://github.com/catdad/canvas-confetti) – Visual celebration effects
 - [Web MIDI API](https://developer.mozilla.org/en-US/docs/Web/API/MIDIAccess)
 - [Web Bluetooth API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API)
+- [Twenmoji](https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js)
 
 ### 🤖 About Development
 
