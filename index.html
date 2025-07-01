@@ -1147,6 +1147,31 @@ document.addEventListener('DOMContentLoaded', () => {
 });
     
       
+      // Moved updateTimer definition above DOMContentLoaded event listener to ensure it's defined before use
+      const updateTimer = () => {
+        const timerElem = document.getElementById("timerContainer");
+        
+        // Berechne den durchschnittlichen Bearbeitungszeit (in ms), Standard: 1000 ms falls noch keine Werte vorhanden
+        let avgResponse = responseTimes.length > 0
+          ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+          : 1000;
+        
+        // Berechne die Fehlerquote: Anteil der Fehlversuche
+        let errorRate = totalAttempts > 0
+          ? (totalAttempts - correctAnswers) / totalAttempts
+          : 0;
+        
+        // Voraussichtliche Zeit (in Sekunden) = Anzahl verbleibender Noten * (durchschnittliche Bearbeitungszeit in s) * (1 + Fehlerquote)
+        let predictedTimeSec = sessionCounter * (avgResponse / 1000) * (1 + errorRate);
+        
+        // Formatiere in mm:ss
+        let minutes = Math.floor(predictedTimeSec / 60);
+        let seconds = Math.floor(predictedTimeSec % 60);
+        let timeStr = (minutes < 10 ? "0" + minutes : minutes) + ":" + (seconds < 10 ? "0" + seconds : seconds);
+        
+        timerElem.textContent = `vsl. ${timeStr} min`;
+      };
+
       document.addEventListener("DOMContentLoaded", () => {
         const timerElem = document.getElementById("timerContainer");
         // Beispiel: Direkt eine Info setzen
@@ -1575,49 +1600,32 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener("DOMContentLoaded", saveOpenTime);
     const chordButton = document.getElementById('chordButton');
     const chordModal = document.getElementById('chordModal');
-    const confirmChords = chordModal.querySelector('.confirm-chords');
+    let confirmChords = null;
 
-    chordButton.addEventListener('click', () => {
-      renderChordList();
-      chordModal.classList.add('visible');
-    });
+    if (chordButton && chordModal) {
+      confirmChords = chordModal.querySelector('.confirm-chords');
 
-    confirmChords.addEventListener('click', () => {
-      selectedChords = Array.from(document.querySelectorAll('#chordList .chord-item.selected'))
-        .map(el => chords[+el.dataset.index]);
-      chordModal.classList.remove('visible');
-      if (selectedChords.length) {
-        isChordMode = true;
-        generateSeries();
+      chordButton.addEventListener('click', () => {
+        renderChordList();
+        chordModal.classList.add('visible');
+      });
+
+      if (confirmChords) {
+        confirmChords.addEventListener('click', () => {
+          selectedChords = Array.from(document.querySelectorAll('#chordList .chord-item.selected'))
+            .map(el => chords[+el.dataset.index]);
+          chordModal.classList.remove('visible');
+          if (selectedChords.length) {
+            isChordMode = true;
+            generateSeries();
+          }
+        });
       }
-    });
+    }
     const updateHeartsDisplay = () => {
       const heartsElem = document.getElementById("heartsContainer");
       heartsElem.textContent = unlimitedLives ? "" : "❤️".repeat(hearts);
     };
-      const updateTimer = () => {
-        const timerElem = document.getElementById("timerContainer");
-        
-        // Berechne den durchschnittlichen Bearbeitungszeit (in ms), Standard: 1000 ms falls noch keine Werte vorhanden
-        let avgResponse = responseTimes.length > 0
-          ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
-          : 1000;
-        
-        // Berechne die Fehlerquote: Anteil der Fehlversuche
-        let errorRate = totalAttempts > 0
-          ? (totalAttempts - correctAnswers) / totalAttempts
-          : 0;
-        
-        // Voraussichtliche Zeit (in Sekunden) = Anzahl verbleibender Noten * (durchschnittliche Bearbeitungszeit in s) * (1 + Fehlerquote)
-        let predictedTimeSec = sessionCounter * (avgResponse / 1000) * (1 + errorRate);
-        
-        // Formatiere in mm:ss
-        let minutes = Math.floor(predictedTimeSec / 60);
-        let seconds = Math.floor(predictedTimeSec % 60);
-        let timeStr = (minutes < 10 ? "0" + minutes : minutes) + ":" + (seconds < 10 ? "0" + seconds : seconds);
-        
-        timerElem.textContent = `vsl. ${timeStr} min`;
-      };
       
       function updatePauseTiles() {
         const container = document.getElementById("pauseTiles");
