@@ -933,6 +933,27 @@ font-weight: bold;
   #chordModal .confirm-chords {
     font-size:2em; cursor:pointer; margin-top:15px;
   }
+    
+    #introOverlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: transform 1s ease-in-out;
+    }
+    #introOverlay.hidden {
+      transform: translateY(-100%);
+    }
+    #introOverlayText {
+      font-size: 1.5em;
+      font-weight: bold;
+      text-align: center;
+      padding: 20px;
+      color: black;
+    }
   
 </style>
 <script>
@@ -1416,15 +1437,17 @@ function proceedToMainScreen() {
   if (audio) { audio.pause(); }
   appStartTime = Date.now();
   const welcomeOverlay = document.getElementById("welcomeOverlay");
-  welcomeOverlay.style.opacity = "0";
   setTimeout(() => {
-    welcomeOverlay.classList.add("hidden");
-    const mainContent = document.getElementById("mainContent");
-    mainContent.style.display = "block";
-    document.getElementById("timerContainer").style.display = "flex";
-    document.getElementById("settingsPanel").style.display = "flex";
-    setTimeout(() => { mainContent.style.opacity = "1"; }, 10);
-  }, 500);
+    welcomeOverlay.style.opacity = "0";
+    setTimeout(() => {
+      welcomeOverlay.classList.add("hidden");
+      const mainContent = document.getElementById("mainContent");
+      mainContent.style.display = "block";
+      document.getElementById("timerContainer").style.display = "flex";
+      document.getElementById("settingsPanel").style.display = "flex";
+      setTimeout(() => { mainContent.style.opacity = "1"; }, 500);
+    }, 1000);
+  }, 5000);
 }
 function getRandomThreshold() {
   return Math.floor(Math.random() * 4) + 2;
@@ -4492,6 +4515,27 @@ animation: flyInRight 0.5s forwards;
 .fly-in-left {
 animation: flyInLeft 0.5s forwards;
 }
+/* Intro Overlay Styles */
+#introOverlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  transform: translateY(0);
+  transition: transform 1s ease-in-out;
+}
+#introOverlay.hidden {
+  transform: translateY(-100%);
+}
+/* Twemoji: Konsistente Emoji-Größe */
+img.emoji {
+  height: 1.2em;
+  vertical-align: -0.1em;
+}
 </style>
 <style>
 /* Weniger Abstand des Notensystems nach oben */
@@ -4521,8 +4565,32 @@ cursor: pointer;
 }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qwerty-hancock/0.7.2/qwerty-hancock.min.js"></script>
+<script>
+// Intro Overlay Animation, ensure inside DOMContentLoaded
+document.addEventListener("DOMContentLoaded", () => {
+  const introOverlay = document.getElementById("introOverlay");
+  setTimeout(() => {
+    introOverlay.classList.add("hidden");
+  }, 5000);
+});
+</script>
+  <!-- Twemoji für Emoji-Darstellung -->
+  <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      twemoji.parse(document.body, {
+        folder: 'svg',
+        ext: '.svg'
+      });
+    });
+  </script>
 </head>
 <body>
+    <div id="introOverlay">
+      <div id="introOverlayText">
+        MIT ❤️ ENTWICKELT VON <br>JAN-PHILIPP JAKOB ZUSAMMEN MIT<p><img src="http://www.klangkollegen.de/assets/images/kklogo-1135x186.jpg" style="width:30%; height:30%";>
+      </div>
+    </div>
 <!-- Direkt nach <body> einfügen -->
 
 
@@ -5574,19 +5642,63 @@ document.addEventListener("DOMContentLoaded", function() {
       }).sort((a, b) => b.avg - a.avg);
 
       overlay.innerHTML = `
-        <h2>Highscores</h2>
-        <ul style="list-style:none;padding:0;">
-          ${players.map(p => `<li style="cursor:pointer;padding:5px;" onclick="selectPlayer('${p.name}')">${p.name} – ${p.avg}%</li>`).join("")}
-        </ul>
-        <button onclick="closePlayerList()">Zurück</button>
-      `;
+    <div style="background:#fff; padding:20px; border:2px solid #000; border-radius:10px; text-align:center; max-width:400px; width:90%;">
+      <h2>Highscores</h2>
+      <table style="width:100%; border-collapse:collapse; font-size:1.1em;">
+        <thead>
+          <tr>
+            <th style="border-bottom:1px solid #000; padding:8px;">Name</th>
+            <th style="border-bottom:1px solid #000; padding:8px;">Ø (%)</th>
+            <th style="border-bottom:1px solid #000; padding:8px;">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${
+            players.map(p => {
+              const stats = JSON.parse(localStorage.getItem("playerStats") || "{}")[p.name] || {};
+              const detail = Object.entries(stats).map(([k, v]) => `${k}: ${v}`).join(", ");
+              return `
+              <tr style="cursor:pointer;" onclick="selectPlayer('${p.name}')" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='transparent'">
+                <td style="padding:8px; border-bottom:1px solid #ccc;">${p.name}</td>
+                <td style="padding:8px; border-bottom:1px solid #ccc;">${p.avg}</td>
+                <td style="padding:8px; border-bottom:1px solid #ccc;">${detail}</td>
+              </tr>`;
+            }).join("")
+          }
+          <tr id="addPlayerRow" style="background-color:#eef;" onmouseover="this.style.background='#ddeeff'" onmouseout="this.style.background='#eef'">
+        </tbody>
+  <input id="newPlayerInput" type="text" placeholder="Name eingeben…" style="margin-top:8px; padding:4px; font-size:1em;" onkeydown="if(event.key==='Enter'){submitNewPlayer();}" />
+      </table>
+      <button onclick="closePlayerList()" style="margin-top:15px; padding:8px 16px; border:2px solid #000; border-radius:6px; background:#fff; cursor:pointer;">Zurück</button>
+    </div>
+  `;
       overlay.style.display = "block";
     }
 
     function closePlayerList() {
       const overlay = document.getElementById("playerOverlay");
       if (overlay) overlay.style.display = "none";
-      document.getElementById("notation").style.display = "block";
+      const notationDiv = document.getElementById("notation");
+      if (notationDiv) notationDiv.style.display = "block";
+      if (overlay) overlay.style.display = "none";
+    }
+    // Handler für neuen Spieler anlegen (Eingabe-UI)
+    function submitNewPlayer() {
+      const input = document.getElementById("newPlayerInput");
+      if (!input) return;
+      const name = input.value.trim();
+      if (name) {
+        const existing = JSON.parse(localStorage.getItem("playerStats") || "{}");
+        if (!existing[name]) {
+          existing[name] = {};
+          localStorage.setItem("playerStats", JSON.stringify(existing));
+        }
+        localStorage.setItem("userName", name);
+        closePlayerList();
+        location.reload();
+      } else {
+        input.focus();
+      }
     }
     function selectPlayer(name) {
       localStorage.setItem("userName", name);
