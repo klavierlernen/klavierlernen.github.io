@@ -298,7 +298,7 @@ body.dark-mode #gameOverOverlay {
   max-height: 90vh;        /* auf 90 % der Bildschirmhöhe begrenzt */
     overflow-y: auto;        /* erlaubt vertikales Scrollen */
     box-sizing: border-box;  /* padding wird bei Höhe mitgerechnet */
-    padding: 1rem; 
+    padding: 1rem;
 }
 
 /* ================================= */
@@ -2307,7 +2307,6 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("resize", resizeCanvas);
   animateCircles();
   resetInactivityTimer();
-  const storedName = localStorage.getItem("userName");
   const welcomeMessage = document.getElementById("welcomeMessage");
   const hour = new Date().getHours();
   let greeting;
@@ -2318,7 +2317,8 @@ document.addEventListener("DOMContentLoaded", () => {
   } else {
     greeting = "Guten Abend";
   }
-
+  const storedName = localStorage.getItem("userName") || "Gast";
+  welcomeMessage.innerHTML = `${greeting}, ${storedName}<br>Willkommen zurück.<br>`;
   if (storedName !== null) {
     welcomeMessage.innerHTML = `${greeting}, ${storedName || ""}<br> Willkommen zurück.<br>`;
     welcomeMessage.style.cursor = "pointer";
@@ -2522,6 +2522,115 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
   
+  const playerToggle = document.createElement("span");
+  playerToggle.id = "playerToggle";
+  playerToggle.textContent = "🤝";
+  settingsPanel.appendChild(playerToggle);
+  playerToggle.addEventListener("click", () => {
+    document.getElementById("notation").style.display = "none";
+    showPlayerList();
+  });
+  // (Optional) Remove or comment out the separate ➕ button outside the list, since "+" is now part of the list.
+  // const addPlayerToggle = document.createElement("span");
+  // addPlayerToggle.id = "addPlayerToggle";
+  // addPlayerToggle.textContent = "➕";
+  // settingsPanel.appendChild(addPlayerToggle);
+  // addPlayerToggle.addEventListener("click", () => {
+  //   const name = prompt("Neuer Spielername:");
+  //   if (name && name.trim()) {
+  //     const trimmed = name.trim();
+  //     const existing = JSON.parse(localStorage.getItem("playerStats") || "{}");
+  //     if (!existing[trimmed]) {
+  //       existing[trimmed] = {};
+  //       localStorage.setItem("playerStats", JSON.stringify(existing));
+  //     }
+  //     localStorage.setItem("userName", trimmed);
+  //     location.reload();
+  //   }
+  // });
+// Spieler-Liste anzeigen mit Tabelle und "+" Button am Ende
+function showPlayerList() {
+  // Spielerstatistiken aus dem LocalStorage laden
+  const stats = JSON.parse(localStorage.getItem("playerStats") || "{}");
+  const players = Object.keys(stats).map(name => ({
+    name,
+    avg: stats[name]?.avg !== undefined ? stats[name].avg : "-"
+  }));
+  const overlay = document.createElement("div");
+  overlay.id = "playerListOverlay";
+  overlay.style.position = "fixed";
+  overlay.style.top = "0";
+  overlay.style.left = "0";
+  overlay.style.width = "100vw";
+  overlay.style.height = "100vh";
+  overlay.style.background = "rgba(255,255,255,0.97)";
+  overlay.style.zIndex = "99999";
+  overlay.style.display = "flex";
+  overlay.style.justifyContent = "center";
+  overlay.style.alignItems = "center";
+  overlay.style.pointerEvents = "auto";
+  overlay.innerHTML = `
+    <div style="background:#fff; padding:20px; border:2px solid #000; border-radius:10px; text-align:center; max-width:400px; width:90%;">
+      <h2 style="margin-bottom:10px;">Highscores</h2>
+      <table style="width:100%; border-collapse:collapse; font-size:1.1em;">
+        <thead>
+          <tr>
+            <th style="border-bottom:1px solid #000; padding:8px;">Name</th>
+            <th style="border-bottom:1px solid #000; padding:8px;">Ø-Score (%)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${
+            players.map(p => `
+              <tr style="cursor:pointer;" onclick="selectPlayer('${p.name}')" onmouseover="this.style.background='#f0f0f0'" onmouseout="this.style.background='transparent'">
+                <td style="padding:8px; border-bottom:1px solid #ccc;">${p.name}</td>
+                <td style="padding:8px; border-bottom:1px solid #ccc;">${p.avg}</td>
+              </tr>
+            `).join("")
+          }
+          <tr style="cursor:pointer; background-color:#eef;" onclick="createNewPlayerFromList()" onmouseover="this.style.background='#ddeeff'" onmouseout="this.style.background='#eef'">
+            <td colspan="2" style="text-align:center; padding:12px; font-weight:bold;">➕ Neuen Spieler anlegen</td>
+          </tr>
+        </tbody>
+      </table>
+      <button onclick="closePlayerList()" style="margin-top:15px; padding:8px 16px; border:2px solid #000; border-radius:6px; background:#fff; cursor:pointer;">Zurück</button>
+    </div>
+  `;
+  // Remove any previous overlays
+  document.querySelectorAll("#playerListOverlay").forEach(el => el.remove());
+  document.body.appendChild(overlay);
+}
+
+// Spieler-Auswahl
+function selectPlayer(name) {
+  localStorage.setItem("userName", name);
+  closePlayerList();
+  location.reload();
+}
+
+// "+" Button in der Liste: Neuen Spieler anlegen
+function createNewPlayerFromList() {
+  const name = prompt("Neuer Spielername:");
+  if (name && name.trim()) {
+    const trimmed = name.trim();
+    const existing = JSON.parse(localStorage.getItem("playerStats") || "{}");
+    if (!existing[trimmed]) {
+      existing[trimmed] = {};
+      localStorage.setItem("playerStats", JSON.stringify(existing));
+    }
+    localStorage.setItem("userName", trimmed);
+    closePlayerList();
+    location.reload();
+  }
+}
+
+function closePlayerList() {
+  const overlay = document.getElementById("playerListOverlay");
+  if (overlay) overlay.parentElement.removeChild(overlay);
+  // Notation ggf. wieder anzeigen
+  const notation = document.getElementById("notation");
+  if (notation) notation.style.display = "";
+}
   // Zeichne den Crayon-Button für Scale-Modus
   const customModeToggle = document.createElement("span");
   customModeToggle.id = "customModeToggle";
@@ -5439,6 +5548,59 @@ document.addEventListener("DOMContentLoaded", function() {
         }
       }
     });
+    
+    function showPlayerList() {
+      let overlay = document.getElementById("playerOverlay");
+      if (!overlay) {
+        overlay = document.createElement("div");
+        overlay.id = "playerOverlay";
+        Object.assign(overlay.style, {
+          position: "fixed", top: "50%", left: "50%",
+          transform: "translate(-50%, -50%)",
+          background: "#fff", border: "2px solid #000",
+          borderRadius: "10px", padding: "20px",
+          zIndex: "9999", maxHeight: "80vh",
+          overflowY: "auto", textAlign: "center",
+          minWidth: "300px"
+        });
+        document.body.appendChild(overlay);
+      }
+
+      const stats = JSON.parse(localStorage.getItem("playerStats") || "{}");
+      const players = Object.entries(stats).map(([name, data]) => {
+        const sum = Object.values(data).reduce((a, b) => a + b, 0);
+        const avg = sum > 0 ? Math.round(sum / Object.values(data).length) : 0;
+        return { name, avg };
+      }).sort((a, b) => b.avg - a.avg);
+
+      overlay.innerHTML = `
+        <h2>Highscores</h2>
+        <ul style="list-style:none;padding:0;">
+          ${players.map(p => `<li style="cursor:pointer;padding:5px;" onclick="selectPlayer('${p.name}')">${p.name} – ${p.avg}%</li>`).join("")}
+        </ul>
+        <button onclick="closePlayerList()">Zurück</button>
+      `;
+      overlay.style.display = "block";
+    }
+
+    function closePlayerList() {
+      const overlay = document.getElementById("playerOverlay");
+      if (overlay) overlay.style.display = "none";
+      document.getElementById("notation").style.display = "block";
+    }
+    function selectPlayer(name) {
+      localStorage.setItem("userName", name);
+      closePlayerList();
+      location.reload(); // neu laden, um Werte und Begrüßung zu aktualisieren
+    }
+    function savePlayerStats(range, isCorrect) {
+      const name = localStorage.getItem("userName") || "Gast";
+      const data = JSON.parse(localStorage.getItem("playerStats") || "{}");
+      if (!data[name]) data[name] = {};
+      if (!data[name][range]) data[name][range] = 0;
+      if (isCorrect) data[name][range] += 1;
+      localStorage.setItem("playerStats", JSON.stringify(data));
+    }
 </script>
 <div id="chordModal">
   <h2>Akkordauswahl</h2>
