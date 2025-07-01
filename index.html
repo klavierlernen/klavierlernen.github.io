@@ -519,8 +519,9 @@
      /* Custom Mode Modal Styles */
      #customModeModal {
          position: fixed;
-         top: 15%;
-         right: 90px; /* ca. 10px links vom Menü */
+         left: 20%;
+         transform: translateY(-50%);
+         top: 0;
          width: 400px;
          background: white;
          border: 2px solid black;
@@ -745,11 +746,10 @@
       
      
         #scaleSelector {
-          position: fixed;
+          position: absolute;
           top: 10px;
-          left: 50%;
-          transform: translateX(-50%);
-          z-index: 100;
+          right: 40px;
+          z-index: 1000;
           display: flex;
           gap: 10px;
         }
@@ -897,6 +897,40 @@
         font-weight: bold;
         color: #000;
       }
+      
+      /* Separator und Akkorde-Button */
+      #scaleSelector .separator {
+        width: 1px; background-color: #000;
+        margin: 0 8px; align-self: center; height: 24px;
+      }
+      #scaleSelector #chordButton {
+        font-size: 1.2em; padding: 4px 8px;
+        border: 2px solid black; border-radius: 6px;
+        background: white; cursor: pointer;
+      }
+      /* Modal für Akkordauswahl */
+      #chordModal { position: fixed; top:50%; left:50%;
+        transform: translate(-50%,-50%);
+        width:90%; max-width:400px;
+        background:#fff; border:3px solid #000;
+        border-radius:10px; padding:20px; z-index:2000;
+        display:none; flex-direction:column;
+        align-items:center;
+      }
+      #chordModal.visible { display:flex !important; }
+      #chordModal h2 { margin-bottom:10px; }
+      #chordList { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; width:100%; }
+      .chord-item {
+        padding:8px; border:2px solid black; border-radius:6px;
+        cursor:pointer; user-select:none;
+      }
+      .chord-item.selected {
+        background-color: lightgreen; border-color: green;
+      }
+      #chordModal .confirm-chords {
+        font-size:2em; cursor:pointer; margin-top:15px;
+      }
+      
   </style>
   <script>
       
@@ -1464,6 +1498,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentHandIndex = 0;
     let selectedMode = handOptions[currentHandIndex].mode;
     let randomMode = false;
+    // Akkord-Quiz Modus
+    let isChordMode = false;
+    let selectedChords = [];
+    const chords = [
+      { name: 'C-Akkord', notes: ['c/4','e/4','g/4'] },
+      { name: 'D-Akkord', notes: ['d/4','fis/4','a/4'] },
+      { name: 'F-Akkord', notes: ['f/4','a/4','c/5'] },
+      { name: 'G-Akkord', notes: ['g/4','h/4','d/5'] }
+    ];
+    function renderChordList() {
+      const list = document.getElementById('chordList');
+      list.innerHTML = '';
+      chords.forEach((ch, i) => {
+        const el = document.createElement('div');
+        el.className = 'chord-item';
+        el.textContent = ch.name;
+        el.dataset.index = i;
+        el.addEventListener('click', () => el.classList.toggle('selected'));
+        list.appendChild(el);
+      });
+    }
     
     // Verfügbare Quintenzirkel-Tonarten
     const rangeArray = [
@@ -1518,7 +1573,24 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     document.addEventListener("DOMContentLoaded", saveOpenTime);
-    
+    const chordButton = document.getElementById('chordButton');
+    const chordModal = document.getElementById('chordModal');
+    const confirmChords = chordModal.querySelector('.confirm-chords');
+
+    chordButton.addEventListener('click', () => {
+      renderChordList();
+      chordModal.classList.add('visible');
+    });
+
+    confirmChords.addEventListener('click', () => {
+      selectedChords = Array.from(document.querySelectorAll('#chordList .chord-item.selected'))
+        .map(el => chords[+el.dataset.index]);
+      chordModal.classList.remove('visible');
+      if (selectedChords.length) {
+        isChordMode = true;
+        generateSeries();
+      }
+    });
     const updateHeartsDisplay = () => {
       const heartsElem = document.getElementById("heartsContainer");
       heartsElem.textContent = unlimitedLives ? "" : "❤️".repeat(hearts);
@@ -3277,6 +3349,12 @@ const generateSeries = () => {
   // Update progressbar for current Lage whenever a new series is loaded
   drawLageProgress(currentRange, lageProgress[currentRange] || 0);
     // Wenn im Smartphone-Lernmodus: nur exakt 1 Note generieren und zeichnen
+    if (isChordMode && selectedChords.length) {
+      const chord = selectedChords[Math.floor(Math.random()*selectedChords.length)];
+      currentSeriesSingle = [{ chordName: chord.name, chordNotes: chord.notes }];
+      drawSeries();
+      return;
+    }
     if (window.isMobile) {
       // (a) Prüfe, ob wir im Einhand-/Treble-/Bass-Modus sind
       const handClef = (selectedMode === "left") ? "bass" : "treble";
@@ -3471,6 +3549,22 @@ let selectedOctave = 'große Oktave';
 const drawSeries = () => {
   // Debug: Log clef context to diagnose undefined issues
   console.log("drawSeries() context:", { selectedMode, selectedClef, firstClef: currentSeriesSingle?.[0]?.clef });
+  if (isChordMode && currentSeriesSingle[0].chordName) {
+    const chord = currentSeriesSingle[0];
+    notation.innerHTML = '';
+    const renderer = new VF.Renderer(notation, VF.Renderer.Backends.SVG);
+    renderer.resize(notation.clientWidth, 120);
+    const ctx = renderer.getContext();
+    const stave = new VF.Stave(10,10,notation.clientWidth-20);
+    stave.addClef('treble').setContext(ctx).draw();
+    const note = new VF.StaveNote({ keys: chord.chordNotes, duration: 'w' });
+    VF.Formatter.FormatAndDraw(ctx, stave, [note]);
+    const label = document.createElement('div');
+    label.textContent = chord.chordName;
+    label.style.textAlign = 'center';
+    notation.appendChild(label);
+    return;
+  }
   const noteAnimals = {
     "c": "🐱", "d": "🐳", "e": "🐷", "f": "🐟",
     "g": "🐤", "a": "🦊", "b": "🐝", "bb": "🦁",
@@ -4451,6 +4545,8 @@ document.addEventListener("DOMContentLoaded", () => {
         <div id="newsPopupContent" style="margin-top:10px; text-align: justify;">
           Willkommen zur neuen Version! 🎉 Wir haben das Design minimalisitischer gestaltet.<p> Zudem findest du nun eine Fortschrittsanzeige neben dem Lagen-Button. Hier wird dir angezeigt, wie gut du derzeit in jeder Lage bist. Den Counter der zu spielenden Noten haben wir auch dort hin verschoben. Auch das Menü wurde etwas vereinfacht.
         </div>
+        <div class="separator"></div>
+        <button id="chordButton">Akkorde</button>
       </div>
        
         <div id="notation"></div>
@@ -5426,6 +5522,11 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         });
     </script>
+    <div id="chordModal">
+      <h2>Akkordauswahl</h2>
+      <div id="chordList"></div>
+      <span class="confirm-chords">✅</span>
+    </div>
 </body>
 </html>
 
