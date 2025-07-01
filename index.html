@@ -1427,6 +1427,20 @@ function getRandomThreshold() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  // MIDI-Quelle erkennen und loggen
+  let midiSource = "MIDI (Unknown)";
+  if (window.webkit?.messageHandlers?.customPrompt) {
+    midiSource = "MIDI iOS (Swift Bridge)";
+    console.log("📱 MIDI-Quelle:", midiSource);
+    return;
+  } else if (navigator.requestMIDIAccess) {
+    midiSource = "MIDI Web (Browser)";
+    console.log("🌐 MIDI-Quelle:", midiSource);
+  } else {
+    midiSource = "MIDI (Nicht unterstützt)";
+    console.warn("❌ MIDI-Quelle:", midiSource);
+    return;
+  }
   const settingsPanel = document.getElementById("settingsPanel");
   const pauseButton = document.createElement("span");
   pauseButton.id = "pauseButton";
