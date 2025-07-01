@@ -1,3 +1,23 @@
+// --- Doppelklick auf Body: Geometrie-Modus speichern und abschließen ---
+document.addEventListener("DOMContentLoaded", () => {
+  document.body.addEventListener("dblclick", () => {
+    // Beispiel: Geometrie-Modus speichern und schließen
+    // Pseudocode: Falls Funktionen existieren, nutze sie.
+    if (typeof saveGeometryMode === "function") {
+      saveGeometryMode();
+    }
+    if (typeof closeGeometryMode === "function") {
+      closeGeometryMode();
+    }
+    // Falls keine Funktionen vorhanden, führe Standardspeicher- und Schließlogik aus:
+    // Beispielhaft: localStorage-Flag und Panel ausblenden (anpassen falls nötig)
+    if (!window.saveGeometryMode && !window.closeGeometryMode) {
+      localStorage.setItem("geometryModeActive", "false");
+      var panel = document.getElementById("geometryModePanel");
+      if (panel) panel.classList.add("hidden");
+    }
+  });
+});
 <!DOCTYPE html>
 <html>
 <head>
