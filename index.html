@@ -2188,11 +2188,16 @@ const autoSelectMode = () => {
     handToggle.style.transform = handOptions[currentHandIndex].flip ? "scaleX(-1)" : "none";
   }
 };
+function formatAccidentalName(raw) {
+  if (raw.endsWith("#")) return raw.slice(0, -1) + "♯";
+  if (raw.endsWith("b")) return raw.slice(0, -1) + "♭";
+  return raw;
+}
 const cycleRange = () => {
   window.customModeSettings = null;
   currentRangeIndex = (currentRangeIndex + 1) % rangeArray.length;
   currentRange = rangeArray[currentRangeIndex];
-  document.getElementById("clefTitle").textContent = currentRange;
+  document.getElementById("clefTitle").textContent = formatAccidentalName(currentRange);
   generateSeries();
   updateHeartsDisplay();
 };
