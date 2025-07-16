@@ -337,8 +337,6 @@ body.dark-mode #settingsPanel {
 }
 #settingsPanel span:hover {
   background: rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-  border: 3px solid #000;
 }
 @keyframes float {
   0% { transform: translateY(0); }
@@ -5765,7 +5763,8 @@ document.addEventListener("DOMContentLoaded", function() {
       overlay.style.display = "block";
     }
 
-    function closePlayerList() {
+    // Expose to global scope so inline onclick handlers work
+    window.closePlayerList = function closePlayerList() {
       const overlay = document.getElementById("playerOverlay");
       if (overlay) overlay.style.display = "none";
       const notationDiv = document.getElementById("notation");
