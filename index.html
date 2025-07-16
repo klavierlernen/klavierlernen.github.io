@@ -975,50 +975,6 @@ font-weight: bold;
 
 
   
-  
-  // (hwToggle click event listener will be added later in DOMContentLoaded after settingsPanel.appendChild(hwToggle))
-
-  // Camera-based QR scanning
-  async function openCameraScan() {
-    let stream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-    } catch (err) {
-      alert("Kamerazugriff fehlgeschlagen: " + err.message);
-      return null;
-    }
-    // Create modal overlay
-    const scanOverlay = document.createElement("div");
-    scanOverlay.id = "scanOverlay";
-    Object.assign(scanOverlay.style, {
-      position: "fixed", top:0, left:0, width:"100%", height:"100%",
-      background:"rgba(0,0,0,0.8)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:"2000"
-    });
-    const video = document.createElement("video");
-    video.style.maxWidth = "90%";
-    video.style.maxHeight = "80%";
-    video.autoplay = true;
-    video.srcObject = stream;
-    scanOverlay.appendChild(video);
-    const captureBtn = document.createElement("button");
-    captureBtn.textContent = "Scannen";
-    Object.assign(captureBtn.style, { position:"absolute", bottom:"20px", fontSize:"1.2em", padding:"10px" });
-    scanOverlay.appendChild(captureBtn);
-    document.body.appendChild(scanOverlay);
-    return new Promise(resolve => {
-      captureBtn.addEventListener("click", () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext("2d").drawImage(video, 0, 0);
-        const code = jsQR(canvas.getContext("2d").getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
-        stream.getTracks().forEach(t => t.stop());
-        document.body.removeChild(scanOverlay);
-        resolve(code);
-      });
-    });
-  }
-  
 // Disable any scrolling
 window.addEventListener('scroll', function(e) {
   e.preventDefault();
@@ -4654,7 +4610,9 @@ document.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("DOMContentLoaded", () => {
     twemoji.parse(document.body, {
       folder: 'svg',
-      ext: '.svg',
+      ext: '.svg'
+    });
+  });
 </script>
 <script>
 // Doppelklick (bzw. Doppeltippen) auf Body: Geometrie-Modus speichern & schließen
@@ -5687,7 +5645,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
     // News-Popup-Block
     document.addEventListener("DOMContentLoaded", () => {
-      const newsId = "v1.3-update"; // Diese ID bei jeder neuen Nachricht ändern
+      const newsId = "v1.4-update"; // Diese ID bei jeder neuen Nachricht ändern
       const cookieKey = "newsDismissed_" + newsId;
       const dismissed = localStorage.getItem(cookieKey);
 
@@ -5705,7 +5663,13 @@ document.addEventListener("DOMContentLoaded", function() {
       }
     });
     
-    function showPlayerList() {
+function showPlayerList() {
+      // Hide main content and notation while player list is shown
+      const mainContent = document.getElementById("mainContent");
+      if (mainContent) mainContent.style.display = "none";
+      const notationDiv = document.getElementById("notation");
+      if (notationDiv) notationDiv.style.display = "none";
+
       let overlay = document.getElementById("playerOverlay");
       if (!overlay) {
         overlay = document.createElement("div");
@@ -5757,19 +5721,23 @@ document.addEventListener("DOMContentLoaded", function() {
         </tbody>
   <input id="newPlayerInput" type="text" placeholder="Name eingeben…" style="margin-top:8px; padding:4px; font-size:1em;" onkeydown="if(event.key==='Enter'){submitNewPlayer();}" />
       </table>
-      <button onclick="closePlayerList()" style="margin-top:15px; padding:8px 16px; border:2px solid #000; border-radius:6px; background:#fff; cursor:pointer;">Zurück</button>
+      <button id="playerOverlayCloseBtn" style="margin-top:15px; padding:8px 16px; border:2px solid #000; border-radius:6px; background:#fff; cursor:pointer;">Zurück</button>
     </div>
   `;
+      const closeBtn = document.getElementById('playerOverlayCloseBtn');
+      if (closeBtn) closeBtn.addEventListener('click', closePlayerList);
       overlay.style.display = "block";
     }
 
     // Expose to global scope so inline onclick handlers work
     window.closePlayerList = function closePlayerList() {
+      // Remove the overlay and restore main UI
       const overlay = document.getElementById("playerOverlay");
-      if (overlay) overlay.style.display = "none";
+      if (overlay) overlay.remove();
+      const mainContent = document.getElementById("mainContent");
+      if (mainContent) mainContent.style.display = "block";
       const notationDiv = document.getElementById("notation");
       if (notationDiv) notationDiv.style.display = "block";
-      if (overlay) overlay.style.display = "none";
     }
     // Handler für neuen Spieler anlegen (Eingabe-UI)
     function submitNewPlayer() {
