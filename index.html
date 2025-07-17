@@ -285,7 +285,7 @@ body.dark-mode #gameOverOverlay {
   align-items: center;
   z-index: 10;
   border-radius: 20px;
-  width: 60px;
+  width: 120px;
   background: #fff;
   border: 3px solid #000;
   padding: 10px 20px;
@@ -325,8 +325,10 @@ body.dark-mode #settingsPanel {
   border-color: #fff;
 }
 #settingsPanel span {
-    border: 3px solid #000;
-  display: block;
+  border: 3px solid #000;
+  display: inline-block;
+  width: 48%;
+  box-sizing: border-box;
   cursor: pointer;
   font-size: 1.8em;
   margin: 8px 0;
@@ -334,6 +336,10 @@ body.dark-mode #settingsPanel {
   text-align: center;
   background: none;
   border: none;
+}
+/* Automatischen Zeilenumbruch im Settings-Panel ermöglichen */
+#settingsPanel {
+  flex-wrap: wrap;
 }
 #settingsPanel span:hover {
   background: rgba(0, 0, 0, 0.1);
@@ -833,6 +839,8 @@ font-weight: bold;
     cursor: grab;
     user-select: none;
     transition: border 0.2s;
+    /* Stelle sicher, dass sie immer sichtbar sind */
+    /* display: none; entfernt */
   }
   .settings-emoji.drag-over {
     border: 2px dashed #333;
@@ -1312,10 +1320,8 @@ function saveButtonEffect() {
             }
           } else {
             // Alle wieder einblenden
-            if (emoji.classList.contains("hidden-during-geometry")) {
-              emoji.style.display = '';
-              emoji.classList.remove("hidden-during-geometry");
-            }
+            emoji.style.display = '';
+            emoji.classList.remove("hidden-during-geometry");
           }
         });
       }, 10);
