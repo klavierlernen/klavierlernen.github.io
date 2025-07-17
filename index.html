@@ -5817,6 +5817,19 @@ function showPlayerList() {
       }
       lastTap = currentTime;
     });
+    
+    
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js').then(function (registration) {
+        console.log('✅ Service Worker registriert:', registration.scope);
+      }, function (err) {
+        console.log('❌ Service Worker Fehler:', err);
+      });
+    });
+  }
 </script>
 <div id="chordModal">
   <h2>Akkordauswahl</h2>
