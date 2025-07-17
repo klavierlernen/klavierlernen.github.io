@@ -1,7 +1,7 @@
 {
   "name": "Klavier",
   "short_name": "Klavier",
-  "start_url": "https://klavierlernen.github.io/",
+  "start_url": "klavierlernen.github.io",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#007bff",
