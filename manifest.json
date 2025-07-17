@@ -1,18 +1,18 @@
 {
   "name": "Klavier",
   "short_name": "Klavier",
-  "start_url": "https://jp0024.github.io/piano.github.io/",
+  "start_url": "https://klavierlernen.github.io/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#007bff",
   "icons": [
     {
-      "src": "https://jp0024.github.io/piano.github.io/icon.png",
+      "src": "https://klavierlernen.github.io/icon.png",
       "type": "image/png",
       "sizes": "1024x1024"
     },
     {
-      "src": "https://jp0024.github.io/piano.github.io/icon.png",
+      "src": "https://klavierlernen.github.io/icon.png",
       "type": "image/png",
       "sizes": "1024x1024"
     }
