@@ -1112,8 +1112,8 @@ let initX = 0, initY = 0;
 let dragging = false;
 
 notation.addEventListener('touchstart', e => {
-// Only allow dragging if the Geodreieck-Button ("geometryToggle") is active
-const toggle = document.getElementById('geometryToggle');
+// Only allow dragging if der Move-Notation-Button aktiv ist
+const toggle = document.getElementById('moveNotationToggle');
 const isActive = toggle && (toggle.classList.contains('active') || toggle.dataset.active === 'true');
 if (!isActive) return;
 e.preventDefault();
@@ -1459,6 +1459,18 @@ function proceedToMainScreen() {
       mainContent.style.display = "block";
       document.getElementById("timerContainer").style.display = "flex";
       document.getElementById("settingsPanel").style.display = "flex";
+      // Activate geometry mode to allow notation dragging
+      const geometryToggle = document.getElementById('geometryToggle');
+      if (geometryToggle) {
+        geometryToggle.classList.add('active');
+        geometryToggle.dataset.active = 'true';
+      }
+      const notationEl = document.getElementById('notation');
+      if (notationEl) {
+        notationEl.style.display = 'block';
+        notationEl.style.pointerEvents = 'auto';
+        notationEl.style.cursor = 'grab';
+      }
       setTimeout(() => { mainContent.style.opacity = "1"; }, 500);
     }, 1000);
   }, 5000);
@@ -4351,10 +4363,7 @@ function startTutorialSequence() {
   const savedName = localStorage.getItem("userName") || "";
   const greeting = savedName ? `Hallo, ${savedName}!` : "Hallo!";
   const steps = [
-    [greeting, "Du scheinst das erste Mal hier zu sein ...", "...lass uns dir zeigen, wie die App funktioniert!"],
-    ["⚙️ Test: Spiele C4", "Bitte spiele C4 (MIDI-Note 60)", "✅ Super, weiter geht's!"],
-    ["Du kannst nun angezeigte Noten im Notensystem spielen.", "Hierzu gibt es folgende Einstellungsmöglichkeiten...", "✋ Auswahl der Hand", "🐇 Zufallsmodus oder 🖍️ Benutzerdefiniert", "🌙 Dark Mode", "⏲️ Metronom"],
-    ["Soweit startklar?", "Viel Spaß beim Spielen!"]
+    [greeting, "✅ Super, weiter geht's!"]
   ];
 
   const tutorialOverlay = document.createElement("div");
@@ -4435,6 +4444,18 @@ function startTutorialSequence() {
       }, 50);
       setTimeout(() => {
         tutorialOverlay.remove();
+        // Activate move-notation toggle to allow dragging
+        const moveNotationToggle = document.getElementById('moveNotationToggle');
+        if (moveNotationToggle) {
+          moveNotationToggle.classList.add('active');
+          moveNotationToggle.dataset.active = 'true';
+        }
+        const notationEl = document.getElementById('notation');
+        if (notationEl) {
+          notationEl.style.display = 'block';
+          notationEl.style.pointerEvents = 'auto';
+          notationEl.style.cursor = 'grab';
+        }
         localStorage.setItem("tutorialCompleted", "true");
       }, 1050);
       return;

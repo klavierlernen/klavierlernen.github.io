@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Tutorial-Modus Demo mit VexFlow</title>
+  <!-- VexFlow browser build -->
+  <script src="https://unpkg.com/vexflow/releases/vexflow-min.js"></script>
+  <style>
+    /* Reset & Grundlayout */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f0f0f0; height: 100vh; overflow: hidden; }
+
+    /* -------------------------------------
+       Graue Elemente im Tutorial-Layout
+       ------------------------------------- */
+    #settingsPanel {
+      position: fixed;
+      top: 10px; right: 10px;
+      width: 200px; height: 150px;
+      background: #ccc; border: 2px solid #999;
+      border-radius: 8px;
+    }
+    #progressContainer {
+      position: fixed;
+      bottom: 20px; left: 50%;
+      transform: translateX(-50%);
+      width: 60%; height: 20px;
+      background: #ccc; border: 2px solid #999;
+      border-radius: 10px; overflow: hidden;
+    }
+    #progressFilled {
+      height: 100%; width: 0%;
+      background: #999; transition: width 0.3s;
+    }
+    #clefButton, #toneButton {
+      position: fixed; bottom: 60px;
+      width: 100px; height: 40px;
+      background: #ccc; border: 2px solid #999;
+      border-radius: 8px; cursor: pointer;
+      text-align: center; line-height: 40px;
+    }
+    #clefButton { left: 30%; }
+    #toneButton { right: 30%; }
+    #tutorialText {
+      position: fixed; bottom: 110px;
+      left: 30%; transform: translateX(-50%);
+      background: rgba(255,255,255,0.9);
+      padding: 8px 12px; border-radius: 4px;
+      border: 1px solid #999;
+    }
+
+    /* -------------------------------------
+       Notations-Container (drag & resize)
+       ------------------------------------- */
+    #notationContainer {
+      position: fixed;
+      top: 40%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 400px; height: 180px;
+      background: white;
+      border: 2px solid #666;
+      border-radius: 8px;
+      cursor: move;
+      resize: both;      /* ermöglicht manuellen Größen-Adjust */
+      overflow: hidden;  /* Scrollen unterdrücken */
+    }
+    #geoHint {
+      position: absolute; top: -24px; left: 0;
+      width: 100%; text-align: center;
+      font-size: 0.9em; color: #444;
+      display: none;
+    }
+
+    /* Canvas füllt den Container */
+    #notationCanvas {
+      width: 100%; height: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Tutorial-Elemente -->
+  <div id="settingsPanel"></div>
+  <div id="progressContainer">
+    <div id="progressFilled"></div>
+  </div>
+  <div id="clefButton">Tonart</div>
+  <div id="tutorialText">Klicke hier, um die Tonart zu wechseln</div>
+  <div id="toneButton">Ton</div>
+
+  <!-- Notations-Container -->
+  <div id="notationContainer">
+    <div id="geoHint">Ziehe den Rahmen hier her, wo du es brauchst</div>
+    <div id="notationCanvas"></div>
+  </div>
+
+  <!-- Geometriemodus-Toggle -->
+  <button id="geometryToggle"
+          style="position:fixed; top:50%; left:10px; padding:8px; font-size:1em;">
+    📐 Geometriemodus
+  </button>
+
+  <script>
+    // --- Variables für Demo ---
+    const clefs = ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'Ab', 'Eb', 'Bb', 'F'];
+    let clefIndex = 0;
+
+    // --- Progress-Bar Simulation ---
+    let prog = 0;
+    setInterval(() => {
+      prog = Math.min(100, prog + 10);
+      document.getElementById('progressFilled').style.width = prog + '%';
+    }, 1000);
+
+    // --- VexFlow Notations-Rendering ---
+    const VF = Vex.Flow;
+    function renderNotation() {
+      const container = document.getElementById('notationCanvas');
+      // Alte Darstellung löschen
+      container.innerHTML = '';
+      // Größe ermitteln
+      const rect = document.getElementById('notationContainer').getBoundingClientRect();
+      // SVG Renderer anlegen
+      const renderer = new VF.Renderer(container, VF.Renderer.Backends.SVG);
+      renderer.resize(rect.width, rect.height);
+      const ctx = renderer.getContext();
+      // Stave zeichnen
+      const stave = new VF.Stave(10, 10, rect.width - 20);
+      stave
+        .addClef('treble')
+        .addKeySignature(clefs[clefIndex])
+        .setContext(ctx)
+        .draw();
+      // Beispiel-Note(en)
+      const notes = [
+        new VF.StaveNote({ keys: ['c/4'], duration: 'q' })
+      ];
+      // Formatter & Voice
+      VF.Formatter.FormatAndDraw(ctx, stave, notes);
+    }
+
+    // Initiales Zeichnen
+    window.addEventListener('load', renderNotation);
+
+    // --- Clef-Button zum Wechsel der Tonart / Neuzeichnen ---
+    document.getElementById('clefButton').addEventListener('click', () => {
+      clefIndex = (clefIndex + 1) % clefs.length;
+      document.getElementById('clefButton').textContent = clefs[clefIndex] + '-Dur';
+      document.getElementById('tutorialText').textContent =
+        'Aktuelle Tonart: ' + clefs[clefIndex] + '-Dur';
+      renderNotation();
+    });
+
+    // --- Geometriemodus (Drag + Resize beobachten) ---
+    const toggle = document.getElementById('geometryToggle');
+    const box    = document.getElementById('notationContainer');
+    const hint   = document.getElementById('geoHint');
+    let geoMode  = false, startX, startY, origX, origY;
+
+    // Wiederherstellen gespeicherter Größe & Position
+    window.addEventListener('load', () => {
+      const saved = JSON.parse(localStorage.getItem('notationStyle') || 'null');
+      if (saved) {
+        box.style.transform = saved.transform;
+        box.style.width     = saved.width;
+        box.style.height    = saved.height;
+      }
+    });
+
+    // Toggle-Button
+    toggle.addEventListener('click', () => {
+      geoMode = !geoMode;
+      hint.style.display = geoMode ? 'block' : 'none';
+      toggle.textContent = geoMode ? '🔒 Fertig' : '📐 Geometriemodus';
+    });
+
+    // Drag-Handling
+    box.addEventListener('mousedown', e => {
+      if (!geoMode) return;
+      e.preventDefault();
+      const style = window.getComputedStyle(box);
+      const m = new DOMMatrixReadOnly(style.transform);
+      startX = e.clientX; startY = e.clientY;
+      origX = m.m41; origY = m.m42;
+      document.addEventListener('mousemove', onDrag);
+      document.addEventListener('mouseup', onUp);
+    });
+    function onDrag(e) {
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      box.style.transform = `translate(${origX + dx}px, ${origY + dy}px)`;
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onDrag);
+      document.removeEventListener('mouseup', onUp);
+      saveStyle();
+      geoMode = false;
+      hint.style.display = 'none';
+      toggle.textContent = '📐 Geometriemodus';
+    }
+
+    // Beobachte Resize mittels ResizeObserver
+    const ro = new ResizeObserver(() => {
+      if (geoMode) saveStyle();
+      renderNotation(); // immer neu zeichnen bei Größenänderung
+    });
+    ro.observe(box);
+
+    function saveStyle() {
+      const style = {
+        transform: box.style.transform,
+        width:     box.style.width,
+        height:    box.style.height
+      };
+      localStorage.setItem('notationStyle', JSON.stringify(style));
+    }
+  </script>
+</body>
+</html>
