@@ -1192,6 +1192,37 @@ cursor: pointer;
   display: none !important;
 }
 }
+    
+    /* Start menu styles */
+    #startMenu {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      gap: 40px;
+      z-index: 2000;
+    }
+    .start-icon {
+      font-size: 4em;
+      padding: 20px;
+      border: 3px solid #000;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.2s;
+    }
+    .start-icon:hover {
+      background-color: rgba(0,0,0,0.1);
+      transform: scale(1.1);
+    }
+    body.dark-mode .start-icon {
+      border-color: #fff;
+      color: #fff;
+    }
+    body.dark-mode .start-icon:hover {
+      background-color: rgba(255,255,255,0.1);
+    }
+    
 </style>
 </head>
 <body>
@@ -1263,9 +1294,12 @@ cursor: pointer;
     <!-- Kachelwand -->
     <div id="pauseTiles"></div>
 </div>
-<!-- Welcome Overlay -->
-<div id="welcomeOverlay">
-    <div id="welcomeMessage"><br>Schön, dass du da bist!<br></div>
+<!-- Start Menu: shows the important functions at launch -->
+<div id="startMenu">
+  <div class="start-icon" data-mode="hand" title="Handmodus">✋</div>
+  <div class="start-icon" data-mode="crayon" title="Wachsmalstift">🖍️</div>
+  <div class="start-icon" data-mode="rabbit" title="Hasen-Modus">🐇</div>
+  <div class="start-icon" data-mode="other" title="Weitere Funktion">⚙️</div>
 </div>
 <!-- Game Over Overlay -->
 <div id="gameOverOverlay"></div>
@@ -1275,7 +1309,7 @@ cursor: pointer;
 <div id="motivationOverlay"></div>
 <!-- Timer Container moved into leftBackdrop -->
 <!-- Hintergrund-Panels für minimalistisches Design -->
-<div id="leftBackdrop">
+<div id="leftBackdrop" style="display:none;">
   <!-- Timer and button container moved into the left rectangle -->
   <div id="timerContainer"></div>
   <div id="buttonContainer">
@@ -1285,12 +1319,7 @@ cursor: pointer;
     <div id="heartsContainer" style="margin-left:10px;"></div>
   </div>
 </div>
-<!-- Draggable divider between the left and right panels -->
-<div id="panelDivider"></div>
-<div id="rightBackdrop">
-  <!-- Einstellungsleiste: Emojis werden im rechten Panel platziert -->
-  <div id="settingsPanel"></div>
-</div>
+
 
 <!-- Hauptinhalt -->
 <div id="mainContent">
@@ -1373,6 +1402,42 @@ cursor: pointer;
 
 <!-- JavaScript Logic -->
 <script>
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const startMenu = document.getElementById('startMenu');
+        const leftBackdrop = document.getElementById('leftBackdrop');
+        const mainContent = document.getElementById('mainContent');
+        // Hide the left panel on initial load (mainContent is hidden via CSS)
+        if (leftBackdrop) {
+          leftBackdrop.style.display = 'none';
+        }
+        if (startMenu) {
+          startMenu.querySelectorAll('.start-icon').forEach(icon => {
+            icon.addEventListener('click', () => {
+              const mode = icon.dataset.mode;
+              // Hide start menu
+              startMenu.style.display = 'none';
+              // Show left panel and main content
+              if (leftBackdrop) {
+                leftBackdrop.style.display = '';
+              }
+              if (mainContent) {
+                mainContent.style.display = 'block';
+              }
+              // Trigger mode logic
+              if (mode === 'hand') {
+                currentHandIndex = 0;
+                selectedMode = handOptions[currentHandIndex].mode;
+              } else if (mode === 'crayon') {
+                wizardMode = true;
+              } else if (mode === 'rabbit') {
+                randomMode = true;
+              }
+            });
+          });
+        }
+    });
+    
 let twoHandMode = false;
 // Stellen Sie sicher, dass das Notensystem nicht verschiebbar ist.  
 // Wir markieren das Notensystem als bereits konfiguriert, sodass der Geometrie‑Button
