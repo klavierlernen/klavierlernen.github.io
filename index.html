@@ -692,6 +692,17 @@
         }
       }
 
+      // Bridge-Funktion für Swift-App
+      function receiveMIDIFromSwift(noteNumber, velocity) {
+        if (velocity > 0) { // Note-On
+          const noteName = midiNoteToName(noteNumber);
+          console.log("🎹 Swift MIDI:", noteName);
+          handleUserNote(noteName);
+        } else {
+          console.log("🔈 Swift MIDI Note-Off:", noteNumber);
+        }
+      }
+
       // Lage wechseln, Buttons aktualisieren
       function setPosition(pos) {
         currentPosition = pos;
