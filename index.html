@@ -1,24 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-<!-- Metadata and external resources -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Klavier</title>
+<!-- VexFlow laden -->
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="apple-touch-icon" href="icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+<!-- canvas-confetti laden -->
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qwerty-hancock/0.7.2/qwerty-hancock.min.js"></script>
-<!-- Styles -->
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  
 <style>
 /* Grundlayout */
 html, body {
@@ -54,40 +54,35 @@ body.dark-mode {
 /* Einhand-Notation (normaler Modus) */
 /* Absolute Mitte mit minimalen Rändern */
   #notation {
-    /* Das Notensystem wird durchgehend zentriert positioniert, damit es
-       unabhängig von der Bildschirmgröße immer im Fokus steht. */
     display: none;              /* bleibt durch JS gesteuert */
     position: fixed;
-    top: 50%;
-    left: 50%;
+    top: 85%;
+    left: 65%;
     transform: translate(-50%, -50%);
     transform-origin: center center;
     width: auto;
-    /* Einen kleinen Rand lassen, um ein Überlaufen auf kleinen Geräten zu vermeiden */
-    max-width: 90%;
+    max-width: calc(100% - 10px); /* 5 px Rand links/rechts */
     padding: 0;
     margin: 0;
     box-sizing: border-box;
     z-index: 1;
-    /* Verhindere, dass das Notensystem Mausklicks oder Touches abfängt.
-       Dadurch können Elemente hinter dem SVG (z.B. Einstellungen) weiterhin
-       angeklickt werden.  Die Ereignisse werden nur bei aktiviertem
-       Verschiebe‑Modus ("moveNotation") wieder freigegeben. */
-    pointer-events: none;
   }
 
-  /* Früher wurde das Notensystem bei kleinen Displays separat positioniert.  Da
-     es nun generell zentriert ist, entfällt die spezielle Media-Query. */
+  @media screen and (max-width: 600px) {
+    #notation {
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      max-width: 90%;   /* 5 % Rand mobil */
+      padding: 0;
+    }
+  }
 #notation svg {
   width: 100%;
   height: auto;
   shape-rendering: crispEdges;
   display: block;
   margin: 0 auto;
-  /* Verhindert, dass das von VexFlow erzeugte SVG Maus- oder Touch-
-     Ereignisse abfängt. Dadurch bleiben dahinter liegende Buttons
-     und Emojis anklickbar. */
-  pointer-events: none;
 }
 #notation svg * {
   vector-effect: non-scaling-stroke;
@@ -288,8 +283,7 @@ body.dark-mode #gameOverOverlay {
   display: none;
   flex-direction: column;
   align-items: center;
-  /* Die Einstellungs‑Leiste und ihre Emojis sollen stets über allen anderen Inhalten liegen. */
-  z-index: 2000;
+  z-index: 10;
   border-radius: 20px;
   width: 120px;
   background: #fff;
@@ -331,15 +325,14 @@ body.dark-mode #settingsPanel {
   border-color: #fff;
 }
   #settingsPanel span {
-    /* Emojis im schmalen Panel sollen jeweils die komplette Breite nutzen
-       und zentriert dargestellt werden. */
+    margin: auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
+    width: 50%;
     aspect-ratio: 1 / 1;
     font-size: 1.8em;
-    padding: 4px;
+    padding: 6px;
     border: 2px solid transparent;
     background-color: transparent;
     cursor: pointer;
@@ -517,13 +510,9 @@ body.dark-mode #welcomeMessage { color: #e0e0e0; }
 
 /* Notensystem kürzen: Notation-Container anpassen */
 #notation {
-  /* Die Position des Notensystems bleibt auch auf kleineren Displays zentral, sodass
-     es immer ungefähr in der Mitte des Bildschirms liegt. */
-  top: 50%;
-  max-width: 90%;
-  padding: 5px;
-  margin-top:24%;
-  margin-left:10%;
+top: 60%;
+max-width: 90%;
+padding: 5px;
 }
 
 /* Passe die Notenanzeige an (falls nötig) */
@@ -620,7 +609,56 @@ font-weight: bold;
  .hidden {
      display: none !important;
  }
-/* removed carousel and speech bubble styles as the carousel is no longer used */
+/* Carousel Hint Speech Bubble */
+.speech-bubble {
+  position: fixed;
+  width: 180px;
+  padding: 10px;
+  background: #fff;
+  border: 2px solid #000;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  font-size: 0.9em;
+  z-index: 1001;
+}
+.speech-bubble::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 10px 10px 0;
+  border-style: solid;
+  border-color: #fff transparent;
+}
+.speech-bubble .close-btn {
+  position: absolute;
+  top: 2px;
+  right: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+/* Carousel container and track */
+/* Carousel container und Track nun vertikal gestapelt */
+#carouselContainer {
+  position: relative;
+  width: 100%;
+  overflow-y: auto;      /* vertikales Scrollen erlauben */
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column; /* Items untereinander anordnen */
+}
+
+#carouselTrack {
+  display: block;
+  width: 100%;
+}
+
+.carouselItem {
+  width: 100%;
+  display: block;
+  margin-bottom: 8px;     /* Abstand zwischen den Items */
+}
   
   @keyframes flyOutRight {
     to { opacity: 0; transform: translateX(100%); }
@@ -634,72 +672,6 @@ font-weight: bold;
   .fly-out-left {
     animation: flyOutLeft 0.5s forwards;
     
-  }
-
-  /* Backdrop panels for minimalist layout */
-  #leftBackdrop, #rightBackdrop {
-    position: fixed;
-    /* Increase margins around the panels to 10px on all sides */
-    top: 10px;
-    bottom: 10px;
-    background: #ffffff;
-    border-radius: 20px;
-    /* Kein z‑Index an dieser Stelle, damit die individuellen z‑Index‑Einstellungen
-       für links (2) und rechts (3) wirken können. */
-  }
-  /* Left rectangle fills the remaining width except the right rectangle, margins and the divider.  
-     There is no fixed gap anymore; instead a draggable divider (panelDivider) occupies the space between left and right. */
-  #leftBackdrop {
-    left: 10px;
-    /* initial width leaves space for the right panel (80px), the divider (10px) and two 10px margins */
-    width: calc(100% - 80px - 20px - 10px);
-    /* Das Notensystem soll niemals über den Rand des linken Rechtecks hinausragen.  
-       Indem wir Overflow auf hidden setzen, bleibt alles innerhalb des Paneels. */
-    overflow: hidden;
-    /* Der linke Bereich liegt oberhalb des Notensystems (z‑Index 2). */
-    z-index: 2;
-  }
-  /* Right rectangle ist der Einstellungsbereich.  
-     Er liegt oberhalb des linken Paneels (z‑Index 3) und kann beim Drag nach links geschoben werden. */
-  #rightBackdrop {
-    right: 10px;
-    width: 80px;
-    z-index: 3;
-  }
-
-  /* Divider between the two panels.
-     A narrow, grey bar with rounded corners separates the left and right rectangles.
-     It can be dragged horizontally to resize both panels.
-     The visible part of the divider is only 100 px high and vertically centered,
-     but it still occupies the full height for drag events via an invisible area. */
-  #panelDivider {
-    position: fixed;
-    /* Only 100px tall visible bar centred vertically */
-    height: 100px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 5px;
-    background: #888888;
-    border-radius: 6px;
-    cursor: col-resize;
-    z-index: 100; /* above backdrops and settings so it captures pointer events */
-    /* Initially position the divider immediately after the left panel;
-       this value is recalculated in JavaScript on load and during dragging. */
-    left: calc(10px + (100% - 80px - 20px - 10px));
-    margin: 2.4px;
-  }
-
-  /* Override page background to black for minimalist look */
-  html, body {
-    background-color: #000 !important;
-  }
-
-  /* Override the default horizontal positioning of the notation so that it
-     initially sits centered within the left panel.  The left panel occupies
-     the full width minus the width of the right panel (80px), the divider (10px)
-     and the two margins (10px each).  We compute the centre accordingly. */
-  #notation {
-    left: calc(10px + (100% - 80px - 20px - 10px) / 2) !important;
   }
   
   #virtualKeyboard {
@@ -724,113 +696,6 @@ font-weight: bold;
     height: 80px !important;
     margin-left: -7px;
     margin-right: -7px;
-  }
-
-  /* Align notation inside the left backdrop.  
-     The notation should be horizontally centered within the left rectangle.  
-     The left rectangle starts 10px from the page edge and has a width of (100% - 80px - 30px).
-     Its centre lies at 10px + half of its width.  
-     Vertically, the centre of the backdrop is still at 50% of the viewport height. */
-  #notation {
-    /* Set an initial centre position for the notation; this will be updated dynamically by JS when the divider moves. */
-    left: calc(10px + (100% - 80px - 20px - 10px) / 2);
-    top: 50%;
-  }
-
-  /* Place the settings panel inside the right backdrop */
-  #rightBackdrop #settingsPanel {
-    position: relative;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    width: 100% !important;
-    height: 100% !important;
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-    padding: 5px;
-    /* Setze einen sehr hohen z‑Index, damit das Einstellungs‑Panel und seine
-       Emojis stets über allen anderen Inhalten liegen. */
-    z-index: 2000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    /* Hide scrollbars while retaining scroll behaviour */
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE 10+ */
-  }
-  /* Hide scrollbars in WebKit-based browsers */
-  #rightBackdrop #settingsPanel::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-    display: none;
-  }
-  #rightBackdrop #settingsPanel::-webkit-scrollbar-track {
-    display: none;
-  }
-  #rightBackdrop #settingsPanel::-webkit-scrollbar-thumb {
-    display: none;
-  }
-  /* Style each emoji button inside the right panel */
-  #rightBackdrop #settingsPanel span {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    font-size: 1.8em;
-    margin-bottom: 5px;
-    border: 2px solid transparent;
-    border-radius: 8px;
-    transition: background-color 0.2s, transform 0.1s;
-  }
-  #rightBackdrop #settingsPanel span:hover {
-    background: rgba(0,0,0,0.1);
-    transform: scale(1.05);
-  }
-
-  /* When the right panel is wide enough, show descriptive labels next to each emoji.
-     The labels are stored in the data-label attribute of each span. */
-  #rightBackdrop #settingsPanel span::after {
-    content: attr(data-label);
-    display: none;
-    margin-left: 6px;
-    font-size: 0.9em;
-    white-space: nowrap;
-  }
-  #rightBackdrop.wide #settingsPanel span::after {
-    display: inline;
-  }
-  /* When wide, allow the icon and its label to sit side by side rather than forcing a square aspect ratio. */
-  #rightBackdrop.wide #settingsPanel span {
-    aspect-ratio: auto;
-    justify-content: flex-start;
-  }
-
-  /* Override positioning for timer and button containers when they reside inside the left backdrop.  
-     These selectors have higher specificity than the base definitions and will override the original fixed positions. */
-  #leftBackdrop #timerContainer {
-    position: absolute;
-    /* Anchor the time display at the right edge of the left rectangle.  
-       Place it near the bottom to align with the progress bar and mode buttons. */
-    top: auto;
-    right: 15px;
-    bottom: 25px;
-    left: auto;
-  }
-
-  #leftBackdrop #buttonContainer {
-    position: absolute;
-    /* Position the progress bar and mode buttons at the bottom centre of the left rectangle */
-    bottom: 25px;
-    left: 50%;
-    transform: translateX(-50%);
-    right: auto;
-    top: auto;
   }
 
   /* Nur Touch-Interaktionen für die virtuelle Klaviatur erlauben */
@@ -1111,342 +976,11 @@ font-weight: bold;
       padding: 20px;
       color: black;
     }
-.vf-stavenote.selected path {
-stroke: green !important;
-fill: green !important;
-}
-.correction-letter {
-font-size: 0.9em;
-line-height: 1;
-}
-@keyframes flyOutRight {
-from { opacity: 1; transform: translateX(0); }
-to   { opacity: 0; transform: translateX(100%); }
-}
-@keyframes flyOutLeft {
-from { opacity: 1; transform: translateX(0); }
-to   { opacity: 0; transform: translateX(-100%); }
-}
-.fly-out-right {
-animation: flyOutRight 0.5s forwards;
-}
-.fly-out-left {
-animation: flyOutLeft 0.5s forwards;
-}
-@keyframes flyInRight {
-from { opacity: 0; transform: translateX(100%); }
-to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes flyInLeft {
-from { opacity: 0; transform: translateX(-100%); }
-to   { opacity: 1; transform: translateX(0); }
-}
-.fly-in-right {
-animation: flyInRight 0.5s forwards;
-}
-.fly-in-left {
-animation: flyInLeft 0.5s forwards;
-}
-/* Intro Overlay Styles */
-#introOverlay {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background: white;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  transform: translateY(0);
-  transition: transform 1s ease-in-out;
-}
-#introOverlay.hidden {
-  transform: translateY(-100%);
-}
-/* Twemoji: Konsistente Emoji-Größe */
-img.emoji {
-  height: 1.2em;
-  vertical-align: -0.1em;
-}
-/* Abstand für das Notensystem entfernen, da es nun zentriert positioniert wird */
-#notation {
-  margin-top: 24%;
-  margin-left: 10%;
-}
-/* Scale-Clef-Buttons standardmäßig verbergen */
-#scaleSelector {
-display: none;
-}
-/* Styling für Oktaven-Buttons: weißer Hintergrund, schwarzer Rand */
-#scaleSelector button {
-background-color: white;
-border: 2px solid black;
-border-radius: 4px;
-padding: 4px 8px;
-cursor: pointer;
-}
-@media screen and (max-width: 768px) {
-#settingsPanel,
-#timerContainer,
-#streakDisplay {
-  display: none !important;
-}
-}
-    
-    /* Start menu styles */
-    #startMenu {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      display: flex;
-      gap: 40px;
-      z-index: 2000;
-    }
-    .start-icon {
-      font-size: 4em;
-      padding: 20px;
-      border: 3px solid #000;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: background-color 0.2s, transform 0.2s;
-    }
-    .start-icon:hover {
-      background-color: rgba(0,0,0,0.1);
-      transform: scale(1.1);
-    }
-    body.dark-mode .start-icon {
-      border-color: #fff;
-      color: #fff;
-    }
-    body.dark-mode .start-icon:hover {
-      background-color: rgba(255,255,255,0.1);
-    }
-    
+  
 </style>
-</head>
-<body>
-<!-- Main Content -->
-
-
-
-
-
-
-<!-- VexFlow laden -->
-
-
-
-
-
-
-<!-- canvas-confetti laden -->
-
-
-
-
-  
-  
-  
-
-
-
-<!-- Vereinheitlichte MIDI-Initialisierung -->
-
-
-
-
-
-
-
-
-
-
-
-    <div id="introOverlay">
-      <div id="introOverlayText">
-        MIT ❤️ ENTWICKELT VON <br>JAN-PHILIPP ZUSAMMEN MIT<p><img src="https://raw.githubusercontent.com/jp0024/piano.github.io/main/kklogo-1135x186.png" style="width:80%; height:80%" ;>
-      </div>
-    </div>
-<!-- Direkt nach <body> einfügen -->
-
-
-<div id="streakDisplay"></div>
-<!-- Canvas für Animation (Hintergrund) -->
-<canvas id="animationCanvas"></canvas>
-<!-- Audio-Element (deaktiviert) -->
-<!--
-<audio id="backgroundSound" autoplay>
-    <source src="https://raw.githubusercontent.com/JP0024/piano.github.io/3d35e0a8d4eb3e018151018e36e225dc7a856ecd/mixkit-relaxing-harp-sweep-2628.wav" type="audio/wav">
-        Dein Browser unterstützt das Audio-Element nicht.
-</audio>
--->
-<!-- Pause-Overlay -->
-<div id="pauseOverlay">
-    <div id="pauseInfo">
-        <div id="pauseHeader">SESSION PAUSIERT</div>
-        <div id="pauseProgressContainer">
-          <div id="pauseProgress"></div>
-          <div id="pauseTime" style="position:absolute; left:0; top:0; font-size:14px; color:#000; padding:0 5px;"></div>
-          <div id="remainingNotesDisplay">${sessionCounter}</div>
-        </div>
-    </div>
-    <!-- Kachelwand -->
-    <div id="pauseTiles"></div>
-</div>
-<!-- Start Menu: shows the important functions at launch -->
-<div id="startMenu">
-  <div class="start-icon" data-mode="hand" title="Handmodus">✋</div>
-  <div class="start-icon" data-mode="crayon" title="Wachsmalstift">🖍️</div>
-  <div class="start-icon" data-mode="rabbit" title="Hasen-Modus">🐇</div>
-  <div class="start-icon" data-mode="other" title="Weitere Funktion">⚙️</div>
-</div>
-<!-- Game Over Overlay -->
-<div id="gameOverOverlay"></div>
-<!-- Scoreboard Overlay -->
-<div id="scoreboardOverlay" class="hidden"></div>
-<!-- Motivationsfenster -->
-<div id="motivationOverlay"></div>
-<!-- Timer Container moved into leftBackdrop -->
-<!-- Hintergrund-Panels für minimalistisches Design -->
-<div id="leftBackdrop" style="display:none;">
-  <!-- Timer and button container moved into the left rectangle -->
-  <div id="timerContainer"></div>
-  <div id="buttonContainer">
-    <div id="lageProgressCircle"></div>
-    <div id="lageButton" onclick="cycleLage()">C-Lage</div>
-    <div id="toneButton" onclick="cycleTone()">A</div>
-    <div id="heartsContainer" style="margin-left:10px;"></div>
-  </div>
-</div>
-
-
-<!-- Hauptinhalt -->
-<div id="mainContent">
-  <div id="newsPopup" style="display:none; position:fixed; top:20px; left:20px; background:#fff; border:2px solid #000; border-radius:10px; padding:20px; max-width:300px; z-index:9999; box-shadow:0 4px 10px rgba(0,0,0,0.2);">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <strong>🆕 Neuigkeiten</strong>
-      <span id="newsPopupClose" style="cursor:pointer; font-weight:bold;">✖</span>
-    </div>
-    <div id="newsPopupContent" style="margin-top:10px; text-align: justify;">
-      Willkommen zur neuen Version! 🎉 Wir haben das Design minimalisitischer gestaltet.<p> Zudem findest du nun eine Fortschrittsanzeige neben dem Lagen-Button. Hier wird dir angezeigt, wie gut du derzeit in jeder Lage bist. Den Counter der zu spielenden Noten haben wir auch dort hin verschoben. Auch das Menü wurde etwas vereinfacht.
-    </div>
-    <div class="separator"></div>
-    <button id="chordButton">Akkorde</button>
-  </div>
-   
-    <div id="notation"></div>
-    <div id="noteChoiceGrid" class="hidden"></div>
-    <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase; z-index: 1000; pointer-events: auto;"></div>
-    <div id="correctionBox" class="hidden">
-      <div id="correctionChoices">
-        <button id="prevNoteBtn"><</button>
-        <span id="correctionNoteDisplay">< ? ></span>
-        <button id="nextNoteBtn">></button>
-      </div>
-      <button id="confirmNoteBtn">OK</button>
-    </div>
-    <!-- Removed duplicate buttonContainer: the buttons are now contained within the leftBackdrop. -->
-</div>
-<!-- Einstellungen-Menü -->
-
-
-
-
-
-
-
-
-
-<div id="customModeModal" class="hidden">
-    <h2>Benutzerdefiniert</h2>
-    <div class="custom-mode-row">
-        <!-- Notenschlüssel & Lagen-Auswahl -->
-        <div class="custom-mode-clef-container">
-            <div class="custom-mode-clef-option" data-clef="treble">🎼</div>
-            <div class="custom-mode-clef-option" data-clef="bass">𝄢</div>
-        </div>
-        <div class="custom-mode-range-container">
-            <div class="custom-mode-range-option" data-range="C">C</div>
-            <div class="custom-mode-range-option" data-range="D">D</div>
-            <div class="custom-mode-range-option" data-range="F">F</div>
-            <div class="custom-mode-range-option" data-range="G">G</div>
-            <div class="custom-mode-range-option" data-range="MC">MC</div>
-        </div>
-    </div>
-    <div id="customModeContent" style="margin-top: 10px;">
-      <!-- Hier werden dynamisch Oktavennamen und Checkboxen eingefügt -->
-    </div>
-    <div class="custom-mode-row">
-        <label for="noteValueCheckbox" style="font-weight: bold;">Wertvariation</label>
-        <input type="checkbox" id="noteValueCheckbox"></input>
-      </div>
-    <div class="custom-mode-save">
-        <button id="custom-mode-save-button">Speichern</button>
-    </div>
-</div>
-
-
-
-
-<div id="chordModal">
-  <h2>Akkordauswahl</h2>
-  <div id="chordList"></div>
-  <span class="confirm-chords">✅</span>
-</div>
-
-
-
-    
-    
-
-<!-- JavaScript Logic -->
 <script>
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        const startMenu = document.getElementById('startMenu');
-        const leftBackdrop = document.getElementById('leftBackdrop');
-        const mainContent = document.getElementById('mainContent');
-        // Hide the left panel on initial load (mainContent is hidden via CSS)
-        if (leftBackdrop) {
-          leftBackdrop.style.display = 'none';
-        }
-        if (startMenu) {
-          startMenu.querySelectorAll('.start-icon').forEach(icon => {
-            icon.addEventListener('click', () => {
-              const mode = icon.dataset.mode;
-              // Hide start menu
-              startMenu.style.display = 'none';
-              // Show left panel and main content
-              if (leftBackdrop) {
-                leftBackdrop.style.display = '';
-              }
-              if (mainContent) {
-                mainContent.style.display = 'block';
-              }
-              // Trigger mode logic
-              if (mode === 'hand') {
-                currentHandIndex = 0;
-                selectedMode = handOptions[currentHandIndex].mode;
-              } else if (mode === 'crayon') {
-                wizardMode = true;
-              } else if (mode === 'rabbit') {
-                randomMode = true;
-              }
-            });
-          });
-        }
-    });
-    
-let twoHandMode = false;
-// Stellen Sie sicher, dass das Notensystem nicht verschiebbar ist.  
-// Wir markieren das Notensystem als bereits konfiguriert, sodass der Geometrie‑Button
-// nicht erstellt und der Platzierungs‑Hinweis nicht gezeigt wird.
-try {
-  localStorage.setItem('notationConfigured', 'true');
-} catch (e) {
-  // Wenn localStorage nicht verfügbar ist, ignorieren
-}
+  
+  let twoHandMode = false;
   let seriesCounterLeft = 0;
   let seriesCounterRight = 0;
   let currentSeriesLeft = [];
@@ -1945,90 +1479,10 @@ function proceedToMainScreen() {
       const notationEl = document.getElementById('notation');
       if (notationEl) {
         notationEl.style.display = 'block';
-        /* Standardmäßig ignoriert das Notensystem alle Pointer‑Events.
-           Nur bei aktiviertem Verschiebe‑Modus wird pointerEvents wieder auf
-           'auto' gesetzt, um Drag‑Aktionen zu ermöglichen. */
-        // Verhindere Pointer‑Events, damit das Notensystem keine Klicks abfängt
-        notationEl.style.pointerEvents = 'none';
+        notationEl.style.pointerEvents = 'auto';
         notationEl.style.cursor = 'grab';
       }
-
-      // Falls sich nach einem früheren Verschiebe‑Vorgang noch Hilfslinien im DOM befinden,
-      // entferne sie jetzt, damit sie nicht sichtbar bleiben.
-      if (window._notationGuides) {
-        window._notationGuides.forEach(el => {
-          if (el && el.parentElement) el.parentElement.removeChild(el);
-        });
-        window._notationGuides = null;
-      }
-
-      // --- Einmaliger Hinweis zum Platzieren des Notensystems ---
-      // Falls der Benutzer das Notensystem noch nicht eingerichtet hat, aktivieren wir automatisch
-      // den Verschiebe‑Modus und zeigen eine Anleitung mit Bestätigungs‑Button.  Nach der Bestätigung
-      // wird der Geometriemodus dauerhaft aus dem Einstellungen‑Panel entfernt.
-      setTimeout(() => {
-        // Die Ausrichtung des Notensystems durch den Benutzer ist abgeschafft.
-        // Deshalb wird der einmalige Platzierungshinweis nicht mehr angezeigt.
-        if (false) {
-          const moveToggle = document.getElementById('moveNotationToggle');
-          if (moveToggle) {
-            // Aktiviere den Verschiebe‑Modus, wenn er noch nicht aktiv ist
-            if (!moveToggle.classList.contains('active')) {
-              moveToggle.click();
-            }
-            // Overlay mit Instruktionen erstellen
-            const instruct = document.createElement('div');
-            instruct.id = 'geometryInstruction';
-            instruct.style.position = 'fixed';
-            instruct.style.top = '50%';
-            instruct.style.left = '50%';
-            instruct.style.transform = 'translate(-50%, -50%)';
-            instruct.style.padding = '20px';
-            instruct.style.border = '3px solid #000';
-            instruct.style.borderRadius = '10px';
-            instruct.style.background = '#fff';
-            instruct.style.zIndex = '3000';
-            instruct.style.fontSize = '1.2em';
-            instruct.style.maxWidth = '80%';
-            instruct.style.textAlign = 'center';
-            instruct.innerHTML = 'Verschiebe das Notensystem an die gewünschte Position innerhalb des linken Bereichs.<br/>Tippe danach auf <strong>Fertig</strong>, um fortzufahren.';
-            // Bestätigungs‑Button
-            const doneBtn = document.createElement('button');
-            doneBtn.textContent = 'Fertig';
-            doneBtn.style.marginTop = '15px';
-            doneBtn.style.padding = '10px 20px';
-            doneBtn.style.border = '2px solid #000';
-            doneBtn.style.borderRadius = '6px';
-            doneBtn.style.background = '#fff';
-            doneBtn.style.cursor = 'pointer';
-            doneBtn.addEventListener('click', () => {
-              // Deaktivieren des Verschiebe‑Modus durch Auslösen eines Klicks auf den Toggle
-              // (der Toggle ist noch sichtbar zu diesem Zeitpunkt)
-              moveToggle.click();
-              // Entferne verbleibende Hilfslinien (falls der Toggle sie nicht entfernt)
-              if (window._notationGuides) {
-                window._notationGuides.forEach(el => {
-                  if (el && el.parentElement) el.parentElement.removeChild(el);
-                });
-                window._notationGuides = null;
-              }
-              // Merke, dass die Position konfiguriert wurde
-              localStorage.setItem('notationConfigured', 'true');
-              // Entferne den Geometrie‑Button dauerhaft
-              moveToggle.style.display = 'none';
-              // Entferne den Hinweis
-              if (instruct.parentElement) {
-                instruct.parentElement.removeChild(instruct);
-              }
-            });
-            instruct.appendChild(document.createElement('br'));
-            instruct.appendChild(doneBtn);
-            document.body.appendChild(instruct);
-          }
-        }
-      }, 500);
-
-      setTimeout(() => { mainContent.style.opacity = '1'; }, 500);
+      setTimeout(() => { mainContent.style.opacity = "1"; }, 500);
     }, 1000);
   }, 5000);
 }
@@ -2038,13 +1492,6 @@ function getRandomThreshold() {
 
 document.addEventListener("DOMContentLoaded", () => {
   // MIDI-Quelle erkennen und loggen
-  // Entferne gegebenenfalls verbliebene Hilfslinien des Verschiebe‑Modus aus vorigen Sessions
-  if (window._notationGuides) {
-    window._notationGuides.forEach(el => {
-      if (el && el.parentElement) el.parentElement.removeChild(el);
-    });
-    window._notationGuides = null;
-  }
   let midiSource = "MIDI (Unknown)";
   if (window.webkit?.messageHandlers?.customPrompt) {
     midiSource = "MIDI iOS (Swift Bridge)";
@@ -2212,7 +1659,7 @@ let errorNotes = [];
 let responseTimes = [];
 let lastNoteTimestamp = Date.now();
 let appStartTime = Date.now();
-let sessionCounter = Number(localStorage.getItem("sessionCounter")) || 1000; // 5 korrekte Noten erforderlich
+let sessionCounter = Number(localStorage.getItem("sessionCounter")) || 5; // 5 korrekte Noten erforderlich
 let sessionPaused = false;
 let scoreRecorded = false;
 let sessionCount = 0;
@@ -2901,16 +2348,15 @@ function spawnInactivityBlob() {
 }
 document.addEventListener("DOMContentLoaded", () => {
   let canvas = document.getElementById("animationCanvas");
-  // --- Notationsposition nicht mehr aus dem Speicher laden ---
-  // Stattdessen positionieren wir die Notation stets zentriert im linken Bereich.
-  {
+  // --- Apply saved notation position from localStorage ---
+  const savedTransform = localStorage.getItem("notationTransform");
+  if (savedTransform) {
     const notation = document.getElementById("notation");
     if (notation) {
       notation.style.position = "fixed";
       notation.style.top = "50%";
-      // Horizontale Zentrierung: Mitte des linken Rechtecks
-      notation.style.left = "calc(10px + (100% - 80px - 20px - 10px)/2)";
-      notation.style.transform = "translate(-50%, -50%)";
+      notation.style.left = "50%";
+      notation.style.transform = savedTransform;
     }
   }
   if (!canvas) {
@@ -3140,68 +2586,6 @@ document.addEventListener("DOMContentLoaded", () => {
       generateSeries();
     }
   });
-
-// Zusätzliche Touch‑Unterstützung für Bedientasten auf Tablets (z. B. iPad)
-// Auf iOS und anderen Geräten mit Touch‑Bildschirm wird der Klick‑Event nicht immer zuverlässig
-// ausgelöst. Deshalb binden wir hier explizite Touch‑Start‑Events für wichtige Buttons.
-document.addEventListener('DOMContentLoaded', () => {
-  const toneBtn = document.getElementById('toneButton');
-  const lageBtn = document.getElementById('lageButton');
-  // Hand‑Umschalter (falls vorhanden) könnte ebenfalls relevant sein
-  const handToggle = document.getElementById('handToggle');
-  if (toneBtn) {
-    toneBtn.addEventListener('touchstart', (ev) => {
-      // Verhindere, dass das Ereignis weiter gegeben wird (z. B. an den Hintergrund‑Listener)
-      ev.stopPropagation();
-      cycleTone();
-    }, { passive: true });
-  }
-  if (lageBtn) {
-    lageBtn.addEventListener('touchstart', (ev) => {
-      ev.stopPropagation();
-      cycleLage();
-    }, { passive: true });
-  }
-  if (handToggle) {
-    handToggle.addEventListener('touchstart', (ev) => {
-      ev.stopPropagation();
-      // simuliert einen Klick auf den Hand‑Toggle, um die Hand zu wechseln
-      handToggle.click();
-    }, { passive: true });
-  }
-});
-
-// Generische Touch‑Unterstützung für alle klickbaren Elemente.  
-// Viele Browser auf Tablets lösen keinen Click‑Event aus, bevor ein Touch beendet wird.
-// Um sicherzustellen, dass „click“‑Handler auch bei Touchstart ausgeführt werden,
-// rufen wir in einem globalen Listener den Click‑Handler der Elemente manuell auf.
-document.addEventListener('DOMContentLoaded', () => {
-  function addTouchSupportTo(selector) {
-    document.querySelectorAll(selector).forEach(el => {
-      // Nur wenn das Element bereits einen Click‑Handler hat oder ein Onclick‑Attribut besitzt
-      if (!el) return;
-      el.addEventListener('touchstart', (ev) => {
-        // Unterbinde das Bubble‑Verhalten, damit der Hintergrund‑Listener nicht auslöst
-        ev.stopPropagation();
-        // Führe den Click‑Handler aus
-        if (typeof el.onclick === 'function') {
-          el.onclick();
-        } else {
-          // Dispatch einen künstlichen Click‑Event für event listeners
-          const clickEvent = new Event('click', { bubbles: true, cancelable: true });
-          el.dispatchEvent(clickEvent);
-        }
-      }, { passive: true });
-    });
-  }
-  // Initiale Registrierung für bestehende Bedienelemente
-  addTouchSupportTo('#toneButton, #lageButton, #handToggle, #pauseButton, #settingsPanel span');
-  // Da manche Elemente erst später im DOM erzeugt werden (z. B. weitere Emojis),
-  // wiederholen wir die Registrierung nach kurzer Zeit.
-  setTimeout(() => {
-    addTouchSupportTo('#settingsPanel span');
-  }, 1500);
-});
   
   const playerToggle = document.createElement("span");
   playerToggle.id = "playerToggle";
@@ -3589,10 +2973,16 @@ function closePlayerList() {
 
   
   
-  // Entferne den Blobs-/Sonnen‑Modus aus der Benutzeroberfläche.
-  // Der frühere blobToggle ("🔆"/"🔅") wird nicht mehr erstellt,
-  // sodass das farbige Hintergrund‑Blobs immer aktiviert bleiben.
+  const blobToggle = document.createElement("span");
+  blobToggle.id = "blobToggle";
+  blobToggle.textContent = "🔆";
+  blobToggle.style.cursor = "pointer";
+  settingsPanel.appendChild(blobToggle);
 
+  blobToggle.addEventListener("click", () => {
+    blobsEnabled = !blobsEnabled;
+    blobToggle.textContent = blobsEnabled ? "🔆" : "🔅";
+  });
   
   // Pausen-Button
   function blinkGreenBackground() {
@@ -3776,7 +3166,11 @@ if (!existingInput) {
   
 
   // Move Notation Toggle
-  let moveNotationToggle;
+  const moveNotationToggle = document.createElement("span");
+  moveNotationToggle.id = "moveNotationToggle";
+  moveNotationToggle.textContent = "📐";
+  settingsPanel.appendChild(moveNotationToggle);
+
   let moveModeActive = false;
   let currentX = 0, currentY = 0; // Persist position for storage
   let startX = 0, startY = 0;
@@ -3784,24 +3178,13 @@ if (!existingInput) {
   let xGuide, yGuide, xLabel, yLabel;
   let duringDrag, endDrag; // For removal of listeners
 
-  // Erstelle den Verschiebe‑Button nur, wenn das Notensystem noch nicht konfiguriert wurde
-  if (localStorage.getItem('notationConfigured') !== 'true') {
-    moveNotationToggle = document.createElement("span");
-    moveNotationToggle.id = "moveNotationToggle";
-    moveNotationToggle.textContent = "📐";
-    settingsPanel.appendChild(moveNotationToggle);
-
-    moveNotationToggle.addEventListener("click", () => {
+  moveNotationToggle.addEventListener("click", () => {
     const notation = document.getElementById("notation");
     // Drag-Cursor für Notation
     notation.style.cursor = "grab";
     // Ensure startX, startY are declared only once at top-level
     if (!moveModeActive) {
       moveModeActive = true;
-      // Notensystem empfängt Pointer‑Events nur während des Verschiebe‑Modus
-      if (notation) {
-        notation.style.pointerEvents = 'auto';
-      }
       // Show notation zoom controls in move mode
       zoomInBtn.style.display = 'inline';
       zoomOutBtn.style.display = 'inline';
@@ -3866,26 +3249,15 @@ if (!existingInput) {
           currentY = parseFloat(match[2]);
         }
       }
-      // Aktualisiere die Hilfslinien nur, wenn sie existieren (beim Einrichten).  Nach dem ersten
-      // Verschiebe‑Vorgang werden sie entfernt und xGuide/yGuide/xLabel/yLabel sind null.
-      if (xGuide) {
-        xGuide.style.transform = `translateX(${currentX}px)`;
-      }
-      if (yGuide) {
-        yGuide.style.transform = `translateY(${currentY}px)`;
-      }
-      if (xLabel) {
-        xLabel.style.left = `calc(50% + ${currentX}px + 5px)`;
-        xLabel.textContent = `${Math.round((currentX / window.innerWidth) * 100)}%`;
-      }
-      if (yLabel) {
-        yLabel.style.top = `calc(50% + ${currentY}px + 5px)`;
-        yLabel.textContent = `${Math.round((currentY / window.innerHeight) * 100)}%`;
-      }
+      xGuide.style.transform = `translateX(${currentX}px)`;
+      yGuide.style.transform = `translateY(${currentY}px)`;
+      xLabel.style.left = `calc(50% + ${currentX}px + 5px)`;
+      xLabel.textContent = `${Math.round((currentX / window.innerWidth) * 100)}%`;
+      yLabel.style.top = `calc(50% + ${currentY}px + 5px)`;
+      yLabel.textContent = `${Math.round((currentY / window.innerHeight) * 100)}%`;
       notation.style.position = "fixed";
       notation.style.top = "50%";
-      // Horizontally centre notation within the left backdrop
-        notation.style.left = "calc(10px + (100% - 80px - 20px - 10px)/2)";
+      notation.style.left = "50%";
       notation.style.transform = `translate(-50%, -50%) translate(${currentX}px, ${currentY}px)`;
 
       // Drag logic
@@ -3907,47 +3279,16 @@ if (!existingInput) {
         startX = evt.clientX;
         startY = evt.clientY;
 
-        // Begrenze die Bewegung innerhalb des linken Rechtecks
-        const leftPanel = document.getElementById('leftBackdrop');
-        let leftRect;
-        if (leftPanel && notation) {
-          leftRect = leftPanel.getBoundingClientRect();
-          const noteRect = notation.getBoundingClientRect();
-          // Berechne den maximalen Versatz in jede Richtung (zur Hälfte der Differenz zwischen Panel- und Notationsbreite/Höhe)
-          const maxX = (leftRect.width - noteRect.width) / 2;
-          const maxY = (leftRect.height - noteRect.height) / 2;
-          if (currentX < -maxX) currentX = -maxX;
-          if (currentX >  maxX) currentX =  maxX;
-          if (currentY < -maxY) currentY = -maxY;
-          if (currentY >  maxY) currentY =  maxY;
-        }
-
-        // Aktualisiere die Hilfslinien nur, wenn sie existieren (beim Einrichten)
-        if (xGuide) {
-          xGuide.style.transform = `translateX(${currentX}px)`;
-        }
-        if (yGuide) {
-          yGuide.style.transform = `translateY(${currentY}px)`;
-        }
-        if (xLabel) {
-          xLabel.style.left = `calc(50% + ${currentX}px + 5px)`;
-          xLabel.textContent = `${Math.round((currentX / window.innerWidth) * 100)}%`;
-        }
-        if (yLabel) {
-          yLabel.style.top = `calc(50% + ${currentY}px + 5px)`;
-          yLabel.textContent = `${Math.round((currentY / window.innerHeight) * 100)}%`;
-        }
+        xGuide.style.transform = `translateX(${currentX}px)`;
+        yGuide.style.transform = `translateY(${currentY}px)`;
+        xLabel.style.left = `calc(50% + ${currentX}px + 5px)`;
+        xLabel.textContent = `${Math.round((currentX / window.innerWidth) * 100)}%`;
+        yLabel.style.top = `calc(50% + ${currentY}px + 5px)`;
+        yLabel.textContent = `${Math.round((currentY / window.innerHeight) * 100)}%`;
 
         notation.style.position = "fixed";
         notation.style.top = "50%";
-        // Set the horizontal centre relative to the left panel width
-        if (leftPanel && leftRect) {
-          const centreX = 10 + leftRect.width / 2;
-          notation.style.left = centreX + 'px';
-        } else {
-          // fallback to previous calc expression
-          notation.style.left = "calc(10px + (100% - 80px - 20px - 10px)/2)";
-        }
+        notation.style.left = "50%";
         notation.style.transform = `translate(-50%, -50%) translate(${currentX}px, ${currentY}px)`;
       };
       endDrag = () => {
@@ -3958,25 +3299,18 @@ if (!existingInput) {
       [xGuide, yGuide, xLabel, yLabel].forEach(el => {
         el.style.touchAction = "none";
         el.addEventListener("mousedown", startDrag);
-        // Für Touch‑Gesten den Listener explizit als nicht‑passiv markieren, damit preventDefault erlaubt ist
-        el.addEventListener("touchstart", startDrag, { passive: false });
+        el.addEventListener("touchstart", startDrag);
       });
-      // Erlaube Ziehen direkt am Notations‑DIV
+      // Erlaube Ziehen direkt am Notations-DIV
       notation.addEventListener("mousedown", startDrag);
       notation.addEventListener("touchstart", startDrag, { passive: false });
       window.addEventListener("mousemove", duringDrag);
-      // Für Touchmove dürfen wir preventDefault ausführen, daher { passive: false }
-      window.addEventListener("touchmove", duringDrag, { passive: false });
+      window.addEventListener("touchmove", duringDrag);
       window.addEventListener("mouseup", endDrag);
       window.addEventListener("touchend", endDrag);
 
     } else {
       moveModeActive = false;
-      // Nach dem Verschiebe‑Modus ignoriert das Notensystem wieder Pointer‑Events
-      if (notation) {
-        // Nach dem Verschiebe‑Modus ignoriert das Notensystem wieder Pointer‑Events
-        notation.style.pointerEvents = 'none';
-      }
       // Hide notation zoom controls when exiting move mode
       zoomInBtn.style.display = 'none';
       zoomOutBtn.style.display = 'none';
@@ -3989,21 +3323,13 @@ if (!existingInput) {
           if (el && el.parentElement) el.parentElement.removeChild(el);
         });
         window._notationGuides = null;
-        // Setze die Referenzen der Hilfslinien auf null, damit sie nicht weiter in Drag-Routinen verwendet werden
-        xGuide = null;
-        yGuide = null;
-        xLabel = null;
-        yLabel = null;
       }
-      // Entferne die Event‑Listener, da der Verschiebemodus beendet ist
       window.removeEventListener("mousemove", duringDrag);
       window.removeEventListener("touchmove", duringDrag);
       window.removeEventListener("mouseup", endDrag);
       window.removeEventListener("touchend", endDrag);
     }
   });
-  // Ende des Verschiebe-Buttons (wird nur erstellt, wenn keine gespeicherte Position vorhanden ist)
-  }
   
 document.getElementById("timerContainer").addEventListener("click", () => {
 let existingInput = document.getElementById("counterInput");
@@ -4055,8 +3381,14 @@ input.addEventListener("blur", () => {
   
   
 
-  // Add zoom controls directly to the settings panel. They are hidden by default
-  // but will be displayed when moving the notation.
+  // Animated carousel using a sliding track
+  const carouselContainer = document.createElement('div');
+  carouselContainer.id = 'carouselContainer';
+  const carouselTrack = document.createElement('div');
+  carouselTrack.id = 'carouselTrack';
+  carouselContainer.appendChild(carouselTrack);
+  settingsPanel.appendChild(carouselContainer);
+  // Notation zoom controls
   let notationZoom = parseFloat(localStorage.getItem('notationZoom')) || 1;
   const zoomInBtn = document.createElement('span');
   zoomInBtn.id = 'notationZoomIn';
@@ -4068,9 +3400,10 @@ input.addEventListener("blur", () => {
   zoomOutBtn.textContent = '➖';
   zoomOutBtn.style.cursor = 'pointer';
   settingsPanel.appendChild(zoomOutBtn);
-  // Hide zoom buttons by default; they become visible in move mode
+  // Hide zoom buttons by default
   zoomInBtn.style.display = 'none';
   zoomOutBtn.style.display = 'none';
+
   // Zoom factor handlers
   zoomInBtn.addEventListener('click', () => {
     notationZoom *= 1.1;
@@ -4082,6 +3415,59 @@ input.addEventListener("blur", () => {
     localStorage.setItem('notationZoom', notationZoom);
     drawSeries();
   });
+  // Füge den Tonleiter-Modus-Button direkt nach dem Karussell ein
+
+
+  const carouselButtons = [pauseButton, blobToggle, kidsModeToggle, moveNotationToggle];
+  carouselButtons.forEach(btn => {
+    const item = document.createElement('div');
+    item.className = 'carouselItem';
+    item.appendChild(btn);
+    carouselTrack.appendChild(item);
+  });
+  let currentIndex = 0;
+  function updateCarousel() {
+    carouselTrack.style.transform = `translateX(-${currentIndex * 100}%)`;
+  }
+  updateCarousel();
+  carouselContainer.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+  });
+  carouselContainer.addEventListener('touchend', e => {
+    const endX = e.changedTouches[0].clientX;
+    if (startX !== null) {
+      const deltaX = endX - startX;
+      if (deltaX < -30) {
+        currentIndex = (currentIndex + 1) % carouselButtons.length;
+      } else if (deltaX > 30) {
+        currentIndex = (currentIndex - 1 + carouselButtons.length) % carouselButtons.length;
+      }
+      updateCarousel();
+    }
+    startX = null;
+  });
+
+  // Speech bubble hint for carousel, only once
+  if (!localStorage.getItem('carouselHintShown')) {
+    const bubble = document.createElement('div');
+    bubble.className = 'speech-bubble';
+    bubble.innerHTML = '<span class="close-btn">×</span>Wische hier, um weitere Funktionen zu sehen!';
+    document.body.appendChild(bubble);
+    const pauseBtn = document.getElementById('pauseButton');
+    if (pauseBtn) {
+      // Wait one frame so bubble has its dimensions
+      requestAnimationFrame(() => {
+        const rect = pauseBtn.getBoundingClientRect();
+        const bubbleRect = bubble.getBoundingClientRect();
+        bubble.style.top = `${rect.top - bubbleRect.height - 10}px`;
+        bubble.style.left = `${rect.left + (rect.width - bubbleRect.width) / 2}px`;
+      });
+    }
+    bubble.querySelector('.close-btn').addEventListener('click', () => {
+      localStorage.setItem('carouselHintShown', 'true');
+      bubble.remove();
+    });
+  }
   // Scoreboard-Toggle
 
   // --- Quintenzirkel & Lagen: Definition der verfügbaren Lagen und Tonarten ---
@@ -4664,9 +4050,23 @@ reverseAnimationTimeout = setTimeout(() => {
 }
 const handleMIDIMessage = (status, data1, data2) => {
   if (sessionPaused) return;
-  // Animation deaktiviert: die Menüs bleiben sichtbar und werden nicht
-  // ausgeblendet, um die Buttons stabil zu halten. Die ursprüngliche
-  // Logik zum Ausblenden (fly-in/fly-out) wurde entfernt.
+  // Animation beim Anschlagen einer Taste:
+  const settingsPanel = document.getElementById("settingsPanel");
+  const streakDisplay = document.getElementById("streakDisplay");
+  if (!menusHidden) {
+    if (settingsPanel) {
+      settingsPanel.classList.remove("fly-in-right", "fly-out-right");
+      void settingsPanel.offsetWidth;
+      settingsPanel.classList.add("fly-out-right");
+    }
+    if (streakDisplay) {
+      streakDisplay.classList.remove("fly-in-left", "fly-out-left");
+      void streakDisplay.offsetWidth;
+      streakDisplay.classList.add("fly-out-left");
+    }
+    menusHidden = true;
+  }
+  scheduleReverseAnimation();
   if (metronomeOn) {
     const now = Date.now();
     const diff = now - lastTickTime;
@@ -4922,6 +4322,10 @@ settingsPanel.style.flexDirection = "column";
 window.addEventListener("resize", checkOrientation);
 checkOrientation();
 
+</script>
+</body>
+<!-- Vereinheitlichte MIDI-Initialisierung -->
+<script>
 document.addEventListener("DOMContentLoaded", () => {
   // iOS check: Verwende nativen Swift-Handler, falls vorhanden
   if (window.webkit?.messageHandlers?.customPrompt) {
@@ -4961,6 +4365,10 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("❌ MIDI Zugriff fehlgeschlagen:", err);
   });
 });
+</script>
+</html>
+<script>
+
 
 function startTutorialSequence() {
   const savedName = localStorage.getItem("userName") || "";
@@ -5056,9 +4464,7 @@ function startTutorialSequence() {
         const notationEl = document.getElementById('notation');
         if (notationEl) {
           notationEl.style.display = 'block';
-          /* Standardmäßig ignoriert das Notensystem Pointer‑Events.
-             Drag‑Aktionen werden nur im Verschiebe‑Modus (moveNotation) ermöglicht. */
-          notationEl.style.pointerEvents = 'none';
+          notationEl.style.pointerEvents = 'auto';
           notationEl.style.cursor = 'grab';
         }
         localStorage.setItem("tutorialCompleted", "true");
@@ -5138,7 +4544,95 @@ if (!localStorage.getItem('tutorialCompleted')) {
 startTutorialSequence();
 }
 });
-
+</script>
+<style>
+.vf-stavenote.selected path {
+stroke: green !important;
+fill: green !important;
+}
+.correction-letter {
+font-size: 0.9em;
+line-height: 1;
+}
+@keyframes flyOutRight {
+from { opacity: 1; transform: translateX(0); }
+to   { opacity: 0; transform: translateX(100%); }
+}
+@keyframes flyOutLeft {
+from { opacity: 1; transform: translateX(0); }
+to   { opacity: 0; transform: translateX(-100%); }
+}
+.fly-out-right {
+animation: flyOutRight 0.5s forwards;
+}
+.fly-out-left {
+animation: flyOutLeft 0.5s forwards;
+}
+@keyframes flyInRight {
+from { opacity: 0; transform: translateX(100%); }
+to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes flyInLeft {
+from { opacity: 0; transform: translateX(-100%); }
+to   { opacity: 1; transform: translateX(0); }
+}
+.fly-in-right {
+animation: flyInRight 0.5s forwards;
+}
+.fly-in-left {
+animation: flyInLeft 0.5s forwards;
+}
+/* Intro Overlay Styles */
+#introOverlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  transform: translateY(0);
+  transition: transform 1s ease-in-out;
+}
+#introOverlay.hidden {
+  transform: translateY(-100%);
+}
+/* Twemoji: Konsistente Emoji-Größe */
+img.emoji {
+  height: 1.2em;
+  vertical-align: -0.1em;
+}
+</style>
+<style>
+/* Weniger Abstand des Notensystems nach oben */
+#notation {
+margin-top: 10px;
+}
+/* Scale-Clef-Buttons standardmäßig verbergen */
+#scaleSelector {
+display: none;
+}
+/* Styling für Oktaven-Buttons: weißer Hintergrund, schwarzer Rand */
+#scaleSelector button {
+background-color: white;
+border: 2px solid black;
+border-radius: 4px;
+padding: 4px 8px;
+cursor: pointer;
+}
+</style>
+<style>
+@media screen and (max-width: 768px) {
+#settingsPanel,
+#timerContainer,
+#streakDisplay {
+  display: none !important;
+}
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qwerty-hancock/0.7.2/qwerty-hancock.min.js"></script>
+<script>
 // Intro Overlay Animation, ensure inside DOMContentLoaded
 document.addEventListener("DOMContentLoaded", () => {
   const introOverlay = document.getElementById("introOverlay");
@@ -5146,7 +4640,8 @@ document.addEventListener("DOMContentLoaded", () => {
     introOverlay.classList.add("hidden");
   }, 5000);
 });
-
+</script>
+<script>
 // Doppelklick (bzw. Doppeltippen) auf Body: Geometrie-Modus speichern & schließen
 document.addEventListener("DOMContentLoaded", () => {
   document.body.addEventListener("dblclick", () => {
@@ -5161,8 +4656,90 @@ document.addEventListener("DOMContentLoaded", () => {
     // Falls keine Funktionen existieren, kannst du stattdessen deine eigene Logik hier einfügen.
   });
 });
+</script>
+</head>
+<body>
+    <div id="introOverlay">
+      <div id="introOverlayText">
+        MIT ❤️ ENTWICKELT VON <br>JAN-PHILIPP ZUSAMMEN MIT<p><img src="https://raw.githubusercontent.com/jp0024/piano.github.io/main/kklogo-1135x186.png" style="width:80%; height:80%";>
+      </div>
+    </div>
+<!-- Direkt nach <body> einfügen -->
 
-// Separate Arrays für alte Lagen und Quintenzirkel-Tonarten
+
+<div id="streakDisplay"></div>
+<!-- Canvas für Animation (Hintergrund) -->
+<canvas id="animationCanvas"></canvas>
+<!-- Audio-Element (deaktiviert) -->
+<!--
+<audio id="backgroundSound" autoplay>
+    <source src="https://raw.githubusercontent.com/JP0024/piano.github.io/3d35e0a8d4eb3e018151018e36e225dc7a856ecd/mixkit-relaxing-harp-sweep-2628.wav" type="audio/wav">
+        Dein Browser unterstützt das Audio-Element nicht.
+</audio>
+-->
+<!-- Pause-Overlay -->
+<div id="pauseOverlay">
+    <div id="pauseInfo">
+        <div id="pauseHeader">SESSION PAUSIERT</div>
+        <div id="pauseProgressContainer">
+          <div id="pauseProgress"></div>
+          <div id="pauseTime" style="position:absolute; left:0; top:0; font-size:14px; color:#000; padding:0 5px;"></div>
+          <div id="remainingNotesDisplay">${sessionCounter}</div>
+        </div>
+    </div>
+    <!-- Kachelwand -->
+    <div id="pauseTiles"></div>
+</div>
+<!-- Welcome Overlay -->
+<div id="welcomeOverlay">
+    <div id="welcomeMessage"><br>Schön, dass du da bist!<br></div>
+</div>
+<!-- Game Over Overlay -->
+<div id="gameOverOverlay"></div>
+<!-- Scoreboard Overlay -->
+<div id="scoreboardOverlay" class="hidden"></div>
+<!-- Motivationsfenster -->
+<div id="motivationOverlay"></div>
+<!-- Timer Container -->
+<div id="timerContainer"></div>
+<!-- Hauptinhalt -->
+<div id="settingsPanel" style="position: fixed; top: 20%; right: 10px; background: rgba(255,255,255,0.8); padding: 10px; border: 2.5px solid #000; border-radius: 8px; z-index: 200;"></div>
+<div id="mainContent">
+  <div id="newsPopup" style="display:none; position:fixed; top:20px; left:20px; background:#fff; border:2px solid #000; border-radius:10px; padding:20px; max-width:300px; z-index:9999; box-shadow:0 4px 10px rgba(0,0,0,0.2);">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <strong>🆕 Neuigkeiten</strong>
+      <span id="newsPopupClose" style="cursor:pointer; font-weight:bold;">✖</span>
+    </div>
+    <div id="newsPopupContent" style="margin-top:10px; text-align: justify;">
+      Willkommen zur neuen Version! 🎉 Wir haben das Design minimalisitischer gestaltet.<p> Zudem findest du nun eine Fortschrittsanzeige neben dem Lagen-Button. Hier wird dir angezeigt, wie gut du derzeit in jeder Lage bist. Den Counter der zu spielenden Noten haben wir auch dort hin verschoben. Auch das Menü wurde etwas vereinfacht.
+    </div>
+    <div class="separator"></div>
+    <button id="chordButton">Akkorde</button>
+  </div>
+   
+    <div id="notation"></div>
+    <div id="noteChoiceGrid" class="hidden"></div>
+    <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase; z-index: 1000; pointer-events: auto;"></div>
+    <div id="correctionBox" class="hidden">
+      <div id="correctionChoices">
+        <button id="prevNoteBtn">&lt;</button>
+        <span id="correctionNoteDisplay">&lt; ? &gt;</span>
+        <button id="nextNoteBtn">&gt;</button>
+      </div>
+      <button id="confirmNoteBtn">OK</button>
+    </div>
+    <div id="buttonContainer">
+          <div id="lageProgressCircle"></div>
+        
+        <div id="lageButton" onclick="cycleLage()">C-Lage</div>
+        <div id="toneButton" onclick="cycleTone()">A</div>
+        <div id="heartsContainer" style="margin-left:10px;"></div>
+    </div>
+</div>
+<!-- Einstellungen-Menü -->
+
+<script>
+    // Separate Arrays für alte Lagen und Quintenzirkel-Tonarten
     const lageArray = ["C", "D", "F", "G", "MC"];
     const toneArray = ["A", "E", "B", "F#", "C#", "Ab", "Eb", "Bb"];
     let currentLageIndex = 0;
@@ -5207,8 +4784,11 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     }
+    
+</script>
 
-let deferredPrompt;
+<script>
+    let deferredPrompt;
     // Abfangen des beforeinstallprompt-Events und automatisches Auslösen des Prompts
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
@@ -5230,8 +4810,10 @@ let deferredPrompt;
     window.addEventListener('appinstalled', () => {
         console.log('App wurde als PWA installiert');
     });
+</script>
 
-document.addEventListener("DOMContentLoaded", () => {
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
         // --- Smartphone-Lernmodus: UI anpassen, Hand-Toggle duplizieren ---
         const isMobile = window.innerWidth <= 768;
         if (isMobile) {
@@ -5271,10 +4853,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         const settingsPanel = document.getElementById("settingsPanel");
         if (!settingsPanel) return;
-        // Stelle sicher, dass das Einstellungs‑Panel immer komplett sichtbar bleibt.
-        // Die vorherige Logik hat die Opazität nach einer gewissen Zeit auf 0.5 reduziert,
-        // wodurch die Emojis blass erschienen. Dies wurde entfernt.
-        settingsPanel.style.opacity = "1";
+        let fadeTimeout;
+        const resetFadeTimer = () => {
+            clearTimeout(fadeTimeout);
+            // Setze sofort auf volle Opacity
+            settingsPanel.style.opacity = "1";
+            // Starte Timer: nach 10 Sekunden wird die Opacity auf 0.5 reduziert
+            fadeTimeout = setTimeout(() => {
+                settingsPanel.style.opacity = "0.5";
+            }, 10000);
+        };
+        // Initialer Timer-Start
+        resetFadeTimer();
+        // Bei Maus- oder Touch-Interaktion den Timer zurücksetzen
+        settingsPanel.addEventListener("mouseenter", resetFadeTimer);
+        settingsPanel.addEventListener("touchstart", resetFadeTimer);
 
         // Klick auf den Hintergrund im Mobilmodus: neue Note generieren und Korrekturanzeige öffnen
         if (window.isMobile) {
@@ -5380,7 +4973,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }, 1000);
         }, 3000);
     }
-
+    
+</script>
+<script>
 document.addEventListener("DOMContentLoaded", function() {
   // 1) Create hidden keyboard container
   const vk = document.createElement("div");
@@ -5448,8 +5043,11 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   });
 });
-
-// Neuer Custom Mode JS (vereinfachte Version)
+</script>
+<script>
+  
+    
+    // Neuer Custom Mode JS (vereinfachte Version)
     document.addEventListener('DOMContentLoaded', function() {
       const modal = document.getElementById('customModeModal');
       if (!modal) return;
@@ -5587,8 +5185,38 @@ document.addEventListener("DOMContentLoaded", function() {
         });
       }
     });
+</script>
 
-document.addEventListener('DOMContentLoaded', function() {
+<div id="customModeModal" class="hidden">
+    <h2>Benutzerdefiniert</h2>
+    <div class="custom-mode-row">
+        <!-- Notenschlüssel & Lagen-Auswahl -->
+        <div class="custom-mode-clef-container">
+            <div class="custom-mode-clef-option" data-clef="treble">🎼</div>
+            <div class="custom-mode-clef-option" data-clef="bass">𝄢</div>
+        </div>
+        <div class="custom-mode-range-container">
+            <div class="custom-mode-range-option" data-range="C">C</div>
+            <div class="custom-mode-range-option" data-range="D">D</div>
+            <div class="custom-mode-range-option" data-range="F">F</div>
+            <div class="custom-mode-range-option" data-range="G">G</div>
+            <div class="custom-mode-range-option" data-range="MC">MC</div>
+        </div>
+    </div>
+    <div id="customModeContent" style="margin-top: 10px;">
+      <!-- Hier werden dynamisch Oktavennamen und Checkboxen eingefügt -->
+    </div>
+    <div class="custom-mode-row">
+        <label for="noteValueCheckbox" style="font-weight: bold;">Wertvariation</label>
+        <input type="checkbox" id="noteValueCheckbox" />
+      </div>
+    <div class="custom-mode-save">
+        <button id="custom-mode-save-button">Speichern</button>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById('customModeModal');
         if (!modal) {
             console.error('Modal nicht gefunden.');
@@ -5821,8 +5449,9 @@ document.addEventListener('DOMContentLoaded', function() {
           container.appendChild(btn);
         });
       }
-
-// Referenzen
+    </script>
+<script>
+    // Referenzen
     const settingsPanel       = document.getElementById('settingsPanel');
     const emojiContainer      = document.getElementById('settingsEmojiContainer');
     const emojiItems = emojiContainer ? emojiContainer.querySelectorAll('.settings-emoji') : [];
@@ -6189,8 +5818,11 @@ function showPlayerList() {
       }
       lastTap = currentTime;
     });
-
-if ('serviceWorker' in navigator) {
+    
+    
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
       navigator.serviceWorker.register('/sw.js').then(function (registration) {
         console.log('✅ Service Worker registriert:', registration.scope);
@@ -6200,151 +5832,13 @@ if ('serviceWorker' in navigator) {
     });
   }
 </script>
-
-<!-- Additional script to implement dragging of the panel divider and dynamic resizing -->
-<script>
-  window.addEventListener('DOMContentLoaded', function() {
-    const margin = 10;
-    const dividerWidth = 10;
-    const minLeftWidth = 200;
-    const minRightWidth = 80;
-    const divider = document.getElementById('panelDivider');
-    const leftPanel = document.getElementById('leftBackdrop');
-    const rightPanel = document.getElementById('rightBackdrop');
-    const notation = document.getElementById('notation');
-    if (!divider || !leftPanel || !rightPanel || !notation) return;
-
-    function updatePanels(leftWidth) {
-      const totalWidth = window.innerWidth;
-      // compute maximum left width given minimum right width
-      const maxLeftWidth = totalWidth - minRightWidth - dividerWidth - margin * 2;
-      if (leftWidth < minLeftWidth) leftWidth = minLeftWidth;
-      if (leftWidth > maxLeftWidth) leftWidth = maxLeftWidth;
-      // compute right width
-      let rightWidth = totalWidth - leftWidth - dividerWidth - margin * 2;
-      if (rightWidth < minRightWidth) {
-        rightWidth = minRightWidth;
-        leftWidth = totalWidth - rightWidth - dividerWidth - margin * 2;
-      }
-      // Begrenze die Breite des Einstellungs‑Panels auf maximal 30 % der Gesamtbreite
-      const maxRightWidth = totalWidth * 0.3;
-      if (rightWidth > maxRightWidth) {
-        rightWidth = maxRightWidth;
-        leftWidth  = totalWidth - rightWidth - dividerWidth - margin * 2;
-      }
-      // Wende die berechneten Breiten an
-      leftPanel.style.width  = leftWidth  + 'px';
-      rightPanel.style.width = rightWidth + 'px';
-      divider.style.left = (margin + leftWidth) + 'px';
-      // Zentriere die Notation horizontal im linken Paneel
-      const centreX = margin + leftWidth / 2;
-      notation.style.left = centreX + 'px';
-      // Verkleinere die Notation proportional zur Breite des linken Paneels
-      const notationMaxWidth = Math.max(leftWidth - 40, 200);
-      // Setze sowohl maxWidth als auch width, damit das VexFlow‑SVG mitskaliert
-      notation.style.maxWidth = notationMaxWidth + 'px';
-      notation.style.width    = notationMaxWidth + 'px';
-      // Schalte Detailmodus des Einstellungs‑Panels je nach Breite um
-      if (rightWidth > 150) {
-        rightPanel.classList.add('wide');
-      } else {
-        rightPanel.classList.remove('wide');
-      }
-      // Wenn das Einstellungs‑Panel den Schwellwert (30 % des Bildschirms) erreicht,
-      // blende die Elemente im linken Paneel halbtransparent und verstecke das Notensystem.
-      // Ansonsten stelle volle Opazität wieder her und zeige das Notensystem an.
-      const atMax = rightWidth >= maxRightWidth;
-      const opacityTarget = atMax ? '0.5' : '1';
-      [document.getElementById('buttonContainer'),
-       document.getElementById('timerContainer'),
-       document.getElementById('streakDisplay'),
-       document.getElementById('noteNameDisplay')
-      ].forEach(el => {
-        if (el) el.style.opacity = opacityTarget;
-      });
-      // Notation wird bei maximalem Panel ausgeblendet, sonst eingeblendet.
-      if (notation) {
-        notation.style.opacity = opacityTarget;
-        notation.style.display = atMax ? 'none' : 'block';
-      }
-    }
-
-    // initialize left width from current width
-    const initialLeftWidth = leftPanel.getBoundingClientRect().width;
-    updatePanels(initialLeftWidth);
-
-    let dragging = false;
-    const startDrag = function(e) {
-      dragging = true;
-      e.preventDefault();
-    };
-    const doDrag = function(e) {
-      if (!dragging) return;
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const newLeftWidth = clientX - margin - (dividerWidth / 2);
-      updatePanels(newLeftWidth);
-      e.preventDefault();
-    };
-    const endDrag = function() {
-      dragging = false;
-    };
-    divider.addEventListener('mousedown', startDrag);
-    // Markiere den touchstart‑Listener als nicht‑passiv, damit preventDefault erlaubt ist
-    divider.addEventListener('touchstart', startDrag, { passive: false });
-    document.addEventListener('mousemove', doDrag);
-    // Für Touchmove dürfen wir preventDefault ausführen, daher { passive: false }
-    document.addEventListener('touchmove', doDrag, { passive: false });
-    document.addEventListener('mouseup', endDrag);
-    document.addEventListener('touchend', endDrag);
-
-    // Remove click toggling on the divider so the panel resizes only via dragging.
-  });
-</script>
-<script>
-// --- Panel divider and dynamic panel sizing ---
-// We use an Immediately Invoked Function Expression (IIFE) to ensure that
-// the divider logic runs whether the DOMContentLoaded event has already fired or not.
-(function() {
-  /**
-   * Assign descriptive labels to each setting button. Labels are stored in
-   * the data-label attribute; CSS will display them when the panel becomes wide.
-   */
-  function assignSettingLabels() {
-    const labels = {
-      pauseButton: 'Keyboard',
-      handToggle: 'Hand wechseln',
-      playerToggle: 'Spieler',
-      customModeToggle: 'Skalen-Modus',
-      resetScaleBtn: 'Skala zurücksetzen',
-      saveScaleBtn: 'Skala speichern',
-      randomToggle: 'Zufallsmodus',
-      // blobToggle wurde entfernt
-      metronomeToggle: 'Metronom',
-      kidsModeToggle: 'Kinder-Modus',
-      moveNotationToggle: 'Notensystem verschieben',
-      notationZoomIn: 'Zoom+',
-      notationZoomOut: 'Zoom-'
-    };
-    Object.keys(labels).forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.setAttribute('data-label', labels[id]);
-      }
-    });
-  }
-
-  function initDivider() {
-    // This function previously initialised the divider logic. It has been replaced by a simplified
-    // implementation defined later in the document. We still assign labels to settings here.
-    setTimeout(assignSettingLabels, 0);
-  }
-  // If DOM is already ready, run immediately, otherwise wait for DOMContentLoaded
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initDivider);
-  } else {
-    initDivider();
-  }
-})();
-</script>
+<div id="chordModal">
+  <h2>Akkordauswahl</h2>
+  <div id="chordList"></div>
+  <span class="confirm-chords">✅</span>
+</div>
 </body>
 </html>
+
+    
+    
