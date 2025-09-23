@@ -140,35 +140,6 @@
       font-size: 5.2rem;
       font-weight: bold;
     }
-    #skill-meter {
-      display: flex;
-      gap: 1rem;
-      align-items: flex-end;
-    }
-    .skill {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 80px;
-    }
-    .skill-bar {
-      width: 100%;
-      height: 10px;
-      border: 1px solid #000;
-      background-color: #f5f5f5;
-      position: relative;
-    }
-    .skill-bar .fill {
-      background-color: #000000;
-      height: 100%;
-      width: 0%;
-      transition: width 0.3s ease;
-    }
-    .skill-label {
-      margin-top: 0.3rem;
-      font-size: 0.75rem;
-      text-align: center;
-    }
 
     /* Notationsbereich */
     #notation-container {
@@ -334,9 +305,7 @@
   <div id="main">
     <div id="header">
       <div id="greeting"></div>
-      <div id="skill-meter">
-        <!-- Skill‑Balken werden per JS dynamisch initialisiert -->
-      </div>
+      <!-- Skill-Meter entfernt -->
     </div>
     <div id="notation-container">
       <div id="notation"></div>
@@ -426,25 +395,6 @@
           localStorage.setItem('username', name);
         } catch (e) {}
       }
-      function getStoredSkills() {
-        try {
-          const json = localStorage.getItem('skills');
-          if (json) return JSON.parse(json);
-        } catch (e) {}
-        return null;
-      }
-      function setStoredSkills(skills) {
-        try {
-          localStorage.setItem('skills', JSON.stringify(skills));
-        } catch (e) {}
-      }
-
-      // Initialisiere Skills (korrekt und insgesamt) für jede Lage
-      const defaultSkills = {};
-      Object.keys(POSITIONS).forEach(pos => {
-        defaultSkills[pos] = { correct: 0, total: 0 };
-      });
-      let skills = getStoredSkills() || { ...defaultSkills };
 
       // Tutorial-Übung Steuerung
       let tutorialExerciseActive = false;
@@ -496,39 +446,6 @@
         });
       }
       
-      // Skill‑Balken generieren
-      function initSkillBars() {
-        skillMeterEl.innerHTML = '';
-        Object.keys(POSITIONS).forEach(pos => {
-          const wrapper = document.createElement('div');
-          wrapper.className = 'skill';
-          // Fortschrittsbalken
-          const bar = document.createElement('div');
-          bar.className = 'skill-bar';
-          const fill = document.createElement('div');
-          fill.className = 'fill';
-          fill.id = 'skill-fill-' + pos;
-          bar.appendChild(fill);
-          // Bezeichnung
-          const label = document.createElement('div');
-          label.className = 'skill-label';
-          label.textContent = POSITIONS[pos].name;
-          wrapper.appendChild(bar);
-          wrapper.appendChild(label);
-          skillMeterEl.appendChild(wrapper);
-        });
-        updateSkillBars();
-      }
-
-      // Skill‑Balken basierend auf den gespeicherten Werten aktualisieren
-      function updateSkillBars() {
-        Object.keys(POSITIONS).forEach(pos => {
-          const fill = document.getElementById('skill-fill-' + pos);
-          const s = skills[pos];
-          const ratio = s.total === 0 ? 0 : s.correct / s.total;
-          fill.style.width = Math.round(ratio * 100) + '%';
-        });
-      }
 
       // Zufällige Note aus der aktuellen Lage auswählen
       function generateRandomNote() {
@@ -858,7 +775,6 @@
         introEl.classList.add('hidden');
         mainEl.style.display = 'flex';
         // greetingEl.textContent = `Hallo, ${name}!`; // Begrüßungstext entfernt
-        initSkillBars();
         setPosition(currentPosition);
         renderInitialStaff();
         initMIDI();
