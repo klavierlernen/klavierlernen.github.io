@@ -327,6 +327,7 @@
       </div>
     </div>
     <div id="status-message"></div>
+    <div id="log-output" style="font-size:0.8rem; padding:0.5rem; border-top:1px solid #ccc; height:100px; overflow-y:auto; background:#f9f9f9; color:#333;"></div>
     <div id="position-selector">
       <button class="pos-btn" data-pos="C"></button>
       <button class="pos-btn" data-pos="G"></button>
@@ -348,6 +349,25 @@
        Schwierigkeiten haben, das Skript zu laden. -->
   <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
   <script>
+    // Log-Ausgabe-Funktion und Überschreiben von console.log/error
+    function logMessage(msg) {
+      const logEl = document.getElementById('log-output');
+      if (!logEl) return;
+      const p = document.createElement('div');
+      p.textContent = msg;
+      logEl.appendChild(p);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+    const origLog = console.log;
+    console.log = function(...args) {
+      origLog.apply(console, args);
+      logMessage(args.join(' '));
+    };
+    const origError = console.error;
+    console.error = function(...args) {
+      origError.apply(console, args);
+      logMessage("❌ " + args.join(' '));
+    };
     (() => {
       // ----------------------------------------------
       // Utility‑Funktionen für Positionen und Notennamen
@@ -803,7 +823,7 @@
           tutorialChoiceEl.style.display = 'none';
           // Begrüßung mit Animation in zwei getrennten Nachrichten
           typeMessage(`Hallo, ${storedName}.`, () => {
-            typeMessage(`Willkommen zurück! (v1.0)`, () => {
+            typeMessage(`Willkommen zurück! (v1.1)`, () => {
               setTimeout(() => enterMain(storedName), 700);
             }, false);
           }, false);
