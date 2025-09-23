@@ -545,20 +545,14 @@
         // Alle Eingänge überwachen
         for (let input of midiAccess.inputs.values()) {
           console.log("🎹 MIDI Gerät gefunden:", input.name);
-          input.onmidimessage = (event) => {
-            const [status, data1, data2] = event.data;
-            handleMIDIMessage(status, data1, data2);
-          };
+          input.onmidimessage = handleMIDIMessage;
         }
 
         // Auf neue Geräte reagieren (z. B. wenn Keyboard später eingesteckt wird)
         midiAccess.onstatechange = (event) => {
           if (event.port.type === "input" && event.port.state === "connected") {
             console.log("🔌 Neues MIDI Gerät verbunden:", event.port.name);
-            event.port.onmidimessage = (event2) => {
-              const [status, data1, data2] = event2.data;
-              handleMIDIMessage(status, data1, data2);
-            };
+            event.port.onmidimessage = handleMIDIMessage;
           }
         };
       }
@@ -574,29 +568,37 @@
         return names[noteNumber % 12] + octave;
       }
 
-      // Universelle MIDI-Handler-Funktion (für WebMIDI und Swift)
-      function handleMIDIMessage(status, data1, data2) {
-        const command = status & 0xf0;
-        if (command === 0x90 && data2 > 0) { // Note On
-          const noteName = midiNoteToName(data1);
-          console.log("🎹 Eingabe (Swift/Browser):", noteName);
+      // Einheitliche Verarbeitung von WebMIDI-Ereignissen
+      function handleMIDIMessage(event) {
+        const [status, noteNumber, velocity] = event.data;
+        const command = status & 0xf0; // 144 = Note-On, 128 = Note-Off
+
+        if (command === 144 && velocity > 0) {
+          const noteName = midiNoteToName(noteNumber);
+          console.log("🎵 Note pressed:", noteName);
           handleUserNote(noteName);
-        } else if (command === 0x80 || (command === 0x90 && data2 === 0)) {
-          // Note Off
-          console.log("🔈 Note Off:", data1);
+        } else if (command === 128 || (command === 144 && velocity === 0)) {
+          console.log("🔈 Note released:", midiNoteToName(noteNumber));
         }
       }
 
       // Bridge-Funktion für Swift-App
       function receiveMIDIFromSwift(noteNumber, velocity) {
-        if (velocity > 0) { // Note-On
+        if (velocity > 0) {
           const noteName = midiNoteToName(noteNumber);
-          console.log("🎹 Swift MIDI:", noteName);
+          console.log("🎹 Swift Note pressed:", noteName);
           handleUserNote(noteName);
         } else {
-          console.log("🔈 Swift MIDI Note-Off:", noteNumber);
+          console.log("🔈 Swift Note released:", midiNoteToName(noteNumber));
         }
       }
+      
+     
+
+      
+      
+
+      
 
       // Lage wechseln, Buttons aktualisieren
       function setPosition(pos) {
@@ -897,7 +899,15 @@
       
       // Die folgende Logik für .pos-btn ist nun nicht mehr nötig, da die Event-Listener oben und setPosition() alles erledigen.
       
-      // Range-Selector-Pfeile: Notenbereich durch echte Notennamen iterieren (nur EIN Block, mit NOTES-Array)
+      // Range Wähler
+      
+      function midiToNoteName(noteNumber) {
+        const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+        const octave = Math.floor(noteNumber / 12) - 1;
+        return names[noteNumber % 12] + octave;
+      }
+      
+      // Range-Selector-Pfeile: Notenbereich durch echte Notennamen iterieren
       document.querySelectorAll('#range-selector .arrow').forEach(btn => {
         btn.addEventListener('click', () => {
           const target = btn.dataset.target;
@@ -912,14 +922,83 @@
           }
         });
       });
+      
+      
+      function renderCustomStaff(low, high) {
+        const notationEl = document.getElementById('notation');
+        notationEl.innerHTML = '';
+        const VF = window.VexFlow || (window.Vex ? window.Vex.Flow : null);
+        if (!VF) {
+          notationEl.textContent = 'VexFlow konnte nicht geladen werden.';
+          return;
+        }
 
+        vfFactory = new VF.Factory({ renderer: { elementId: 'notation', width: 500, height: 200 } });
+        vfScore = vfFactory.EasyScore();
+        const system = vfFactory.System({ x: 10, y: 40, width: 480 });
+
+        // mögliche Noten berechnen
+        const notesInRange = [];
+        for (let i = low; i <= high; i++) {
+          notesInRange.push(midiToNoteName(i));
+        }
+
+        // 4 zufällige Noten aus dem Bereich
+        currentNotes = [];
+        currentExpected = [];
+        for (let i = 0; i < 4; i++) {
+          const noteName = notesInRange[Math.floor(Math.random() * notesInRange.length)];
+          const key = noteName.replace(/(\d)/, "/$1").toLowerCase();
+          const staveNote = new VF.StaveNote({ keys: [key], duration: "q" });
+          staveNote.setKeyStyle(0, { fillStyle: "black", strokeStyle: "black" });
+          staveNote.setStemStyle({ fillStyle: "black", strokeStyle: "black" });
+          currentNotes.push(staveNote);
+          currentExpected.push(noteName);
+        }
+        currentNoteIndex = 0;
+
+        const voice = vfScore.voice(currentNotes);
+        system.addStave({ voices: [voice] }).addClef('treble').addTimeSignature('4/4');
+        vfFactory.draw();
+      }
+      
+      // Nur ein Event-Listener-Block für .pos-btn, der data-pos="+" speziell behandelt
+      document.querySelectorAll('button.pos-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const pos = btn.getAttribute('data-pos');
+          if (pos === '+') {
+            const notationEl = document.getElementById('notation');
+            notationEl.style.display = 'none';
+            document.getElementById('range-selector').style.display = 'block';
+          } else {
+            setPosition(pos);
+          }
+        });
+      });
+      
+      document.querySelectorAll('#range-selector .arrow').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.dataset.target;
+          if (target === "low") {
+            if (btn.classList.contains("up")) lowIndex++;
+            if (btn.classList.contains("down")) lowIndex--;
+            if (lowIndex >= highIndex) lowIndex = highIndex - 1;
+            document.getElementById("low-note").textContent = midiToNoteName(lowIndex);
+          } else {
+            if (btn.classList.contains("up")) highIndex++;
+            if (btn.classList.contains("down")) highIndex--;
+            if (highIndex <= lowIndex) highIndex = lowIndex + 1;
+            document.getElementById("high-note").textContent = midiToNoteName(highIndex);
+          }
+        });
+      });
+      
       document.getElementById('range-ok').addEventListener('click', () => {
         document.getElementById('range-selector').style.display = 'none';
         document.getElementById('notation').style.display = 'block';
         renderCustomStaff(NOTES[lowIndex].midi, NOTES[highIndex].midi);
       });
 
-      // Nur die finale Version von renderCustomStaff mit NOTES.filter
       function renderCustomStaff(lowMidi, highMidi) {
         const notationEl = document.getElementById('notation');
         notationEl.innerHTML = '';
