@@ -620,6 +620,8 @@
           noteNumber = arg2;
           velocity = arg3;
         }
+        // Logging für Swift-Bridge und WebMIDI
+        console.log("📥 MIDI Event:", status, noteNumber, velocity);
         const command = status & 0xf0; // 144 = Note-On, 128 = Note-Off
         if (command === 144 && velocity > 0) {
           const noteName = midiNoteToName(noteNumber);
@@ -629,13 +631,6 @@
           // Note-Off, ggf. für spätere Features
           console.log("🔈 Note released:", midiNoteToName(noteNumber));
         }
-      }
-
-      // Swift ruft diese Funktion auf (Bridge)
-      function receiveMIDIFromSwift(noteNumber, velocity) {
-        // Simuliere MIDI-Status-Byte: 144 = Note-On, 128 = Note-Off
-        const status = velocity > 0 ? 144 : 128;
-        handleMIDIMessage(status, noteNumber, velocity);
       }
       
      
