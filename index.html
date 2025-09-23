@@ -549,27 +549,46 @@
         }
       }
 
-      // MIDI initialisieren
+      // ----------------------------
+      // MIDI-Quellenerkennung und Initialisierung (robust, WebMIDI vs. Swift-Bridge)
+      // ----------------------------
+      document.addEventListener("DOMContentLoaded", () => {
+        let midiSource = "MIDI (Unknown)";
+        if (window.webkit?.messageHandlers?.customPrompt) {
+          midiSource = "MIDI iOS (Swift Bridge)";
+          console.log("📱 MIDI-Quelle:", midiSource);
+        } else if (navigator.requestMIDIAccess) {
+          midiSource = "MIDI Web (Browser)";
+          console.log("🌐 MIDI-Quelle:", midiSource);
+        } else {
+          midiSource = "MIDI (Nicht unterstützt)";
+          console.warn("❌ MIDI-Quelle:", midiSource);
+        }
+      });
+
+      // MIDI-Initialisierung: unterscheidet WebMIDI vs. Swift-Bridge
       function initMIDI() {
-        if (navigator.requestMIDIAccess) {
-          // Browser unterstützt WebMIDI (z. B. Chrome, Edge)
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
+          // Swift-Bridge: MIDI kommt über receiveMIDIFromSwift
+          console.log("📱 MIDI: Warte auf Eingaben von der Swift-App (iOS Bridge).");
+          // Keine weitere Initialisierung nötig, Swift ruft receiveMIDIFromSwift auf
+        } else if (navigator.requestMIDIAccess) {
+          // WebMIDI verfügbar
           navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
         } else {
-          // Kein WebMIDI verfügbar (z. B. Safari, WKWebView)
-          console.warn("⚠️ WebMIDI nicht verfügbar – Eingaben werden von der Swift-App erwartet.");
+          // Kein MIDI verfügbar
+          console.warn("❌ Weder WebMIDI noch Swift-Bridge verfügbar.");
         }
       }
 
       function onMIDISuccess(midiAccess) {
         console.log("✅ MIDI Zugriff erfolgreich.");
-
         // Alle Eingänge überwachen
         for (let input of midiAccess.inputs.values()) {
           console.log("🎹 MIDI Gerät gefunden:", input.name);
           input.onmidimessage = handleMIDIMessage;
         }
-
-        // Auf neue Geräte reagieren (z. B. wenn Keyboard später eingesteckt wird)
+        // Auf neue Geräte reagieren (z. B. Keyboard später eingesteckt)
         midiAccess.onstatechange = (event) => {
           if (event.port.type === "input" && event.port.state === "connected") {
             console.log("🔌 Neues MIDI Gerät verbunden:", event.port.name);
@@ -582,19 +601,18 @@
         console.error("❌ Zugriff auf MIDI-Geräte verweigert oder nicht möglich.");
       }
 
-      // Hilfsfunktion: MIDI Note Number → Name
+      // Hilfsfunktion: MIDI Note Number → Name (beibehalten)
       function midiNoteToName(noteNumber) {
         const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
         const octave = Math.floor(noteNumber / 12) - 1;
         return names[noteNumber % 12] + octave;
       }
 
-      // Einheitliche Verarbeitung von MIDI-Ereignissen (WebMIDI + Swift-Bridge)
+      // Zentrale Verarbeitung für MIDI-Ereignisse (WebMIDI & Swift-Bridge)
       function handleMIDIMessage(arg1, arg2, arg3) {
         let status, noteNumber, velocity;
-
         if (typeof arg1 === "object" && arg1.data) {
-          // WebMIDI Event (Chrome/Edge)
+          // WebMIDI Event
           [status, noteNumber, velocity] = arg1.data;
         } else {
           // Swift-Bridge Event (drei Zahlen)
@@ -602,27 +620,22 @@
           noteNumber = arg2;
           velocity = arg3;
         }
-
         const command = status & 0xf0; // 144 = Note-On, 128 = Note-Off
-
         if (command === 144 && velocity > 0) {
           const noteName = midiNoteToName(noteNumber);
           console.log("🎵 Note pressed:", noteName);
           handleUserNote(noteName);
         } else if (command === 128 || (command === 144 && velocity === 0)) {
+          // Note-Off, ggf. für spätere Features
           console.log("🔈 Note released:", midiNoteToName(noteNumber));
         }
       }
 
-      // Bridge-Funktion für Swift-App
+      // Swift ruft diese Funktion auf (Bridge)
       function receiveMIDIFromSwift(noteNumber, velocity) {
-        if (velocity > 0) {
-          const noteName = midiNoteToName(noteNumber);
-          console.log("🎹 Swift Note pressed:", noteName);
-          handleUserNote(noteName);
-        } else {
-          console.log("🔈 Swift Note released:", midiNoteToName(noteNumber));
-        }
+        // Simuliere MIDI-Status-Byte: 144 = Note-On, 128 = Note-Off
+        const status = velocity > 0 ? 144 : 128;
+        handleMIDIMessage(status, noteNumber, velocity);
       }
       
      
