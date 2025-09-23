@@ -620,16 +620,23 @@
           noteNumber = arg2;
           velocity = arg3;
         }
-        // Logging für Swift-Bridge und WebMIDI
+
+        // Logging für Debug
         console.log("📥 MIDI Event:", status, noteNumber, velocity);
-        const command = status & 0xf0; // 144 = Note-On, 128 = Note-Off
-        if (command === 144 && velocity > 0) {
+
+        // Kanal unabhängig machen
+        const command = status & 0xf0; // maskiert den Kanal
+        if (command === 0x90 && velocity > 0) {
+          // Note On
           const noteName = midiNoteToName(noteNumber);
           console.log("🎵 Note pressed:", noteName);
           handleUserNote(noteName);
-        } else if (command === 128 || (command === 144 && velocity === 0)) {
-          // Note-Off, ggf. für spätere Features
+        } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
+          // Note Off
           console.log("🔈 Note released:", midiNoteToName(noteNumber));
+        } else {
+          // Andere MIDI-Kommandos ignorieren, aber loggen
+          console.log("ℹ️ Anderes MIDI-Kommando:", command.toString(16));
         }
       }
       
