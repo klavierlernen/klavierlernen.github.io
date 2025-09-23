@@ -589,9 +589,20 @@
         return names[noteNumber % 12] + octave;
       }
 
-      // Einheitliche Verarbeitung von WebMIDI-Ereignissen
-      function handleMIDIMessage(event) {
-        const [status, noteNumber, velocity] = event.data;
+      // Einheitliche Verarbeitung von MIDI-Ereignissen (WebMIDI + Swift-Bridge)
+      function handleMIDIMessage(arg1, arg2, arg3) {
+        let status, noteNumber, velocity;
+
+        if (typeof arg1 === "object" && arg1.data) {
+          // WebMIDI Event (Chrome/Edge)
+          [status, noteNumber, velocity] = arg1.data;
+        } else {
+          // Swift-Bridge Event (drei Zahlen)
+          status = arg1;
+          noteNumber = arg2;
+          velocity = arg3;
+        }
+
         const command = status & 0xf0; // 144 = Note-On, 128 = Note-Off
 
         if (command === 144 && velocity > 0) {
