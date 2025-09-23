@@ -551,12 +551,13 @@
 
       // MIDI initialisieren
       function initMIDI() {
-        if (!navigator.requestMIDIAccess) {
-          console.error("❌ Web MIDI API wird in diesem Browser nicht unterstützt.");
-          return;
+        if (navigator.requestMIDIAccess) {
+          // Browser unterstützt WebMIDI (z. B. Chrome, Edge)
+          navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+        } else {
+          // Kein WebMIDI verfügbar (z. B. Safari, WKWebView)
+          console.warn("⚠️ WebMIDI nicht verfügbar – Eingaben werden von der Swift-App erwartet.");
         }
-
-        navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
       }
 
       function onMIDISuccess(midiAccess) {
@@ -823,7 +824,7 @@
           tutorialChoiceEl.style.display = 'none';
           // Begrüßung mit Animation in zwei getrennten Nachrichten
           typeMessage(`Hallo, ${storedName}.`, () => {
-            typeMessage(`Willkommen zurück! (v1.1)`, () => {
+            typeMessage(`Willkommen zurück! (v1.2)`, () => {
               setTimeout(() => enterMain(storedName), 700);
             }, false);
           }, false);
