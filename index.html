@@ -567,6 +567,18 @@
         const octave = Math.floor(noteNumber / 12) - 1;
         return names[noteNumber % 12] + octave;
       }
+      
+      function handleMIDIMessage(status, data1, data2) {
+        const command = status & 0xf0;
+        if (command === 0x90 && data2 > 0) { // Note On
+          const noteName = midiNoteToName(data1);
+          console.log("🎹 Eingabe (Swift/Browser):", noteName);
+          handleUserNote(noteName);
+        } else if (command === 0x80 || (command === 0x90 && data2 === 0)) {
+          // Note Off
+          console.log("🔈 Note Off:", data1);
+        }
+      }
 
       // Nachrichtenauswertung
       function handleMIDIMessage(event) {
