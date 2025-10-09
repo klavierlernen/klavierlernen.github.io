@@ -1,0 +1,1088 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Klavierlern‑App</title>
+  <style>
+    /* Blinker-Cursor für Chat-Intro */
+    .cursor-dot {
+      display: inline-block;
+      width: 0.6rem;
+      height: 0.6rem;
+      background-color: #000;
+      border-radius: 50%;
+      margin-left: 0.2rem;
+      animation: blink 1s step-start infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    /* Chat-Zeilen für Intro und allgemeine Chat-Zeilen */
+    .chat-line {
+      margin: 0.3rem 0;
+      transition: opacity 0.4s, max-height 0.4s, margin 0.4s, transform 0.4s;
+      max-height: 100px;
+      overflow: hidden;
+    }
+    .faded-line {
+      opacity: 0.5;
+    }
+    .active-line {
+      opacity: 1;
+    }
+
+    /* Grundlegendes Layout und Typografie */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      background-color: #ffffff;
+      color: #000000;
+    }
+
+    /* Begrüßungs‑Overlay */
+    #intro {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: #ffffff;
+      z-index: 999;
+      padding: 2rem;
+      font-size: 5rem;
+      box-sizing: border-box;
+    }
+    #intro.hidden {
+      display: none;
+    }
+    #messages {
+      margin-bottom: 1rem;
+      font-size: 2.2rem;
+      font-weight: bold;
+      line-height: 1.4;
+    }
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 800px;
+    }
+    #name-input {
+      visibility: hidden;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: #000;
+      line-height: 1.4;
+      margin: 0;
+      vertical-align: baseline;
+      display: inline-block;
+      padding: 0;
+      height: auto;
+      font-family: inherit;
+      min-width: auto;
+      flex: none;
+      box-sizing: content-box;
+      transition: width 0.2s ease;
+    }
+
+      .input-line {
+        display: inline-flex;
+        align-items: center;   /* statt baseline */
+        width: auto;
+      }
+
+      #intro button {
+        background-color: #000;
+        color: #fff;
+        border: none;
+        border-radius: 2rem;
+        padding: 0.5rem 1rem;
+        margin-left: 0.5rem;
+        cursor: pointer;
+        font-size: 1rem;     /* etwas näher an der Input-Schriftgröße */
+        line-height: 1.4;
+        transition: background 0.15s, color 0.15s;
+        align-items: center;   /* <- Semikolon nicht vergessen */
+      }
+    #intro button:hover,
+    #intro button:focus {
+      background-color: #222;
+      color: #fff;
+    }
+
+    /* Hauptbereich */
+    #main {
+      display: none;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    #header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 1rem;
+      
+    }
+    #greeting {
+      font-size: 5.2rem;
+      font-weight: bold;
+    }
+
+    /* Notationsbereich */
+    #notation-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+    #notation {
+      width: 100%;
+      max-width: 600px;
+      height: 200px;
+    }
+
+    /* Steuerungsbuttons */
+    #controls {
+      padding: 1rem;
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      border-top: 1px solid #e0e0e0;
+    }
+    button.position-btn {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      background-color: transparent;
+      border: 1px solid #000;
+      cursor: pointer;
+    }
+    button.position-btn.active {
+      background-color: #000;
+      color: #fff;
+    }
+    button.position-btn:hover,
+    button.position-btn:focus {
+      background-color: #fff;
+      color: #000;
+    }
+    #status-message {
+      text-align: center;
+      padding: 0.5rem;
+      font-size: 0.9rem;
+      min-height: 1.5rem;
+    }
+      
+      .chat-line {
+        margin: 0.3rem 0;
+        max-height: 100px;
+        overflow: hidden;
+        transition: transform 0.4s ease, opacity 0.4s ease;
+      }
+
+      /* Neue Animation für nach oben rutschen */
+      .shift-up {
+        transform: translateY(-120%);
+        opacity: 0;
+      }
+      
+      #notation {
+          width: 80vw;
+        max-width: 80%;
+        height: auto;
+        transform: scale(1.2); /* 120% Zoom */
+        transform-origin: center;
+      }
+      #notation svg {
+        width: 100%;
+        height: auto;
+      }
+      
+      #position-selector {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        padding: 1rem;
+      }
+
+      .pos-btn {
+        position: relative;
+        width: 20px;
+        height: 20px;
+        background: #000;
+        border: none;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      /* Aktiver Button zeigt Buchstaben in der Pille */
+      .pos-btn.active::before {
+        content: attr(data-pos);
+        color: #fff;
+        font-size: 0.9rem;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      /* Aktiver Button = gestreckte Linie */
+      .pos-btn.active {
+        width: 60px;
+        border-radius: 1rem;
+      }
+
+      /* Plus-Button bleibt immer ein Kreis mit zentriertem Plus */
+      .plus-btn {
+        width: 20px !important;
+        height: 20px !important;
+        border-radius: 50% !important;
+        font-size: 1rem;
+        font-weight: bold;
+        color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .plus-btn.active {
+        width: 20px !important;
+        border-radius: 50% !important;
+      }
+      .plus-btn::before {
+        content: none; /* verhindert Anzeige von data-pos im Inneren */
+      }
+      
+      .note-range {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 2rem;
+        gap: 1rem;
+      }
+      .note-control {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .note-control button.arrow {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+      }
+      
+      </style>
+</head>
+<body>
+  <!-- Begrüßungs‑Overlay -->
+  <div id="intro">
+    <div class="chat-container">
+      <div id="messages"></div>
+      <div class="input-line">
+        <input id="name-input" type="text" placeholder="Name" />
+        <button id="name-ok" style="display:none;">OK</button>
+      </div>
+      <div id="tutorial-choice" style="display:none;"></div>
+    </div>
+  </div>
+
+  <!-- Hauptbereich -->
+  <div id="main">
+    <div id="header">
+      <div id="greeting"></div>
+      <!-- Skill-Meter entfernt -->
+    </div>
+    <div id="notation-container">
+      <div id="notation"></div>
+      <div id="range-selector" style="display:none; text-align:center;">
+        <div class="note-range">
+          <div class="note-control">
+            <button class="arrow up" data-target="low">▲</button>
+            <div id="low-note">C2</div>
+            <button class="arrow down" data-target="low">▼</button>
+          </div>
+          <span> - </span>
+          <div class="note-control">
+            <button class="arrow up" data-target="high">▲</button>
+            <div id="high-note">C4</div>
+            <button class="arrow down" data-target="high">▼</button>
+          </div>
+        </div>
+        <button id="range-ok" style="margin-top:1rem; padding:0.5rem 1rem; border-radius:2rem; background:black; color:white;">OK</button>
+      </div>
+    </div>
+    <div id="status-message"></div>
+    <div id="log-output" style="font-size:0.8rem; padding:0.5rem; border-top:1px solid #ccc; height:100px; overflow-y:auto; background:#f9f9f9; color:#333;"></div>
+    <div id="position-selector">
+      <button class="pos-btn" data-pos="C"></button>
+      <button class="pos-btn" data-pos="G"></button>
+      <button class="pos-btn" data-pos="F"></button>
+      <button class="pos-btn" data-pos="D"></button>
+      <button class="pos-btn" data-pos="M"></button>
+      <button class="pos-btn plus-btn" data-pos="+">+</button>
+    </div>
+  </div>
+
+  <!-- VexFlow Bibliothek
+       Zur Laufzeit soll VexFlow möglichst offline verfügbar sein. Anstatt die
+       Bibliothek von einem CDN zu laden, greifen wir auf die lokale
+       Installation in node_modules zu. Dadurch können Browser, die das
+       Laden externer Skripte von file://-URLs blockieren, den Code ohne
+       Netzwerkzugriff ausführen. -->
+  <!-- Hinweis: der Pfad beginnt mit ./ damit der Browser die Datei relativ zur
+       HTML‑Datei findet. Ohne das Präfix kann Chromium bei file://‑URLs
+       Schwierigkeiten haben, das Skript zu laden. -->
+  <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+  <script>
+    // Log-Ausgabe-Funktion und Überschreiben von console.log/error
+    function logMessage(msg) {
+      const logEl = document.getElementById('log-output');
+      if (!logEl) return;
+      const p = document.createElement('div');
+      p.textContent = msg;
+      logEl.appendChild(p);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+    const origLog = console.log;
+    console.log = function(...args) {
+      origLog.apply(console, args);
+      logMessage(args.join(' '));
+    };
+    const origError = console.error;
+    console.error = function(...args) {
+      origError.apply(console, args);
+      logMessage("❌ " + args.join(' '));
+    };
+    (() => {
+      // ----------------------------------------------
+      // Utility‑Funktionen für Positionen und Notennamen
+      // ----------------------------------------------
+      const POSITIONS = {
+        C: {
+          name: 'C-Lage',
+          notes: ['C4', 'D4', 'E4', 'F4', 'G4'],
+        },
+        G: {
+          name: 'G-Lage',
+          notes: ['G4', 'A4', 'B4', 'C5', 'D5'],
+        },
+        F: {
+          name: 'F-Lage',
+          notes: ['F4', 'G4', 'A4', 'Bb4', 'C5'],
+        },
+        D: {
+          name: 'D-Lage',
+          notes: ['D4', 'E4', 'F#4', 'G4', 'A4'],
+        },
+        M: {
+          name: 'Mittlere C-Lage',
+          notes: ['C4', 'D4', 'E4', 'F4', 'G4'],
+        },
+      };
+
+      // Erzeuge Notennamen aus MIDI‑Zahl
+      function midiToNoteName(noteNumber) {
+        const name = NOTE_NAMES[noteNumber % 12];
+        const octave = Math.floor(noteNumber / 12) - 1;
+        return `${name}${octave}`;
+      }
+
+      // Lade gespeicherten Namen und Skill‑Daten aus localStorage
+      function getStoredName() {
+        try {
+          return localStorage.getItem('username');
+        } catch (e) {
+          return null;
+        }
+      }
+      function setStoredName(name) {
+        try {
+          localStorage.setItem('username', name);
+        } catch (e) {}
+      }
+
+      // Tutorial-Übung Steuerung
+      let tutorialExerciseActive = false;
+      let expectedSequence = [];
+      let sequenceIndex = 0;
+
+      // Aktuelle Lage und aktuell angezeigte Note
+      let currentPosition = 'C';
+      let currentNote = null;
+
+      // VexFlow Objekte
+      let vfFactory;
+      let vfScore;
+      
+      let currentStaveNote = null;
+      let currentNotes = [];
+      let currentExpected = [];
+      let currentNoteIndex = 0;
+      
+      // --- Notenbereich für Range-Selector ---
+      const NOTES = [];
+      const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+      for (let midi = 21; midi <= 108; midi++) {
+        const name = NOTE_NAMES[midi % 12] + (Math.floor(midi / 12) - 1);
+        NOTES.push({ midi, name });
+      }
+      let lowIndex = NOTES.findIndex(n => n.name === "C2");
+      let highIndex = NOTES.findIndex(n => n.name === "C4");
+
+      // DOM‑Elemente
+      const introEl = document.getElementById('intro');
+      const messagesEl = document.getElementById('messages');
+      const nameInputEl = document.getElementById('name-input');
+      const nameOkBtn = document.getElementById('name-ok');
+      const tutorialChoiceEl = document.getElementById('tutorial-choice');
+      const mainEl = document.getElementById('main');
+      const greetingEl = document.getElementById('greeting');
+      const skillMeterEl = document.getElementById('skill-meter');
+      const notationEl = document.getElementById('notation');
+      const statusMessageEl = document.getElementById('status-message');
+      
+      function markNoteColorByIndex(noteIndex, color) {
+        const svgNotes = notationEl.querySelectorAll("svg g.vf-stavenote");
+        if (!svgNotes[noteIndex]) return;
+
+        svgNotes[noteIndex].querySelectorAll("path, circle, ellipse").forEach(shape => {
+          shape.setAttribute("fill", color);
+          shape.setAttribute("stroke", color);
+        });
+      }
+      
+
+      // Zufällige Note aus der aktuellen Lage auswählen
+      function generateRandomNote() {
+        const notes = POSITIONS[currentPosition].notes;
+        const index = Math.floor(Math.random() * notes.length);
+        return notes[index];
+      }
+
+      // Einzelne Note rendern
+      function renderNote(note) {
+        const notationEl = document.getElementById('notation');
+        // Canvas/Div zurücksetzen
+        notationEl.innerHTML = '';
+        // Neue Factory erstellen
+        const VF = window.VexFlow || (window.Vex ? window.Vex.Flow : null);
+        // Wenn die Bibliothek nicht verfügbar ist, informiere den Benutzer und brich ab
+        if (!VF) {
+          notationEl.textContent = 'VexFlow konnte nicht geladen werden.';
+          return;
+        }
+        vfFactory = new VF.Factory({
+          renderer: { elementId: 'notation', width: 500, height: 200 },
+        });
+        vfScore = vfFactory.EasyScore();
+        const system = vfFactory.System();
+        // Notenstring vorbereiten (viertel Note)
+        const notesStr = `${note}/q, B4/h/r.`; // eine Note und dann eine halbe Pause als Platzhalter
+        const voice = vfScore.voice(vfScore.notes(notesStr));
+        system
+          .addStave({ voices: [voice] })
+          .addClef('treble')
+          .addTimeSignature('4/4');
+        vfFactory.draw();
+      }
+
+      // Neue Note generieren und rendern
+      function nextExercise() {
+        currentNote = generateRandomNote();
+        renderNote(currentNote);
+      }
+
+      // Note vergleichen und Skill aktualisieren
+      function handleUserNote(noteName) {
+        // Falls wir im Tutorial sind → alte Logik
+        if (tutorialExerciseActive) {
+          const expected = expectedSequence[sequenceIndex];
+          const userBase = noteName.replace(/\d/, '');
+          const expectedBase = expected.replace(/\d/, '');
+
+          if (userBase === expectedBase) {
+            sequenceIndex++;
+            statusMessageEl.textContent = `Richtig: ${noteName}`;
+            if (sequenceIndex >= expectedSequence.length) {
+              statusMessageEl.textContent = "Übung abgeschlossen!";
+              tutorialExerciseActive = false;
+            }
+          } else {
+            statusMessageEl.textContent = `Falsch, erwartet: ${expected}`;
+          }
+          return;
+        }
+
+        // Hauptscreen-Logik
+        if (!currentExpected.length) return;
+
+        const expectedName = currentExpected[currentNoteIndex];
+        const userBase = noteName.replace(/\d/, '');
+        const expectedBase = expectedName.replace(/\d/, '');
+
+        if (userBase === expectedBase) {
+          // Richtige Eingabe → grün einfärben und nächste Note
+          markNoteColorByIndex(currentNoteIndex, 'green');
+          currentNoteIndex++;
+
+          if (currentNoteIndex >= currentNotes.length) {
+            setTimeout(renderInitialStaff, 1000);
+          }
+        } else {
+          // Falsch → rot einfärben, aber Index nicht erhöhen
+          markNoteColorByIndex(currentNoteIndex, 'red');
+        }
+      }
+
+      // ----------------------------
+      // MIDI-Quellenerkennung und Initialisierung (robust, WebMIDI vs. Swift-Bridge)
+      // ----------------------------
+      document.addEventListener("DOMContentLoaded", () => {
+        let midiSource = "MIDI (Unknown)";
+        if (window.webkit?.messageHandlers?.customPrompt) {
+          midiSource = "MIDI iOS (Swift Bridge)";
+          console.log("📱 MIDI-Quelle:", midiSource);
+        } else if (navigator.requestMIDIAccess) {
+          midiSource = "MIDI Web (Browser)";
+          console.log("🌐 MIDI-Quelle:", midiSource);
+        } else {
+          midiSource = "MIDI (Nicht unterstützt)";
+          console.warn("❌ MIDI-Quelle:", midiSource);
+        }
+      });
+
+      // MIDI-Initialisierung: unterscheidet WebMIDI vs. Swift-Bridge
+      function initMIDI() {
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
+          // Swift-Bridge: MIDI kommt über receiveMIDIFromSwift
+          console.log("📱 MIDI: Warte auf Eingaben von der Swift-App (iOS Bridge).");
+          // Keine weitere Initialisierung nötig, Swift ruft receiveMIDIFromSwift auf
+        } else if (navigator.requestMIDIAccess) {
+          // WebMIDI verfügbar
+          navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+        } else {
+          // Kein MIDI verfügbar
+          console.warn("❌ Weder WebMIDI noch Swift-Bridge verfügbar.");
+        }
+      }
+
+      function onMIDISuccess(midiAccess) {
+        console.log("✅ MIDI Zugriff erfolgreich.");
+        // Alle Eingänge überwachen
+        for (let input of midiAccess.inputs.values()) {
+          console.log("🎹 MIDI Gerät gefunden:", input.name);
+          input.onmidimessage = handleMIDIMessage;
+        }
+        // Auf neue Geräte reagieren (z. B. Keyboard später eingesteckt)
+        midiAccess.onstatechange = (event) => {
+          if (event.port.type === "input" && event.port.state === "connected") {
+            console.log("🔌 Neues MIDI Gerät verbunden:", event.port.name);
+            event.port.onmidimessage = handleMIDIMessage;
+          }
+        };
+      }
+
+      function onMIDIFailure() {
+        console.error("❌ Zugriff auf MIDI-Geräte verweigert oder nicht möglich.");
+      }
+
+      // Hilfsfunktion: MIDI Note Number → Name (beibehalten)
+      function midiNoteToName(noteNumber) {
+        const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+        const octave = Math.floor(noteNumber / 12) - 1;
+        return names[noteNumber % 12] + octave;
+      }
+
+      // Zentrale Verarbeitung für MIDI-Ereignisse (WebMIDI & Swift-Bridge)
+      function handleMIDIMessage(arg1, arg2, arg3) {
+        let status, noteNumber, velocity;
+        if (typeof arg1 === "object" && arg1.data) {
+          // WebMIDI Event
+          [status, noteNumber, velocity] = arg1.data;
+        } else {
+          // Swift-Bridge Event (drei Zahlen)
+          status = arg1;
+          noteNumber = arg2;
+          velocity = arg3;
+        }
+
+        // Logging für Debug
+        console.log("📥 MIDI Event:", status, noteNumber, velocity);
+
+        // Kanal unabhängig machen
+        const command = status & 0xf0; // maskiert den Kanal
+        if (command === 0x90 && velocity > 0) {
+          // Note On
+          const noteName = midiNoteToName(noteNumber);
+          console.log("🎵 Note pressed:", noteName);
+          handleUserNote(noteName);
+        } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
+          // Note Off
+          console.log("🔈 Note released:", midiNoteToName(noteNumber));
+        } else {
+          // Andere MIDI-Kommandos ignorieren, aber loggen
+          console.log("ℹ️ Anderes MIDI-Kommando:", command.toString(16));
+        }
+      }
+      
+     
+
+      
+      
+
+      
+
+      // Lage wechseln, Buttons aktualisieren
+      function setPosition(pos) {
+        currentPosition = pos;
+
+        // Button-Styles aktualisieren
+        document.querySelectorAll('button.pos-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.getAttribute('data-pos') === pos);
+        });
+
+        // Nur bei echten Lagen das Notensystem neu zeichnen
+        if (POSITIONS[pos]) {
+          renderInitialStaff();
+        }
+      }
+
+      // Chat‑ähnliche Begrüßung
+      const introMessages = [
+        'Hallo! Ich bin Finn',
+        'Ich unterstütze dich beim Lernen der Noten',
+        'Wie heißt du?'
+      ];
+      let introIndex = 0;
+      function typeMessage(message, callback, withCursorDot = true) {
+        let i = 0;
+        // Vor neuer Zeile: alle bisherigen Zeilen ausblenden (50%)
+        Array.from(messagesEl.children).forEach(child => {
+          child.classList.remove('active-line');
+          child.classList.add('faded-line');
+        });
+        // Neue Zeile für die Nachricht
+        const lineDiv = document.createElement('div');
+        lineDiv.classList.add('chat-line', 'active-line');
+        // Cursor-Element erzeugen
+        let cursor = null;
+        // Cursor-dot immer zu Beginn sichtbar, wenn gewünscht
+        if (withCursorDot) {
+          cursor = document.createElement('span');
+          cursor.className = 'cursor-dot';
+          lineDiv.appendChild(cursor); // Erstmal nur Cursor, Text wird hinzugefügt
+        }
+        messagesEl.appendChild(lineDiv);
+        // Setze Text dynamisch vor dem Cursor
+        const interval = setInterval(() => {
+          // Füge nächsten Buchstaben vor dem Cursor ein
+          if (cursor) {
+            cursor.before(document.createTextNode(message.charAt(i)));
+          } else {
+            lineDiv.appendChild(document.createTextNode(message.charAt(i)));
+          }
+          i++;
+          if (i >= message.length) {
+            clearInterval(interval);
+            // Cursor-dot IMMER nach Tipp-Ende entfernen, egal ob withCursorDot true oder false
+            if (cursor) {
+              cursor.remove();
+            }
+            // Neue Logik: Chat-Zeilen-Begrenzung nach vollständigem Schreiben
+            enforceMaxChatLines();
+            setTimeout(() => callback && callback(), 600);
+          }
+        }, 40);
+      }
+
+      // Begrenzung der Chat-Zeilen: entfernt die erste Zeile mit Fade-Out-Animation, sobald mehr als max Zeilen vorhanden sind
+      function enforceMaxChatLines(max = 4) {
+        if (messagesEl.children.length > max) {
+          const first = messagesEl.firstElementChild;
+          if (first) {
+            first.classList.add('shift-up');
+            first.addEventListener('transitionend', () => {
+              if (first.parentElement === messagesEl) {
+                messagesEl.removeChild(first);
+              }
+            }, { once: true });
+          }
+        }
+      }
+
+      // Funktion moveCursorDotToInput entfernt, da Cursor-Dot nicht mehr zu Input verschoben wird
+
+      function runIntro() {
+        if (introIndex < introMessages.length) {
+          const msg = introMessages[introIndex];
+          introIndex++;
+          // Nur für reine Chat-Nachrichten (ohne Buttons/Input): withCursorDot true
+          // Bei der letzten Nachricht (vor Input) KEIN cursor-dot mehr, da danach Input erscheint
+          if (introIndex === introMessages.length) {
+            // Letzte Zeile vor Input: KEIN cursor-dot
+            typeMessage(msg, runIntro, false);
+          } else {
+            typeMessage(msg, runIntro, true);
+          }
+        } else {
+          // Nach der letzten Nachricht das Eingabefeld und OK-Button anzeigen, OHNE cursor-dot verschieben
+          nameInputEl.style.visibility = 'visible';
+          nameOkBtn.style.display = 'inline-block';
+          nameInputEl.addEventListener('input', function() {
+            const len = Math.max(nameInputEl.value.length, nameInputEl.placeholder.length);
+            nameInputEl.style.width = len + 'ch';
+          });
+        }
+      }
+
+      // Tutorial-Choice anzeigen
+      function showTutorialChoice(name) {
+        // Neue Chat-Nachricht: Möchtest du ein Tutorial ansehen? (ohne cursor-dot, da Buttons erscheinen)
+        typeMessage(`${name}, sollen wir dir zeigen, wie die App funktioniert?`, () => {
+          tutorialChoiceEl.style.display = 'block';
+          tutorialChoiceEl.innerHTML = `
+            <button id="tutorial-yes">Gerne!</button>
+            <button id="tutorial-no">Ich war schon mal hier.</button>
+          `;
+          // Event-Listener für Ja/Nein
+          document.getElementById('tutorial-yes').addEventListener('click', () => {
+            tutorialChoiceEl.style.display = 'none';
+            runTutorial(name);
+          });
+          document.getElementById('tutorial-no').addEventListener('click', () => {
+            tutorialChoiceEl.style.display = 'none';
+            enterMain(name);
+          });
+        }, false);
+      }
+
+      // Tutorial-Funktion
+      function runTutorial(name, index = 0) {
+        const tutorialMessages = [
+          "Alles klar! Das Prinzip ist ganz einfach",
+          "Im Notensystem erscheint jeweils eine Note, die du auf deinem Keyboard spielen sollst.",
+          "Du erhältst umgehend Feedback",
+          "Beüben kannst du alle festen Lagen, den Quintenzirkel und mehr.",
+          "Viel Spaß beim Ausprobieren!"
+        ];
+        if (index < tutorialMessages.length - 2) {
+          typeMessage(tutorialMessages[index], () => runTutorial(name, index + 1), false);
+        } else if (index === 3) {
+          // Nach dieser Nachricht: Übungsfunktion starten, dann mit nächster Nachricht fortfahren
+          typeMessage(tutorialMessages[index], () => {
+            startTutorialExercise();
+            runTutorial(name, index + 1);
+          }, false);
+        } else if (index === tutorialMessages.length - 1) {
+          // Letzte Tutorial-Nachricht, dann Button anzeigen
+          typeMessage(tutorialMessages[index], () => {
+            tutorialChoiceEl.style.display = 'block';
+            tutorialChoiceEl.innerHTML = `
+              <button id="tutorial-finish">love it!</button>
+            `;
+            document.getElementById('tutorial-finish').addEventListener('click', () => {
+              tutorialChoiceEl.style.display = 'none';
+              enterMain(name);
+            });
+          }, false);
+        }
+      }
+
+      function startTutorialExercise() {
+        expectedSequence = ['C4','D4','E4','C4'];
+        sequenceIndex = 0;
+        tutorialExerciseActive = true;
+
+        // Notensystem mit C, D, E, F anzeigen
+        notationEl.innerHTML = '';
+        const VF = window.VexFlow || (window.Vex ? window.Vex.Flow : null);
+        if (!VF) {
+          notationEl.textContent = 'VexFlow konnte nicht geladen werden.';
+          return;
+        }
+
+        const vf = new VF.Factory({renderer: {elementId: 'notation', width: 500, height: 200}});
+        const score = vf.EasyScore();
+        const system = vf.System();
+        const notes = score.notes('C4/q, D4/q, E4/q, F4/q');
+        const voice = score.voice(notes);
+        system.addStave({voices:[voice]}).addClef('treble').addTimeSignature('4/4');
+        vf.draw();
+
+        statusMessageEl.textContent = "Spiele C, D, E und dann nochmal C!";
+      }
+
+      function enterMain(name) {
+        introEl.classList.add('hidden');
+        mainEl.style.display = 'flex';
+        // greetingEl.textContent = `Hallo, ${name}!`; // Begrüßungstext entfernt
+        setPosition(currentPosition);
+        renderInitialStaff();
+        initMIDI();
+      }
+
+      // Initialisieren
+      function init() {
+        const storedName = getStoredName();
+        if (storedName) {
+          // Name vorhanden: Zeige Begrüßung mit Tipp-Animation und gehe dann automatisch in den Hauptbereich
+          introEl.classList.remove('hidden');
+          mainEl.style.display = 'none';
+          messagesEl.innerHTML = '';
+          // Input und Buttons ausblenden
+          nameInputEl.style.display = 'none';
+          nameOkBtn.style.display = 'none';
+          tutorialChoiceEl.style.display = 'none';
+          // Begrüßung mit Animation in zwei getrennten Nachrichten
+          typeMessage(`Hallo, ${storedName}.`, () => {
+            typeMessage(`Willkommen zurück! (v1.5)`, () => {
+              setTimeout(() => enterMain(storedName), 700);
+            }, false);
+          }, false);
+        } else {
+          // Begrüßung anzeigen und Intro starten
+          introEl.classList.remove('hidden');
+          runIntro();
+        }
+      }
+
+      // Event‑Listener für Namenseingabe
+      function handleNameInput() {
+        const name = nameInputEl.value.trim();
+        if (name) {
+          setStoredName(name);
+          // Blende Input und OK aus
+          nameInputEl.style.display = 'none';
+          nameOkBtn.style.display = 'none';
+          // Cursor-Dot ggf. entfernen
+          const inputContainer = nameInputEl.parentElement;
+          const cursorDot = inputContainer.querySelector('.cursor-dot');
+          if (cursorDot) cursorDot.remove();
+          showTutorialChoice(name);
+        }
+      }
+
+      nameInputEl.addEventListener('keypress', function (evt) {
+        if (evt.key === 'Enter') {
+          handleNameInput();
+        }
+      });
+      nameOkBtn.addEventListener('click', function () {
+        handleNameInput();
+      });
+
+      // Event‑Listener für Positionsbuttons
+      document.querySelectorAll('button.pos-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const pos = btn.getAttribute('data-pos');
+          if (pos === 'plus') {
+            // Notensystem ausblenden, Range-Selector einblenden
+            document.getElementById('notation').style.display = 'none';
+            document.getElementById('range-selector').style.display = 'block';
+          } else {
+            setPosition(pos);
+          }
+        });
+      });
+
+      // Violinenschlüssel-Notensystem mit 4 zufälligen Noten aus der aktuellen Lage zeichnen
+      function renderInitialStaff() {
+        const notationEl = document.getElementById('notation');
+        notationEl.innerHTML = '';
+        const VF = window.VexFlow || (window.Vex ? window.Vex.Flow : null);
+        if (!VF) {
+          notationEl.textContent = 'VexFlow konnte nicht geladen werden.';
+          return;
+        }
+        const width = notationEl.clientWidth || 500;
+        const height = notationEl.clientHeight || 200;
+        vfFactory = new VF.Factory({
+          renderer: { elementId: 'notation', width: width, height: height }
+        });
+        vfScore = vfFactory.EasyScore();
+        const system = vfFactory.System({ x: 10, y: 40, width: width - 20, spaceBetweenStaves: 10 });
+
+        // Zufällig 4 Noten aus der aktuellen Position wählen und als echte StaveNotes erzeugen
+        const available = POSITIONS[currentPosition].notes;
+        currentNotes = [];
+        currentExpected = [];
+        for (let i = 0; i < 4; i++) {
+          const noteName = available[Math.floor(Math.random() * available.length)];
+          const key = noteName.replace(/(\d)/, "/$1").toLowerCase();
+          const staveNote = new VF.StaveNote({ keys: [key], duration: "q" });
+          // Standardfarbe explizit setzen (schwarz), damit spätere Farbänderungen funktionieren
+          staveNote.setKeyStyle(0, { fillStyle: "black", strokeStyle: "black" });
+          staveNote.setStemStyle({ fillStyle: "black", strokeStyle: "black" });
+          currentNotes.push(staveNote);
+          currentExpected.push(noteName);
+        }
+        currentNoteIndex = 0;
+
+        const voice = vfScore.voice(currentNotes);
+        system.addStave({ voices: [voice] }).addClef('treble').addTimeSignature('4/4');
+        vfFactory.draw();
+      }
+
+      // Starten
+      init();
+      // Bei Größenänderung das Notensystem neu rendern
+      window.addEventListener('resize', renderInitialStaff);
+    })();
+      
+      // Die folgende Logik für .pos-btn ist nun nicht mehr nötig, da die Event-Listener oben und setPosition() alles erledigen.
+      
+      // Range Wähler
+      
+      function midiToNoteName(noteNumber) {
+        const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+        const octave = Math.floor(noteNumber / 12) - 1;
+        return names[noteNumber % 12] + octave;
+      }
+      
+      // Range-Selector-Pfeile: Notenbereich durch echte Notennamen iterieren
+      document.querySelectorAll('#range-selector .arrow').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.dataset.target;
+          if (target === "low") {
+            if (btn.classList.contains("up") && lowIndex < highIndex - 1) lowIndex++;
+            if (btn.classList.contains("down") && lowIndex > 0) lowIndex--;
+            document.getElementById("low-note").textContent = NOTES[lowIndex].name;
+          } else {
+            if (btn.classList.contains("up") && highIndex < NOTES.length - 1) highIndex++;
+            if (btn.classList.contains("down") && highIndex > lowIndex + 1) highIndex--;
+            document.getElementById("high-note").textContent = NOTES[highIndex].name;
+          }
+        });
+      });
+      
+      
+      function renderCustomStaff(low, high) {
+        const notationEl = document.getElementById('notation');
+        notationEl.innerHTML = '';
+        const VF = window.VexFlow || (window.Vex ? window.Vex.Flow : null);
+        if (!VF) {
+          notationEl.textContent = 'VexFlow konnte nicht geladen werden.';
+          return;
+        }
+
+        vfFactory = new VF.Factory({ renderer: { elementId: 'notation', width: 500, height: 200 } });
+        vfScore = vfFactory.EasyScore();
+        const system = vfFactory.System({ x: 10, y: 40, width: 480 });
+
+        // mögliche Noten berechnen
+        const notesInRange = [];
+        for (let i = low; i <= high; i++) {
+          notesInRange.push(midiToNoteName(i));
+        }
+
+        // 4 zufällige Noten aus dem Bereich
+        currentNotes = [];
+        currentExpected = [];
+        for (let i = 0; i < 4; i++) {
+          const noteName = notesInRange[Math.floor(Math.random() * notesInRange.length)];
+          const key = noteName.replace(/(\d)/, "/$1").toLowerCase();
+          const staveNote = new VF.StaveNote({ keys: [key], duration: "q" });
+          staveNote.setKeyStyle(0, { fillStyle: "black", strokeStyle: "black" });
+          staveNote.setStemStyle({ fillStyle: "black", strokeStyle: "black" });
+          currentNotes.push(staveNote);
+          currentExpected.push(noteName);
+        }
+        currentNoteIndex = 0;
+
+        const voice = vfScore.voice(currentNotes);
+        system.addStave({ voices: [voice] }).addClef('treble').addTimeSignature('4/4');
+        vfFactory.draw();
+      }
+      
+      // Nur ein Event-Listener-Block für .pos-btn, der data-pos="+" speziell behandelt
+      document.querySelectorAll('button.pos-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const pos = btn.getAttribute('data-pos');
+          if (pos === '+') {
+            const notationEl = document.getElementById('notation');
+            notationEl.style.display = 'none';
+            document.getElementById('range-selector').style.display = 'block';
+          } else {
+            setPosition(pos);
+          }
+        });
+      });
+      
+      document.querySelectorAll('#range-selector .arrow').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.dataset.target;
+          if (target === "low") {
+            if (btn.classList.contains("up")) lowIndex++;
+            if (btn.classList.contains("down")) lowIndex--;
+            if (lowIndex >= highIndex) lowIndex = highIndex - 1;
+            document.getElementById("low-note").textContent = midiToNoteName(lowIndex);
+          } else {
+            if (btn.classList.contains("up")) highIndex++;
+            if (btn.classList.contains("down")) highIndex--;
+            if (highIndex <= lowIndex) highIndex = lowIndex + 1;
+            document.getElementById("high-note").textContent = midiToNoteName(highIndex);
+          }
+        });
+      });
+      
+      document.getElementById('range-ok').addEventListener('click', () => {
+        document.getElementById('range-selector').style.display = 'none';
+        document.getElementById('notation').style.display = 'block';
+        renderCustomStaff(NOTES[lowIndex].midi, NOTES[highIndex].midi);
+      });
+
+      function renderCustomStaff(lowMidi, highMidi) {
+        const notationEl = document.getElementById('notation');
+        notationEl.innerHTML = '';
+        const VF = window.VexFlow;
+        if (!VF) {
+          notationEl.textContent = 'VexFlow konnte nicht geladen werden.';
+          return;
+        }
+
+        const width = notationEl.clientWidth || 500;
+        const height = notationEl.clientHeight || 200;
+        vfFactory = new VF.Factory({ renderer: { elementId: 'notation', width, height } });
+        vfScore = vfFactory.EasyScore();
+        const system = vfFactory.System({ x: 10, y: 40, width: width - 20 });
+
+        // Noten im Bereich berechnen
+        const notesInRange = NOTES.filter(n => n.midi >= lowMidi && n.midi <= highMidi).map(n => n.name);
+
+        currentNotes = [];
+        currentExpected = [];
+        for (let i = 0; i < 4; i++) {
+          const noteName = notesInRange[Math.floor(Math.random() * notesInRange.length)];
+          const key = noteName.replace(/(\d)/, "/$1").toLowerCase();
+          const staveNote = new VF.StaveNote({ keys: [key], duration: "q" });
+          staveNote.setKeyStyle(0, { fillStyle: "black", strokeStyle: "black" });
+          staveNote.setStemStyle({ fillStyle: "black", strokeStyle: "black" });
+          currentNotes.push(staveNote);
+          currentExpected.push(noteName);
+        }
+        currentNoteIndex = 0;
+
+        const voice = vfScore.voice(currentNotes);
+        system.addStave({ voices: [voice] }).addClef('treble').addTimeSignature('4/4');
+        vfFactory.draw();
+      }
+  </script>
+</body>
+</html>
+
+     
