@@ -152,9 +152,16 @@
     (() => {
       // Name speichern/lesen
       function getStoredName() {
-        return null;
+        try {
+          return localStorage.getItem('username');
+        } catch (e) {
+          return null;
+        }
       }
       function setStoredName(name) {
+        try {
+          localStorage.setItem('username', name);
+        } catch (e) {}
       }
 
       // DOM-Elemente
@@ -266,7 +273,7 @@
           typeMessage(tutorialMessages[index], () => {
             // Bild anzeigen
             const img = document.createElement('img');
-            img.src = '/Users/jan-philippjakob/Documents/GitHub/Klavier/intro_image.png';
+            img.src = 'https://raw.githubusercontent.com/klavierlernen/klavierlernen.github.io/main/intro_image.png';
             img.alt = 'Tutorial Bild';
             img.style.maxWidth = '80%';
             img.style.marginTop = '1rem';
