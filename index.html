@@ -3182,7 +3182,8 @@ const timeoutFallback = setTimeout(() => {
   }
 }, 10000);
 
-                          const intervalId = setInterval(checkConnectionLoop, 1000);
+                          // MIDI-Verbindung nur einmal prüfen, keine Endlosschleife:
+                          checkConnectionLoop();
                         }, false);
                     });
                     document.getElementById('name-no').addEventListener('click', () => {
@@ -3360,7 +3361,8 @@ const timeoutFallback = setTimeout(() => {
                               }
                             }, 10000);
 
-                            const intervalId = setInterval(checkConnectionLoop, 1000);
+                            // MIDI-Verbindung nur einmal prüfen, keine Endlosschleife:
+                            checkConnectionLoop();
                           }, false);
                         }
                       });
