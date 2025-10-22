@@ -3222,6 +3222,7 @@ const drawSeries = () => {
                               }, false);
                             }, 10000);
 
+                            let stopChecking = false;
                             const checkInterval = setInterval(async () => {
                               const connectedNow = await checkMIDIConnection();
                               if (connectedNow) {
@@ -3229,11 +3230,14 @@ const drawSeries = () => {
                                 clearInterval(checkInterval);
                                 clearTimeout(timeoutFallback);
                                 circle.remove();
-                                typeMessage('Gefunden.', () => {
-                                  setTimeout(() => {
-                                    startAppAfterIntro();
-                                  }, 700);
-                                }, false);
+                                if (!stopChecking) {
+                                  stopChecking = true;
+                                  typeMessage('Gefunden.', () => {
+                                    setTimeout(() => {
+                                      startAppAfterIntro();
+                                    }, 700);
+                                  }, false);
+                                }
                               }
                             }, 1000);
                           }, false);
