@@ -3180,35 +3180,71 @@ const timeoutFallback = setTimeout(() => {
     stopChecking = true;
     clearInterval(pingInterval);
     circle.remove();
-    typeMessage('Oops! Keine Verbindung. Bitte starte dein Gerät und versuche es erneut.', () => {
-      tutorialChoiceEl.style.display = 'block';
-      tutorialChoiceEl.innerHTML = `
-        <button id="retry-midi">Erneut versuchen</button>
-        <button id="skip-midi" style="color: red; border: 2px solid red; background-color: white; margin-left: 10px;">Trotzdem versuchen</button>
-      `;
+    typeMessage('Keine Verbindung erkannt. Drücke bitte eine Taste auf deinem Klavier, falls du bereits verbunden bist.', () => {
+      let midiDetected = false;
 
-      const retryButton = document.getElementById('retry-midi');
-      const skipButton = document.getElementById('skip-midi');
-
-      retryButton.addEventListener('click', () => {
-        tutorialChoiceEl.style.display = 'none';
-        tutorialChoiceEl.innerHTML = '';
-        typeMessage('Alles klar, wir versuchen es nochmal.', () => {
-          typeMessage('Suche nach deinem Klavier ...', () => {
-            handleNameInput(); // startet den Ablauf erneut
+      function midiKeyListener(status, data1, data2) {
+        if ((status & 0xf0) === 0x90 && data2 > 0) {
+          midiDetected = true;
+          typeMessage('Verbindung erkannt!', () => {
+            window.swiftMIDIConnected = true;
+            document.removeEventListener('midiKeyEvent', midiKeyListener);
+            showTutorialChoice(name);
           }, false);
-        }, false);
-      });
+        }
+      }
 
-      skipButton.addEventListener('click', () => {
-        tutorialChoiceEl.style.display = 'none';
-        tutorialChoiceEl.innerHTML = '';
-        typeMessage('Okay, du kannst trotzdem starten.', () => {
-          setTimeout(() => {
-              showTutorialChoice(name); // setzt das Tutorial normal fort
-          }, 700);
-        }, false);
-      });
+      // Aktiviere temporären MIDI-Listener für 10 Sekunden
+      function tempMIDICheck() {
+        if (navigator.requestMIDIAccess) {
+          navigator.requestMIDIAccess().then((midiAccess) => {
+            midiAccess.inputs.forEach((input) => {
+              input.onmidimessage = ({ data }) => {
+                const [status, data1, data2] = data;
+                midiKeyListener(status, data1, data2);
+              };
+            });
+          });
+        }
+      }
+
+      tempMIDICheck();
+
+      // Nach 10 Sekunden prüfen, ob eine Taste erkannt wurde
+      setTimeout(() => {
+        if (!midiDetected) {
+          typeMessage('Leider keine Taste erkannt.', () => {
+            tutorialChoiceEl.style.display = 'block';
+            tutorialChoiceEl.innerHTML = `
+              <button id="retry-midi">Erneut versuchen</button>
+              <button id="skip-midi" style="color: red; border: 2px solid red; background-color: white; margin-left: 10px;">Trotzdem versuchen</button>
+            `;
+
+            const retryButton = document.getElementById('retry-midi');
+            const skipButton = document.getElementById('skip-midi');
+
+            retryButton.addEventListener('click', () => {
+              tutorialChoiceEl.style.display = 'none';
+              tutorialChoiceEl.innerHTML = '';
+              typeMessage('Alles klar, wir versuchen es nochmal.', () => {
+                typeMessage('Suche nach deinem Klavier ...', () => {
+                  handleNameInput(); // startet den Ablauf erneut
+                }, false);
+              }, false);
+            });
+
+            skipButton.addEventListener('click', () => {
+              tutorialChoiceEl.style.display = 'none';
+              tutorialChoiceEl.innerHTML = '';
+              typeMessage('Okay, du kannst trotzdem starten.', () => {
+                setTimeout(() => {
+                    showTutorialChoice(name); // setzt das Tutorial normal fort
+                }, 700);
+              }, false);
+            });
+          }, false);
+        }
+      }, 10000);
     }, false);
   }
 }, 10000);
@@ -3362,32 +3398,68 @@ const timeoutFallback = setTimeout(() => {
                                 stopChecking = true;
                                 clearInterval(pingInterval);
                                 circle.remove();
-                                typeMessage('Keine Verbindung gefunden. Bitte starte dein Gerät neu oder prüfe die Verbindung.', () => {
-                                  // PATCH: Zwei Buttons einfügen: "Erneut versuchen" und "Trotzdem versuchen"
-                                  tutorialChoiceEl.style.display = 'block';
-                                  tutorialChoiceEl.innerHTML = `
-                                    <button id="retry-midi">Erneut versuchen</button>
-                                    <button id="skip-midi" style="color: red; border: 2px solid red; background-color: white; margin-left: 10px;">Trotzdem versuchen</button>
-                                  `;
-                                  const retryButton = document.getElementById('retry-midi');
-                                  const skipButton = document.getElementById('skip-midi');
-                                  retryButton.addEventListener('click', () => {
-                                    tutorialChoiceEl.style.display = 'none';
-                                    tutorialChoiceEl.innerHTML = '';
-                                    typeMessage('Alles klar, wir versuchen es nochmal.', () => {
-                                      initIntro(); // startet die Intro-Sequenz erneut
-                                    }, false);
-                                  });
-                                  skipButton.addEventListener('click', () => {
-                                    tutorialChoiceEl.style.display = 'none';
-                                    tutorialChoiceEl.innerHTML = '';
-                                    typeMessage('Okay, du kannst trotzdem starten.', () => {
-                                      setTimeout(() => {
-                                        startAppAfterIntro(); // führt direkt zur Hauptansicht
-                                      }, 700);
-                                    }, false);
-                                  });
-                                  // ENDE PATCH
+                                typeMessage('Keine Verbindung erkannt. Drücke bitte eine Taste auf deinem Klavier, falls du bereits verbunden bist.', () => {
+                                  let midiDetected = false;
+
+                                  function midiKeyListener(status, data1, data2) {
+                                    if ((status & 0xf0) === 0x90 && data2 > 0) {
+                                      midiDetected = true;
+                                      typeMessage('Verbindung erkannt!', () => {
+                                        window.swiftMIDIConnected = true;
+                                        document.removeEventListener('midiKeyEvent', midiKeyListener);
+                                        setTimeout(() => {
+                                          startAppAfterIntro();
+                                        }, 700);
+                                      }, false);
+                                    }
+                                  }
+
+                                  // Aktiviere temporären MIDI-Listener für 10 Sekunden
+                                  function tempMIDICheck() {
+                                    if (navigator.requestMIDIAccess) {
+                                      navigator.requestMIDIAccess().then((midiAccess) => {
+                                        midiAccess.inputs.forEach((input) => {
+                                          input.onmidimessage = ({ data }) => {
+                                            const [status, data1, data2] = data;
+                                            midiKeyListener(status, data1, data2);
+                                          };
+                                        });
+                                      });
+                                    }
+                                  }
+
+                                  tempMIDICheck();
+
+                                  // Nach 10 Sekunden prüfen, ob eine Taste erkannt wurde
+                                  setTimeout(() => {
+                                    if (!midiDetected) {
+                                      typeMessage('Leider keine Taste erkannt.', () => {
+                                        tutorialChoiceEl.style.display = 'block';
+                                        tutorialChoiceEl.innerHTML = `
+                                          <button id="retry-midi">Erneut versuchen</button>
+                                          <button id="skip-midi" style="color: red; border: 2px solid red; background-color: white; margin-left: 10px;">Trotzdem versuchen</button>
+                                        `;
+                                        const retryButton = document.getElementById('retry-midi');
+                                        const skipButton = document.getElementById('skip-midi');
+                                        retryButton.addEventListener('click', () => {
+                                          tutorialChoiceEl.style.display = 'none';
+                                          tutorialChoiceEl.innerHTML = '';
+                                          typeMessage('Alles klar, wir versuchen es nochmal.', () => {
+                                            initIntro(); // startet die Intro-Sequenz erneut
+                                          }, false);
+                                        });
+                                        skipButton.addEventListener('click', () => {
+                                          tutorialChoiceEl.style.display = 'none';
+                                          tutorialChoiceEl.innerHTML = '';
+                                          typeMessage('Okay, du kannst trotzdem starten.', () => {
+                                            setTimeout(() => {
+                                              startAppAfterIntro(); // führt direkt zur Hauptansicht
+                                            }, 700);
+                                          }, false);
+                                        });
+                                      }, false);
+                                    }
+                                  }, 10000);
                                 }, false);
                               }
                             }, 10000);
