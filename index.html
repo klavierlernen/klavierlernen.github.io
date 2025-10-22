@@ -3174,7 +3174,7 @@ const timeoutFallback = setTimeout(() => {
         tutorialChoiceEl.innerHTML = '';
         typeMessage('Okay, du kannst trotzdem starten.', () => {
           setTimeout(() => {
-            startAppAfterIntro(); // führt direkt zur Hauptansicht
+              showTutorialChoice(name); // setzt das Tutorial normal fort
           }, 700);
         }, false);
       });
