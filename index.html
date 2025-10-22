@@ -2252,9 +2252,9 @@ const drawSeries = () => {
 </script>
 </head>
 <body>
-    <div id="intro" class="hidden">
+    <div id="intro" class="hidden" role="dialog" aria-modal="true" aria-label="Begrüßung und Tutorial" aria-hidden="true" tabindex="-1">
         <div class="chat-container">
-            <div id="messages"></div>
+            <div id="messages" aria-live="polite"></div>
             <div class="input-line">
                 <input id="name-input" type="text" placeholder="Name">
                 <button id="name-ok" style="display:none;">OK</button>
@@ -2295,7 +2295,7 @@ const drawSeries = () => {
     <div id="timerContainer"></div>
     <!-- Hauptinhalt -->
     <div id="settingsPanel" style="position: fixed; top: 20%; right: 10px; background: rgba(255,255,255,0.8); padding: 10px; border: 1px solid #000; z-index: 200;"></div>
-    <div id="mainContent">
+    <div id="mainContent" tabindex="-1">
        
         <div id="notation"></div>
         <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase;"></div>
@@ -2823,6 +2823,13 @@ const drawSeries = () => {
                 tutorialChoiceEl.style.display = 'none';
                 tutorialChoiceEl.innerHTML = '';
                 introEl.classList.add('hidden');
+                introEl.setAttribute('aria-hidden', 'true');
+                const mainContent = document.getElementById('mainContent');
+                if (mainContent && typeof mainContent.focus === 'function') {
+                    setTimeout(() => {
+                        mainContent.focus();
+                    }, 600);
+                }
                 if (!appStarted) {
                     proceedToMainScreen();
                     appStarted = true;
@@ -2970,6 +2977,10 @@ const drawSeries = () => {
 
             function initIntro() {
                 introEl.classList.remove('hidden');
+                introEl.setAttribute('aria-hidden', 'false');
+                if (typeof introEl.focus === 'function') {
+                    introEl.focus();
+                }
                 const storedName = getStoredName();
                 if (storedName) {
                     messagesEl.innerHTML = '';
