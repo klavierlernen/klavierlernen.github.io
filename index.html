@@ -256,6 +256,22 @@
       width: 100%;
       max-width: 800px;
     }
+    #avatarPreview {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid black;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.5rem;
+      box-sizing: border-box;
+      background: #fff;
+    }
+    /* Avatar-Preview erst zeigen, wenn OK-Button eingeblendet ist (sichtbar, nicht display: none) */
+    #intro .input-line button:not([style*="display: none"]) ~ #avatarPreview {
+      display: flex;
+    }
     #messages {
       margin-bottom: 1rem;
       font-size: 2.2rem;
@@ -292,6 +308,11 @@
       display: inline-flex;
       align-items: center;
       width: auto;
+    }
+    #avatarPreview svg {
+      width: 44px;
+      height: 44px;
+      display: block;
     }
     #name-input {
       visibility: hidden;
@@ -896,6 +917,410 @@
     }
     
     document.addEventListener("DOMContentLoaded", () => {
+      // Pastellfarben-Palette
+      const pastelColors = [
+        "#FFB3BA", "#FFDFBA", "#FFFFBA", "#BAFFC9", "#BAE1FF", "#E0BBE4", "#957DAD", "#D5AAFF", "#A8E6CF", "#DCEDC1",
+        "#FFD3B6", "#FFAAA5", "#FF8B94", "#AFCBFF", "#D0E6A5", "#FFEC8B", "#F3C1C6", "#C3E0E5", "#B5EAD7", "#FFDAC1"
+      ];
+      // Symbolformen-Array mit 100 Einträgen
+      const symbolShapes = [
+        "circle","square","triangle","star","hexagon","heart","diamond","clover","moon","cloud","flower","leaf","gear","eye","drop","wave","sun","mountain","tree","arrow","spiral","fish","bird","butterfly","anchor","snowflake","key","lock","book","music","note","camera","pencil","brush","palette","cube","cone","pyramid","ring","planet","comet","starburst","cross","pentagon","octagon","ellipse","bean","shell","feather","planetRing","triangleDown","triangleLeft","triangleRight","crosshair","hourglass","flame","bolt","skull","face","ghost","bell","balloon","flag","crown","gem","gear2","planet2","umbrella","rainbow","wave2","paw","bone","leaf2","bubble","planet3","heart2","moon2","circle2","triangle2","square2","hexagon2","star2","gear3","gear4","flower2","cross2","arrow2","arrow3","drop2","spiral2","snowflake2","sun2","mountain2","tree2","fish2","bird2","eye2","wave3","planet4","bolt2","gear5","leaf3"
+      ];
+
+      // Hilfsfunktion: HEX zu HSL und zurück, um Helligkeit zu reduzieren
+      function hexToHSL(hex) {
+        hex = hex.replace(/^#/, "");
+        if (hex.length === 3) {
+          hex = hex.split("").map(x => x + x).join("");
+        }
+        const num = parseInt(hex, 16);
+        let r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
+        r /= 255; g /= 255; b /= 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+        if (max === min) {
+          h = s = 0;
+        } else {
+          const d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+          }
+          h /= 6;
+        }
+        return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+      }
+      function hslToHex(h, s, l) {
+        h /= 360; s /= 100; l /= 100;
+        let r, g, b;
+        if (s === 0) {
+          r = g = b = l;
+        } else {
+          const hue2rgb = function(p, q, t) {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+          };
+          const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+          const p = 2 * l - q;
+          r = hue2rgb(p, q, h + 1/3);
+          g = hue2rgb(p, q, h);
+          b = hue2rgb(p, q, h - 1/3);
+        }
+        const toHex = x => {
+          const hex = Math.round(x * 255).toString(16);
+          return hex.length === 1 ? "0" + hex : hex;
+        };
+        return "#" + toHex(r) + toHex(g) + toHex(b);
+      }
+      function darkenHexColor(hex, percent) {
+        let hsl = hexToHSL(hex);
+        hsl.l = Math.max(0, hsl.l - percent);
+        return hslToHex(hsl.h, hsl.s, hsl.l);
+      }
+
+      // Avatar-Preview im Intro einfügen
+      (function injectAvatarPreview() {
+        // Finde die Input-Line mit Namenseingabe
+        const intro = document.getElementById("intro");
+        if (!intro) return;
+        const chatContainer = intro.querySelector(".chat-container");
+        if (!chatContainer) return;
+        // Finde die Zeile mit #name-input
+        const inputLine = chatContainer.querySelector(".input-line");
+        if (!inputLine) return;
+        // Finde den OK-Button
+        const okButton = inputLine.querySelector("button");
+        // Füge Avatar-Preview direkt vor dem OK-Button ein, aber innerhalb der input-line
+        if (inputLine && !inputLine.querySelector("#avatarPreview")) {
+          const avatarDiv = document.createElement("div");
+          avatarDiv.id = "avatarPreview";
+          // SVG-Element für die Form
+          const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          svg.setAttribute("id", "avatarShape");
+          svg.setAttribute("width", "36");
+          svg.setAttribute("height", "36");
+          avatarDiv.appendChild(svg);
+          // Füge es VOR dem OK-Button ein
+          if (okButton) {
+            inputLine.insertBefore(avatarDiv, okButton);
+          } else {
+            inputLine.appendChild(avatarDiv);
+          }
+        }
+      })();
+
+      // Avatar-Shape Generator (mit Pastellfarben und Symbolformen)
+      function generateRandomShape(svgElem) {
+        // Nur anzeigen, wenn #intro sichtbar
+        const intro = document.getElementById("intro");
+        if (!intro || intro.classList.contains("hidden") || intro.style.display === "none") return;
+        if (!svgElem) return;
+        // Lösche vorherigen Inhalt
+        while (svgElem.firstChild) svgElem.removeChild(svgElem.firstChild);
+        // Hintergrundfarbe (Pastell)
+        const bgColor = pastelColors[Math.floor(Math.random() * pastelColors.length)];
+        // Symbolform
+        const shape = symbolShapes[Math.floor(Math.random() * symbolShapes.length)];
+        // Dunklere Symbolfarbe
+        const symbolColor = darkenHexColor(bgColor, 30);
+        // Hintergrundkreis (44x44, Radius 22)
+        const bgCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        bgCircle.setAttribute("cx", "22");
+        bgCircle.setAttribute("cy", "22");
+        bgCircle.setAttribute("r", "22");
+        bgCircle.setAttribute("fill", bgColor);
+        svgElem.appendChild(bgCircle);
+        // Symbol zentriert (max. 28x28 px, mittig bei 22,22)
+        function addShape(form) {
+          let el;
+          switch (form) {
+            case "circle":
+            case "circle2":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+              el.setAttribute("cx", "22");
+              el.setAttribute("cy", "22");
+              el.setAttribute("r", "12");
+              break;
+            case "square":
+            case "square2":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+              el.setAttribute("x", "8");
+              el.setAttribute("y", "8");
+              el.setAttribute("width", "28");
+              el.setAttribute("height", "28");
+              break;
+            case "triangle":
+            case "triangle2":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+              el.setAttribute("points", "22,7 37,37 7,37");
+              break;
+            case "triangleDown":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+              el.setAttribute("points", "7,15 37,15 22,37");
+              break;
+            case "triangleLeft":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+              el.setAttribute("points", "29,7 29,37 7,22");
+              break;
+            case "triangleRight":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+              el.setAttribute("points", "15,7 15,37 37,22");
+              break;
+            case "star":
+            case "star2":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+              el.setAttribute("points", "22,7 25,16 34,16 27,22 30,32 22,26 14,32 17,22 10,16 19,16");
+              break;
+            case "hexagon":
+            case "hexagon2":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+              el.setAttribute("points", "22,7 34,14 34,30 22,37 10,30 10,14");
+              break;
+            case "pentagon":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+              el.setAttribute("points", "22,7 36,17 30,35 14,35 8,17");
+              break;
+            case "octagon":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+              el.setAttribute("points", "14,7 30,7 37,14 37,30 30,37 14,37 7,30 7,14");
+              break;
+            case "diamond":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+              el.setAttribute("points", "22,7 37,22 22,37 7,22");
+              break;
+            case "heart":
+            case "heart2":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "path");
+              el.setAttribute("d", "M22 34 Q12 26 12 18 Q12 12 18 12 Q22 12 22 16 Q22 12 26 12 Q32 12 32 18 Q32 26 22 34 Z");
+              break;
+            case "moon":
+            case "moon2":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "path");
+              el.setAttribute("d", "M28 22a10 10 0 1 1-10-10a8 8 0 1 0 10 10z");
+              break;
+            case "cloud":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+              el.setAttribute("cx", "22");
+              el.setAttribute("cy", "24");
+              el.setAttribute("rx", "14");
+              el.setAttribute("ry", "10");
+              break;
+            case "flower":
+            case "flower2":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "g");
+              for (let i = 0; i < 6; i++) {
+                let petal = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+                let angle = (i * 60) * Math.PI / 180;
+                let cx = 22 + Math.cos(angle) * 9;
+                let cy = 22 + Math.sin(angle) * 9;
+                petal.setAttribute("cx", cx);
+                petal.setAttribute("cy", cy);
+                petal.setAttribute("rx", "5");
+                petal.setAttribute("ry", "10");
+                petal.setAttribute("transform", `rotate(${i*60},${cx},${cy})`);
+                petal.setAttribute("fill", symbolColor);
+                el.appendChild(petal);
+              }
+              let center = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+              center.setAttribute("cx", "22");
+              center.setAttribute("cy", "22");
+              center.setAttribute("r", "5");
+              center.setAttribute("fill", symbolColor);
+              el.appendChild(center);
+              break;
+            case "gear":
+            case "gear2":
+            case "gear3":
+            case "gear4":
+            case "gear5":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "g");
+              let gearCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+              gearCircle.setAttribute("cx", "22");
+              gearCircle.setAttribute("cy", "22");
+              gearCircle.setAttribute("r", "8");
+              gearCircle.setAttribute("fill", symbolColor);
+              el.appendChild(gearCircle);
+              for (let i = 0; i < 8; i++) {
+                let angle = (i * 45) * Math.PI / 180;
+                let x1 = 22 + Math.cos(angle) * 13;
+                let y1 = 22 + Math.sin(angle) * 13;
+                let x2 = 22 + Math.cos(angle) * 17;
+                let y2 = 22 + Math.sin(angle) * 17;
+                let tooth = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                tooth.setAttribute("x", x1-2);
+                tooth.setAttribute("y", y1-2);
+                tooth.setAttribute("width", "4");
+                tooth.setAttribute("height", "4");
+                tooth.setAttribute("fill", symbolColor);
+                tooth.setAttribute("transform", `rotate(${i*45},${x1},${y1})`);
+                el.appendChild(tooth);
+              }
+              break;
+            case "sun":
+            case "sun2":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "g");
+              let sunCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+              sunCircle.setAttribute("cx", "22");
+              sunCircle.setAttribute("cy", "22");
+              sunCircle.setAttribute("r", "8");
+              sunCircle.setAttribute("fill", symbolColor);
+              el.appendChild(sunCircle);
+              for (let i = 0; i < 12; i++) {
+                let angle = (i * 30) * Math.PI / 180;
+                let x1 = 22 + Math.cos(angle) * 12;
+                let y1 = 22 + Math.sin(angle) * 12;
+                let x2 = 22 + Math.cos(angle) * 18;
+                let y2 = 22 + Math.sin(angle) * 18;
+                let ray = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                ray.setAttribute("x1", x1);
+                ray.setAttribute("y1", y1);
+                ray.setAttribute("x2", x2);
+                ray.setAttribute("y2", y2);
+                ray.setAttribute("stroke", symbolColor);
+                ray.setAttribute("stroke-width", "2");
+                el.appendChild(ray);
+              }
+              break;
+            case "starburst":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "g");
+              for (let i = 0; i < 8; i++) {
+                let angle = (i * 45) * Math.PI / 180;
+                let x1 = 22 + Math.cos(angle) * 6;
+                let y1 = 22 + Math.sin(angle) * 6;
+                let x2 = 22 + Math.cos(angle) * 18;
+                let y2 = 22 + Math.sin(angle) * 18;
+                let ray = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                ray.setAttribute("x1", x1);
+                ray.setAttribute("y1", y1);
+                ray.setAttribute("x2", x2);
+                ray.setAttribute("y2", y2);
+                ray.setAttribute("stroke", symbolColor);
+                ray.setAttribute("stroke-width", "2");
+                el.appendChild(ray);
+              }
+              break;
+            case "cross":
+            case "cross2":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "g");
+              let vline = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+              vline.setAttribute("x", "19");
+              vline.setAttribute("y", "8");
+              vline.setAttribute("width", "6");
+              vline.setAttribute("height", "28");
+              vline.setAttribute("fill", symbolColor);
+              el.appendChild(vline);
+              let hline = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+              hline.setAttribute("x", "8");
+              hline.setAttribute("y", "19");
+              hline.setAttribute("width", "28");
+              hline.setAttribute("height", "6");
+              hline.setAttribute("fill", symbolColor);
+              el.appendChild(hline);
+              break;
+            case "ellipse":
+              el = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+              el.setAttribute("cx", "22");
+              el.setAttribute("cy", "22");
+              el.setAttribute("rx", "14");
+              el.setAttribute("ry", "10");
+              break;
+            // ... weitere Formen können ergänzt werden ...
+            default:
+              // Fallback: kleiner Kreis
+              el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+              el.setAttribute("cx", "22");
+              el.setAttribute("cy", "22");
+              el.setAttribute("r", "10");
+              break;
+          }
+          if (el) {
+            if (!el.getAttribute("fill")) el.setAttribute("fill", symbolColor);
+            svgElem.appendChild(el);
+          }
+        }
+        addShape(shape);
+      }
+
+      // Namenseingabe: Avatar-Shape bei jedem Input ändern (nur wenn #intro sichtbar)
+      (function setupAvatarInputListener() {
+        const nameInput = document.getElementById("name-input");
+        const avatarSvg = document.getElementById("avatarShape");
+        if (nameInput && avatarSvg) {
+          nameInput.addEventListener("input", () => {
+            // Nur aktualisieren, wenn #intro sichtbar
+            const intro = document.getElementById("intro");
+            if (intro && !intro.classList.contains("hidden") && intro.style.display !== "none") {
+              generateRandomShape(avatarSvg);
+            }
+          });
+          // Bei erstmaligem Anzeigen initialisieren
+          generateRandomShape(avatarSvg);
+        }
+      })();
+
+      // OK-Button und Avatar-Preview gemeinsam einblenden, ausblenden wenn Intro ausgeblendet oder Button unsichtbar
+      (function setupAvatarOkVisibility() {
+        const intro = document.getElementById("intro");
+        if (!intro) return;
+        const inputLine = intro.querySelector(".chat-container .input-line");
+        if (!inputLine) return;
+        const okButton = inputLine.querySelector("button");
+        const avatarDiv = inputLine.querySelector("#avatarPreview");
+        if (!okButton || !avatarDiv) return;
+
+        // Funktion zum Anzeigen/Verstecken
+        function updateAvatarPreviewVisibility() {
+          // Wenn Intro ausgeblendet oder OK-Button unsichtbar, AvatarPreview verstecken
+          if (
+            intro.classList.contains("hidden") ||
+            intro.style.display === "none" ||
+            okButton.style.display === "none" ||
+            window.getComputedStyle(okButton).display === "none"
+          ) {
+            avatarDiv.style.display = "none";
+          } else {
+            // AvatarPreview zeigen (inline-flex, damit es wie der Button ausgerichtet ist)
+            avatarDiv.style.display = "inline-flex";
+          }
+        }
+        // Beobachte Änderungen an Intro und OK-Button
+        const observer = new MutationObserver(updateAvatarPreviewVisibility);
+        observer.observe(intro, { attributes: true, attributeFilter: ["class", "style"] });
+        observer.observe(okButton, { attributes: true, attributeFilter: ["style"] });
+        // Auch initial prüfen
+        updateAvatarPreviewVisibility();
+        // Wenn OK-Button sichtbar gemacht wird, AvatarPreview ebenfalls zeigen
+        // (Falls das per Code geschieht, z.B. okButton.style.display = "inline-flex";)
+        // Manuelle Setzung (optional, falls an anderer Stelle im Code der Button sichtbar gemacht wird):
+        const origShow = okButton.style.display;
+        // (Kein Override, aber in anderen Code-Stellen sollte man beide auf "inline-flex" setzen)
+      })();
+      // OK-Button: Avatar-Shape speichern
+      (function setupAvatarOkSave() {
+        const inputLine = document.querySelector("#intro .chat-container .input-line");
+        if (!inputLine) return;
+        const okBtn = inputLine.querySelector("button");
+        if (!okBtn) return;
+        okBtn.addEventListener("click", function () {
+          const avatarSvg = document.getElementById("avatarShape");
+          if (avatarSvg) {
+            // SVG als String speichern
+            const svgClone = avatarSvg.cloneNode(true);
+            // SVG als eigenständiges Element (mit xmlns)
+            svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+            const tmp = document.createElement("div");
+            tmp.appendChild(svgClone);
+            const svgString = tmp.innerHTML;
+            localStorage.setItem("profileShape", svgString);
+          }
+        });
+      })();
       const settingsPanel = document.getElementById("settingsPanel");
       const pauseButton = document.createElement("span");
       pauseButton.id = "pauseButton";
@@ -1620,7 +2045,22 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       }
       const welcomeMsgElem = document.getElementById("welcomeMessage");
       if (welcomeMsgElem) {
-        welcomeMsgElem.innerHTML = greeting + "<br>Schön, dass du da bist!";
+        // Lade Avatar-Shape aus localStorage
+        let svg = localStorage.getItem("profileShape");
+        let name = localStorage.getItem("userName") || "";
+        // Fallback: wenn kein Name im Storage, versuche aus Input zu lesen
+        if (!name) {
+          const nameInput = document.getElementById("name-input");
+          if (nameInput) name = nameInput.value;
+        }
+        // Wenn kein SVG, zeige normalen Gruß
+        if (!svg) {
+          welcomeMsgElem.innerHTML = greeting + "<br>Schön, dass du da bist!";
+        } else {
+          // Zeige SVG links neben Name
+          let nameHtml = name ? (" " + name) : "";
+          welcomeMsgElem.innerHTML = svg + " Willkommen," + nameHtml + "!<br><span style='font-size:0.6em;opacity:0.8'>" + greeting + "</span>";
+        }
       }
       
       const settingsPanel = document.getElementById("settingsPanel");
