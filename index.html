@@ -225,6 +225,117 @@
     .hidden {
       display: none !important;
     }
+
+    /* Intro-Overlay */
+    #intro {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: #ffffff;
+      z-index: 1000;
+      padding: 2rem;
+      box-sizing: border-box;
+      font-size: 5rem;
+    }
+    #intro.hidden {
+      display: none;
+    }
+    #intro .chat-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 800px;
+    }
+    #messages {
+      margin-bottom: 1rem;
+      font-size: 2.2rem;
+      font-weight: bold;
+      line-height: 1.4;
+      text-align: left;
+    }
+    .chat-line {
+      margin: 0.3rem 0;
+      transition: opacity 0.4s, max-height 0.4s, margin 0.4s, transform 0.4s;
+      max-height: 100px;
+      overflow: hidden;
+    }
+    .faded-line {
+      opacity: 0.5;
+    }
+    .active-line {
+      opacity: 1;
+    }
+    .cursor-dot {
+      display: inline-block;
+      width: 0.6rem;
+      height: 0.6rem;
+      background-color: #000;
+      border-radius: 50%;
+      margin-left: 0.2rem;
+      animation: blink 1s step-start infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .input-line {
+      display: inline-flex;
+      align-items: center;
+      width: auto;
+    }
+    #name-input {
+      visibility: hidden;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: #000;
+      line-height: 1.4;
+      margin: 0;
+      vertical-align: baseline;
+      display: inline-block;
+      padding: 0;
+      height: auto;
+      font-family: inherit;
+      min-width: auto;
+      flex: none;
+      box-sizing: content-box;
+      transition: width 0.2s ease;
+    }
+    #intro button {
+      background-color: #000;
+      color: #fff;
+      border: none;
+      border-radius: 2rem;
+      padding: 0.5rem 1rem;
+      margin-left: 0.3rem;
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1.4;
+      transition: background 0.15s, color 0.15s;
+      display: inline-flex;
+      align-items: center;
+    }
+    #intro button:hover,
+    #intro button:focus {
+      background-color: #222;
+      color: #fff;
+    }
+    #tutorial-choice {
+      margin-top: 0.5rem;
+    }
+    .shift-up {
+      transform: translateY(-120%);
+      opacity: 0;
+    }
     /* Timer Container */
     /* Timer Container */
         #timerContainer {
@@ -750,15 +861,32 @@
       if (audio) { audio.pause(); }
       appStartTime = Date.now();
       const welcomeOverlay = document.getElementById("welcomeOverlay");
-      welcomeOverlay.style.opacity = "0";
-      setTimeout(() => {
-        welcomeOverlay.classList.add("hidden");
+      if (welcomeOverlay) {
+        welcomeOverlay.style.opacity = "0";
+        setTimeout(() => {
+          welcomeOverlay.classList.add("hidden");
+          const mainContent = document.getElementById("mainContent");
+          if (mainContent) {
+            mainContent.style.display = "block";
+            const timer = document.getElementById("timerContainer");
+            if (timer) timer.style.display = "flex";
+            const settingsPanel = document.getElementById("settingsPanel");
+            if (settingsPanel) settingsPanel.style.display = "flex";
+            setTimeout(() => { mainContent.style.opacity = "1"; }, 10);
+          }
+        }, 500);
+      } else {
+        // Fallback: Direkt Hauptinhalt anzeigen
         const mainContent = document.getElementById("mainContent");
-        mainContent.style.display = "block";
-        document.getElementById("timerContainer").style.display = "flex";
-        document.getElementById("settingsPanel").style.display = "flex";
-        setTimeout(() => { mainContent.style.opacity = "1"; }, 10);
-      }, 500);
+        if (mainContent) {
+          mainContent.style.display = "block";
+          mainContent.style.opacity = "1";
+        }
+        const timer = document.getElementById("timerContainer");
+        if (timer) timer.style.display = "flex";
+        const settingsPanel = document.getElementById("settingsPanel");
+        if (settingsPanel) settingsPanel.style.display = "flex";
+      }
     }
     function getRandomThreshold() {
       return Math.floor(Math.random() * 4) + 2;
@@ -1487,8 +1615,10 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       } else {
         greeting = "Guten Abend!";
       }
-      document.getElementById("welcomeMessage").innerHTML = greeting + "<br>Schön, dass du da bist!";
-      setTimeout(proceedToMainScreen, 5000);
+      const welcomeMsgElem = document.getElementById("welcomeMessage");
+      if (welcomeMsgElem) {
+        welcomeMsgElem.innerHTML = greeting + "<br>Schön, dass du da bist!";
+      }
       
       const settingsPanel = document.getElementById("settingsPanel");
       // Handtoggle
@@ -2143,6 +2273,16 @@ const drawSeries = () => {
 </script>
 </head>
 <body>
+    <div id="intro" class="hidden" role="dialog" aria-modal="true" aria-label="Begrüßung und Tutorial" aria-hidden="true" tabindex="-1">
+        <div class="chat-container">
+            <div id="messages" aria-live="polite"></div>
+            <div class="input-line">
+                <input id="name-input" type="text" placeholder="Name">
+                <button id="name-ok" style="display:none;">OK</button>
+            </div>
+            <div id="tutorial-choice" style="display:none;"></div>
+        </div>
+    </div>
     <!-- Canvas für Animation (Hintergrund) -->
     <canvas id="animationCanvas"></canvas>
     <!-- Audio-Element -->
@@ -2162,10 +2302,6 @@ const drawSeries = () => {
         <!-- Kachelwand -->
         <div id="pauseTiles"></div>
     </div>
-    <!-- Welcome Overlay -->
-    <div id="welcomeOverlay">
-        <div id="welcomeMessage"><br>Schön, dass du da bist!<br></div>
-    </div>
     <!-- Game Over Overlay -->
     <div id="gameOverOverlay"></div>
     <!-- Scoreboard Overlay -->
@@ -2176,7 +2312,7 @@ const drawSeries = () => {
     <div id="timerContainer"></div>
     <!-- Hauptinhalt -->
     <div id="settingsPanel" style="position: fixed; top: 20%; right: 10px; background: rgba(255,255,255,0.8); padding: 10px; border: 1px solid #000; z-index: 200;"></div>
-    <div id="mainContent">
+    <div id="mainContent" tabindex="-1">
        
         <div id="notation"></div>
         <div id="noteNameDisplay" style="position: fixed; left:50%; bottom:110px; transform: translateX(-50%); font-size:5em; text-transform: uppercase;"></div>
@@ -2585,7 +2721,306 @@ const drawSeries = () => {
         });
         
     </script>
-    
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const introEl = document.getElementById('intro');
+            const messagesEl = document.getElementById('messages');
+            const nameInputEl = document.getElementById('name-input');
+            const nameOkBtn = document.getElementById('name-ok');
+            const tutorialChoiceEl = document.getElementById('tutorial-choice');
+
+            if (!introEl || !messagesEl || !nameInputEl || !nameOkBtn || !tutorialChoiceEl) {
+                return;
+            }
+
+            const introMessages = [
+                'Hallo! Ich bin Finn',
+                'Ich unterstütze dich beim Lernen der Noten',
+                'Wie heißt du?'
+            ];
+            const tutorialMessages = [
+                'Alles klar! Das Prinzip ist ganz einfach',
+                'Im Notensystem erscheint jeweils eine Note, die du auf deinem Keyboard spielen sollst.',
+                'Du erhältst umgehend Feedback',
+                'Beüben kannst du alle festen Lagen, den Quintenzirkel und mehr.',
+                'Viel Spaß beim Ausprobieren!'
+            ];
+
+            let introIndex = 0;
+            let introCompleted = false;
+            let tutorialActive = false;
+            let appStarted = false;
+
+            function getStoredName() {
+                try {
+                    return localStorage.getItem('klavierAppUserName');
+                } catch (error) {
+                    console.warn('Name konnte nicht aus dem Speicher gelesen werden.', error);
+                    return null;
+                }
+            }
+
+            function setStoredName(name) {
+                try {
+                    if (name) {
+                        localStorage.setItem('klavierAppUserName', name);
+                    } else {
+                        localStorage.removeItem('klavierAppUserName');
+                    }
+                } catch (error) {
+                    console.warn('Name konnte nicht gespeichert werden.', error);
+                }
+            }
+
+            function enforceMaxChatLines(max = 4) {
+                if (messagesEl.children.length > max) {
+                    const first = messagesEl.firstElementChild;
+                    if (first) {
+                        first.classList.add('shift-up');
+                        first.addEventListener('transitionend', () => {
+                            if (first.parentElement === messagesEl) {
+                                messagesEl.removeChild(first);
+                            }
+                        }, { once: true });
+                    }
+                }
+            }
+
+            function typeMessage(message, callback, withCursorDot = true) {
+                Array.from(messagesEl.children).forEach((child) => {
+                    child.classList.remove('active-line');
+                    child.classList.add('faded-line');
+                });
+
+                const lineDiv = document.createElement('div');
+                lineDiv.classList.add('chat-line', 'active-line');
+                let cursor = null;
+                if (withCursorDot) {
+                    cursor = document.createElement('span');
+                    cursor.className = 'cursor-dot';
+                    lineDiv.appendChild(cursor);
+                }
+                messagesEl.appendChild(lineDiv);
+
+                let i = 0;
+                const interval = setInterval(() => {
+                    if (cursor) {
+                        cursor.before(document.createTextNode(message.charAt(i)));
+                    } else {
+                        lineDiv.appendChild(document.createTextNode(message.charAt(i)));
+                    }
+                    i += 1;
+                    if (i >= message.length) {
+                        clearInterval(interval);
+                        if (cursor) {
+                            cursor.remove();
+                        }
+                        enforceMaxChatLines();
+                        setTimeout(() => callback && callback(), 300);
+                    }
+                }, 20);
+            }
+
+            function resetNameInput() {
+                nameInputEl.value = '';
+                nameInputEl.style.display = 'inline-block';
+                nameInputEl.style.visibility = 'visible';
+                nameOkBtn.style.display = 'inline-block';
+                nameInputEl.focus();
+                const len = Math.max(nameInputEl.placeholder.length, nameInputEl.value.length);
+                nameInputEl.style.width = `${len}ch`;
+            }
+
+            function startAppAfterIntro() {
+                if (introCompleted) {
+                    return;
+                }
+                introCompleted = true;
+                tutorialChoiceEl.style.display = 'none';
+                tutorialChoiceEl.innerHTML = '';
+                introEl.classList.add('hidden');
+                introEl.setAttribute('aria-hidden', 'true');
+                const mainContent = document.getElementById('mainContent');
+                if (mainContent && typeof mainContent.focus === 'function') {
+                    setTimeout(() => {
+                        mainContent.focus();
+                    }, 600);
+                }
+                if (!appStarted) {
+                    proceedToMainScreen();
+                    appStarted = true;
+                }
+            }
+
+            function showTutorialChoice(name) {
+                typeMessage(`${name}, sollen wir dir zeigen, wie die App funktioniert?`, () => {
+                    tutorialChoiceEl.style.display = 'block';
+                    tutorialChoiceEl.innerHTML = `
+                      <button id="tutorial-yes">Gerne!</button>
+                      <button id="tutorial-no">Ich war schon mal hier.</button>
+                    `;
+                    document.getElementById('tutorial-yes').addEventListener('click', () => {
+                        tutorialChoiceEl.style.display = 'none';
+                        tutorialChoiceEl.innerHTML = '';
+                        runTutorial(name);
+                    });
+                    document.getElementById('tutorial-no').addEventListener('click', () => {
+                        tutorialChoiceEl.style.display = 'none';
+                        tutorialChoiceEl.innerHTML = '';
+                        startAppAfterIntro();
+                    });
+                }, false);
+            }
+
+            function startTutorialExercise() {
+                if (tutorialActive) {
+                    return;
+                }
+                tutorialActive = true;
+                if (!appStarted) {
+                    proceedToMainScreen();
+                    appStarted = true;
+                }
+            }
+
+            function runTutorial(name, index = 0) {
+                if (index >= tutorialMessages.length) {
+                    return;
+                }
+
+                if (index === 2) {
+                    typeMessage(tutorialMessages[index], () => {
+                        const img = document.createElement('img');
+                        img.src = 'intro_image.png';
+                        img.alt = 'Tutorial Bild';
+                        img.style.maxWidth = '40%';
+                        img.style.marginTop = '1rem';
+                        img.style.borderRadius = '1rem';
+                        messagesEl.appendChild(img);
+
+                        tutorialChoiceEl.style.display = 'block';
+                        tutorialChoiceEl.innerHTML = `
+                          <button id="feedback-ok">OK</button>
+                        `;
+                        document.getElementById('feedback-ok').addEventListener('click', () => {
+                            img.remove();
+                            tutorialChoiceEl.style.display = 'none';
+                            tutorialChoiceEl.innerHTML = '';
+                            runTutorial(name, index + 1);
+                        });
+                    }, false);
+                } else if (index === 3) {
+                    typeMessage(tutorialMessages[index], () => {
+                        startTutorialExercise();
+                        runTutorial(name, index + 1);
+                    }, false);
+                } else if (index === tutorialMessages.length - 1) {
+                    typeMessage(tutorialMessages[index], () => {
+                        tutorialChoiceEl.style.display = 'block';
+                        tutorialChoiceEl.innerHTML = `
+                          <button id="tutorial-finish">love it!</button>
+                        `;
+                        document.getElementById('tutorial-finish').addEventListener('click', () => {
+                            tutorialChoiceEl.style.display = 'none';
+                            tutorialChoiceEl.innerHTML = '';
+                            startAppAfterIntro();
+                        });
+                    }, false);
+                } else {
+                    typeMessage(tutorialMessages[index], () => runTutorial(name, index + 1), false);
+                }
+            }
+
+            function handleNameInput() {
+                const name = nameInputEl.value.trim();
+                if (!name) {
+                    return;
+                }
+                setStoredName(name);
+                nameInputEl.style.display = 'none';
+                nameOkBtn.style.display = 'none';
+                const inputContainer = nameInputEl.parentElement;
+                const cursorDot = inputContainer.querySelector('.cursor-dot');
+                if (cursorDot) {
+                    cursorDot.remove();
+                }
+                typeMessage(`Also nenne ich dich ${name}, richtig so?`, () => {
+                    tutorialChoiceEl.style.display = 'block';
+                    tutorialChoiceEl.innerHTML = `
+                      <button id="name-yes">Ja</button>
+                      <button id="name-no">Nein</button>
+                    `;
+                    document.getElementById('name-yes').addEventListener('click', () => {
+                        tutorialChoiceEl.style.display = 'none';
+                        tutorialChoiceEl.innerHTML = '';
+                        showTutorialChoice(name);
+                    });
+                    document.getElementById('name-no').addEventListener('click', () => {
+                        tutorialChoiceEl.style.display = 'none';
+                        tutorialChoiceEl.innerHTML = '';
+                        setStoredName('');
+                        resetNameInput();
+                        typeMessage('Okay, wie heißt du dann?', () => {}, false);
+                    });
+                }, false);
+            }
+
+            nameInputEl.addEventListener('keypress', (event) => {
+                if (event.key === 'Enter') {
+                    handleNameInput();
+                }
+            });
+            nameOkBtn.addEventListener('click', () => {
+                handleNameInput();
+            });
+            nameInputEl.addEventListener('input', () => {
+                const len = Math.max(nameInputEl.value.length, nameInputEl.placeholder.length);
+                nameInputEl.style.width = `${len}ch`;
+            });
+
+            function runIntroSequence() {
+                if (introIndex < introMessages.length) {
+                    const message = introMessages[introIndex];
+                    introIndex += 1;
+                    const isLast = introIndex === introMessages.length;
+                    typeMessage(message, runIntroSequence, !isLast);
+                } else {
+                    nameInputEl.style.visibility = 'visible';
+                    nameOkBtn.style.display = 'inline-block';
+                    resetNameInput();
+                }
+            }
+
+            function initIntro() {
+                introEl.classList.remove('hidden');
+                introEl.setAttribute('aria-hidden', 'false');
+                if (typeof introEl.focus === 'function') {
+                    introEl.focus();
+                }
+                const storedName = getStoredName();
+                if (storedName) {
+                    messagesEl.innerHTML = '';
+                    nameInputEl.style.display = 'none';
+                    nameOkBtn.style.display = 'none';
+                    tutorialChoiceEl.style.display = 'none';
+                    tutorialChoiceEl.innerHTML = '';
+                    typeMessage(`Hallo, ${storedName}.`, () => {
+                        typeMessage('Willkommen zurück!', () => {
+                            setTimeout(() => {
+                                startAppAfterIntro();
+                            }, 700);
+                        }, false);
+                    }, false);
+                } else {
+                    runIntroSequence();
+                }
+            }
+
+            initIntro();
+        });
+    </script>
+
 </body>
 </html>
 
