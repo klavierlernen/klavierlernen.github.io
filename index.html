@@ -2191,6 +2191,66 @@ const drawSeries = () => {
 }
   window.addEventListener("resize", checkOrientation);
   checkOrientation();
+
+  // MIDI/Swift-Verbindungsprüfung: erkennt Web MIDI & Swift-Bridge
+  function checkMIDIConnection() {
+    return new Promise((resolve) => {
+      // 1️⃣ Web MIDI API verfügbar?
+      if (navigator.requestMIDIAccess) {
+        navigator.requestMIDIAccess().then((midiAccess) => {
+          const hasInput = Array.from(midiAccess.inputs.values()).length > 0;
+          if (hasInput) {
+            resolve(true);
+            return;
+          }
+
+          // 2️⃣ Swift-Bridge verfügbar?
+          if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
+            try {
+              window.webkit.messageHandlers.customPrompt.postMessage("checkMIDI");
+              // Wenn Swift antwortet, kann sie einen globalen Flag setzen
+              if (window.swiftMIDIConnected === true) {
+                resolve(true);
+                return;
+              }
+            } catch (e) {
+              console.warn("Swift-Bridge-Check fehlgeschlagen:", e);
+            }
+          }
+
+          resolve(false);
+        }).catch(() => {
+          // Kein Zugriff, aber Swift-Bridge als Fallback
+          if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
+            try {
+              window.webkit.messageHandlers.customPrompt.postMessage("checkMIDI");
+              if (window.swiftMIDIConnected === true) {
+                resolve(true);
+                return;
+              }
+            } catch (e) {
+              console.warn("Swift-Bridge-Check fehlgeschlagen:", e);
+            }
+          }
+          resolve(false);
+        });
+      } else {
+        // 3️⃣ Web MIDI API fehlt, aber Swift-Bridge?
+        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
+          try {
+            window.webkit.messageHandlers.customPrompt.postMessage("checkMIDI");
+            if (window.swiftMIDIConnected === true) {
+              resolve(true);
+              return;
+            }
+          } catch (e) {
+            console.warn("Swift-Bridge-Check fehlgeschlagen:", e);
+          }
+        }
+        resolve(false);
+      }
+    });
+  }
   
   </script>
 <script>
@@ -3161,7 +3221,7 @@ const timeoutFallback = setTimeout(() => {
                 }
             }
 
-            function initIntro() {
+          function initIntro() {
                 introEl.classList.remove('hidden');
                 introEl.setAttribute('aria-hidden', 'false');
                 if (typeof introEl.focus === 'function') {
@@ -3175,15 +3235,46 @@ const timeoutFallback = setTimeout(() => {
                     tutorialChoiceEl.style.display = 'none';
                     tutorialChoiceEl.innerHTML = '';
                     typeMessage(`Hallo, ${storedName}.`, () => {
-                      // Prüfe MIDI-Verbindung
+                      // Prüfe MIDI-Verbindung (hybride Web MIDI/Swift-Bridge Variante)
                       function checkMIDIConnection() {
                         return new Promise((resolve) => {
+                          // 1️⃣ Web MIDI API verfügbar?
                           if (navigator.requestMIDIAccess) {
                             navigator.requestMIDIAccess().then((midiAccess) => {
                               const hasInput = Array.from(midiAccess.inputs.values()).length > 0;
-                              resolve(hasInput);
+                              if (hasInput) {
+                                resolve(true);
+                                return;
+                              }
+
+                              // 2️⃣ Swift Bridge verfügbar?
+                              if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
+                                try {
+                                  window.webkit.messageHandlers.customPrompt.postMessage("checkMIDI");
+                                  if (window.swiftMIDIConnected === true) {
+                                    resolve(true);
+                                    return;
+                                  }
+                                } catch (e) {
+                                  console.warn("Swift Bridge Fehler:", e);
+                                }
+                              }
+
+                              resolve(false);
                             }).catch(() => resolve(false));
                           } else {
+                            // 3️⃣ Kein Web MIDI, aber evtl. Swift?
+                            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
+                              try {
+                                window.webkit.messageHandlers.customPrompt.postMessage("checkMIDI");
+                                if (window.swiftMIDIConnected === true) {
+                                  resolve(true);
+                                  return;
+                                }
+                              } catch (e) {
+                                console.warn("Swift Bridge Fehler:", e);
+                              }
+                            }
                             resolve(false);
                           }
                         });
@@ -3217,58 +3308,59 @@ const timeoutFallback = setTimeout(() => {
                               direction *= -1;
                             }, 500);
 
-                            const timeoutFallback = setTimeout(() => {
-                              clearInterval(pingInterval);
-                              circle.remove();
-                              typeMessage('Keine Verbindung gefunden. Bitte starte dein Gerät neu oder prüfe die Verbindung.', () => {
-                                const retryButton = document.createElement('button');
-                                retryButton.textContent = 'Erneut versuchen';
-                                retryButton.id = 'retry-midi';
-                                tutorialChoiceEl.style.display = 'block';
-                                tutorialChoiceEl.innerHTML = '';
-                                tutorialChoiceEl.appendChild(retryButton);
-                                retryButton.addEventListener('click', () => {
-                                  tutorialChoiceEl.style.display = 'none';
-                                  tutorialChoiceEl.innerHTML = '';
-                                  typeMessage('Alles klar, wir versuchen es nochmal.', () => {
-                                    initIntro(); // startet die Intro-Sequenz erneut
-                                  }, false);
-                                });
-                              }, false);
-                            }, 10000);
-
                             let stopChecking = false;
-                            const checkInterval = setInterval(async () => {
+
+                            async function checkConnectionLoop() {
                               const connectedNow = await checkMIDIConnection();
-                              if (connectedNow) {
+                              if (connectedNow && !stopChecking) {
+                                stopChecking = true;
                                 clearInterval(pingInterval);
-                                clearInterval(checkInterval);
                                 clearTimeout(timeoutFallback);
                                 circle.remove();
-                                if (!stopChecking) {
-                                  stopChecking = true;
-                                  typeMessage('Gefunden.', () => {
-                                    setTimeout(() => {
-                                      startAppAfterIntro();
-                                    }, 700);
-                                  }, false);
-                                }
-                              } else {
-                                // Prüfe SwiftBridge-Verbindung (z. B. iOS WebView)
-                                if (!stopChecking && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
-                                  stopChecking = true;
-                                  clearInterval(pingInterval);
-                                  clearInterval(checkInterval);
-                                  clearTimeout(timeoutFallback);
-                                  circle.remove();
-                                  typeMessage('Verbindung über Swift erkannt.', () => {
-                                    setTimeout(() => {
-                                      startAppAfterIntro();
-                                    }, 700);
-                                  }, false);
-                                }
+                                typeMessage('Gefunden.', () => {
+                                  setTimeout(() => {
+                                    startAppAfterIntro();
+                                  }, 700);
+                                }, false);
                               }
-                            }, 1000);
+                            }
+
+                            const timeoutFallback = setTimeout(() => {
+                              if (!stopChecking) {
+                                stopChecking = true;
+                                clearInterval(pingInterval);
+                                circle.remove();
+                                typeMessage('Keine Verbindung gefunden. Bitte starte dein Gerät neu oder prüfe die Verbindung.', () => {
+                                  // PATCH: Zwei Buttons einfügen: "Erneut versuchen" und "Trotzdem versuchen"
+                                  tutorialChoiceEl.style.display = 'block';
+                                  tutorialChoiceEl.innerHTML = `
+                                    <button id="retry-midi">Erneut versuchen</button>
+                                    <button id="skip-midi" style="color: red; border: 2px solid red; background-color: white; margin-left: 10px;">Trotzdem versuchen</button>
+                                  `;
+                                  const retryButton = document.getElementById('retry-midi');
+                                  const skipButton = document.getElementById('skip-midi');
+                                  retryButton.addEventListener('click', () => {
+                                    tutorialChoiceEl.style.display = 'none';
+                                    tutorialChoiceEl.innerHTML = '';
+                                    typeMessage('Alles klar, wir versuchen es nochmal.', () => {
+                                      initIntro(); // startet die Intro-Sequenz erneut
+                                    }, false);
+                                  });
+                                  skipButton.addEventListener('click', () => {
+                                    tutorialChoiceEl.style.display = 'none';
+                                    tutorialChoiceEl.innerHTML = '';
+                                    typeMessage('Okay, du kannst trotzdem starten.', () => {
+                                      setTimeout(() => {
+                                        startAppAfterIntro(); // führt direkt zur Hauptansicht
+                                      }, 700);
+                                    }, false);
+                                  });
+                                  // ENDE PATCH
+                                }, false);
+                              }
+                            }, 10000);
+
+                            const intervalId = setInterval(checkConnectionLoop, 1000);
                           }, false);
                         }
                       });
