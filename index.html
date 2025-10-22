@@ -257,8 +257,8 @@
       max-width: 800px;
     }
     #avatarPreview {
-      width: 36px;
-      height: 36px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
       border: 2px solid black;
       display: none;
@@ -268,8 +268,7 @@
       box-sizing: border-box;
       background: #fff;
     }
-    /* Avatar-Preview erst zeigen, wenn OK-Button eingeblendet ist (sichtbar, nicht display: none) */
-    #intro .input-line button:not([style*="display: none"]) ~ #avatarPreview {
+    #intro .input-line #avatarPreview {
       display: flex;
     }
     #messages {
@@ -335,7 +334,7 @@
       transition: width 0.2s ease;
     }
     #intro button {
-      background-color: #000;
+      background-color: black;
       color: #fff;
       border: none;
       border-radius: 2rem;
@@ -996,15 +995,15 @@
         if (!inputLine) return;
         // Finde den OK-Button
         const okButton = inputLine.querySelector("button");
-        // Füge Avatar-Preview direkt vor dem OK-Button ein, aber innerhalb der input-line
+        // Füge Avatar-Preview über dem OK-Button ein, aber innerhalb der input-line
         if (inputLine && !inputLine.querySelector("#avatarPreview")) {
           const avatarDiv = document.createElement("div");
           avatarDiv.id = "avatarPreview";
           // SVG-Element für die Form
           const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
           svg.setAttribute("id", "avatarShape");
-          svg.setAttribute("width", "36");
-          svg.setAttribute("height", "36");
+          svg.setAttribute("width", "44");
+          svg.setAttribute("height", "44");
           avatarDiv.appendChild(svg);
           // Füge es VOR dem OK-Button ein
           if (okButton) {
@@ -1263,64 +1262,80 @@
           generateRandomShape(avatarSvg);
         }
       })();
-
-      // OK-Button und Avatar-Preview gemeinsam einblenden, ausblenden wenn Intro ausgeblendet oder Button unsichtbar
-      (function setupAvatarOkVisibility() {
-        const intro = document.getElementById("intro");
-        if (!intro) return;
-        const inputLine = intro.querySelector(".chat-container .input-line");
-        if (!inputLine) return;
-        const okButton = inputLine.querySelector("button");
-        const avatarDiv = inputLine.querySelector("#avatarPreview");
-        if (!okButton || !avatarDiv) return;
-
-        // Funktion zum Anzeigen/Verstecken
-        function updateAvatarPreviewVisibility() {
-          // Wenn Intro ausgeblendet oder OK-Button unsichtbar, AvatarPreview verstecken
-          if (
-            intro.classList.contains("hidden") ||
-            intro.style.display === "none" ||
-            okButton.style.display === "none" ||
-            window.getComputedStyle(okButton).display === "none"
-          ) {
-            avatarDiv.style.display = "none";
-          } else {
-            // AvatarPreview zeigen (inline-flex, damit es wie der Button ausgerichtet ist)
-            avatarDiv.style.display = "inline-flex";
-          }
+      // Namenseingabe: Avatar-Shape speichern bei Enter im Eingabefeld
+function setupAvatarInputEnterSave() {
+  const nameInput = document.getElementById("name-input");
+  if (nameInput) {
+    nameInput.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        const avatarSvg = document.getElementById("avatarShape");
+        if (avatarSvg) {
+          const svgClone = avatarSvg.cloneNode(true);
+          svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+          const tmp = document.createElement("div");
+          tmp.appendChild(svgClone);
+          const svgString = tmp.innerHTML;
+          localStorage.setItem("profileShape", svgString);
         }
-        // Beobachte Änderungen an Intro und OK-Button
-        const observer = new MutationObserver(updateAvatarPreviewVisibility);
-        observer.observe(intro, { attributes: true, attributeFilter: ["class", "style"] });
-        observer.observe(okButton, { attributes: true, attributeFilter: ["style"] });
-        // Auch initial prüfen
-        updateAvatarPreviewVisibility();
-        // Wenn OK-Button sichtbar gemacht wird, AvatarPreview ebenfalls zeigen
-        // (Falls das per Code geschieht, z.B. okButton.style.display = "inline-flex";)
-        // Manuelle Setzung (optional, falls an anderer Stelle im Code der Button sichtbar gemacht wird):
-        const origShow = okButton.style.display;
-        // (Kein Override, aber in anderen Code-Stellen sollte man beide auf "inline-flex" setzen)
-      })();
-      // OK-Button: Avatar-Shape speichern
-      (function setupAvatarOkSave() {
-        const inputLine = document.querySelector("#intro .chat-container .input-line");
-        if (!inputLine) return;
-        const okBtn = inputLine.querySelector("button");
-        if (!okBtn) return;
-        okBtn.addEventListener("click", function () {
-          const avatarSvg = document.getElementById("avatarShape");
-          if (avatarSvg) {
-            // SVG als String speichern
-            const svgClone = avatarSvg.cloneNode(true);
-            // SVG als eigenständiges Element (mit xmlns)
-            svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-            const tmp = document.createElement("div");
-            tmp.appendChild(svgClone);
-            const svgString = tmp.innerHTML;
-            localStorage.setItem("profileShape", svgString);
+        // Name speichern
+        const nameValue = nameInput.value.trim();
+        if (nameValue) {
+          localStorage.setItem("userName", nameValue);
+        }
+        const okBtn = document.querySelector("#intro .chat-container .input-line button");
+        if (okBtn) okBtn.style.display = "none";
+        const avatarDiv = document.getElementById("avatarPreview");
+        if (avatarDiv) avatarDiv.style.display = "none";
+        // Kleinen Delay, um Speichern abzuschließen, bevor Intro fortgesetzt wird
+        setTimeout(() => {
+          const nameValue = nameInput.value.trim();
+          if (typeof showNameConfirmation === "function") {
+            showNameConfirmation(nameValue);
+          } else if (typeof triggerNextIntroStep === "function") {
+            triggerNextIntroStep();
           }
-        });
-      })();
+        }, 200);
+      }
+    });
+  }
+}
+
+// Name-Bestätigung nach Namenseingabe im Intro
+function showNameConfirmation(name) {
+  const chatContainer = document.querySelector("#intro .chat-container");
+  if (!chatContainer) return;
+
+  const confirmationLine = document.createElement("div");
+  confirmationLine.className = "chat-line";
+  confirmationLine.textContent = `Du heißt ${name}, richtig so?`;
+
+  const buttonYes = document.createElement("button");
+  buttonYes.textContent = "Ja";
+  buttonYes.addEventListener("click", () => {
+    confirmationLine.remove();
+    if (typeof triggerNextIntroStep === "function") {
+      triggerNextIntroStep();
+    }
+  });
+
+  const buttonNo = document.createElement("button");
+  buttonNo.textContent = "Nein";
+  buttonNo.addEventListener("click", () => {
+    confirmationLine.remove();
+    const nameInput = document.getElementById("name-input");
+    if (nameInput) {
+      nameInput.value = "";
+      nameInput.focus();
+    }
+    const avatarDiv = document.getElementById("avatarPreview");
+    if (avatarDiv) avatarDiv.style.display = "flex";
+  });
+
+  confirmationLine.appendChild(buttonYes);
+  confirmationLine.appendChild(buttonNo);
+  chatContainer.appendChild(confirmationLine);
+}
       const settingsPanel = document.getElementById("settingsPanel");
       const pauseButton = document.createElement("span");
       pauseButton.id = "pauseButton";
@@ -2812,7 +2827,7 @@ const drawSeries = () => {
             <div id="messages" aria-live="polite"></div>
             <div class="input-line">
                 <input id="name-input" type="text" placeholder="Name">
-                <button id="name-ok" style="display:none;">OK</button>
+                <button id="name-ok" style="display:none;"></button>
             </div>
             <div id="tutorial-choice" style="display:none;"></div>
         </div>
