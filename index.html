@@ -2286,7 +2286,38 @@ const drawSeries = () => {
     });
   }
 
-  document.addEventListener("DOMContentLoaded", initMIDIAccess);
+  // Überwacht Änderungen an angeschlossenen MIDI-Geräten
+  function monitorMIDIDevices() {
+    if (!navigator.requestMIDIAccess) return;
+
+    navigator.requestMIDIAccess().then((midiAccess) => {
+      midiAccess.onstatechange = (event) => {
+        const port = event.port;
+        if (port.type === "input") {
+          console.log("🎹 MIDI-Port geändert:", port.name, port.state);
+
+          if (port.state === "connected") {
+            window.swiftMIDIConnected = true;
+            if (typeof typeMessage === "function") {
+              typeMessage("Klavier verbunden!", () => {}, false);
+            }
+          }
+
+          if (port.state === "disconnected") {
+            window.swiftMIDIConnected = false;
+            if (typeof typeMessage === "function") {
+              typeMessage("MIDI-Verbindung getrennt.", () => {}, false);
+            }
+          }
+        }
+      };
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    initMIDIAccess();
+    monitorMIDIDevices();
+  });
   
   function onMIDISuccess(midiAccess) {
     // Alle vorhandenen MIDI-Eingänge initialisieren
