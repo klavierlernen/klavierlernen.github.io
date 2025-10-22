@@ -2915,19 +2915,100 @@ const drawSeries = () => {
                         startTutorialExercise();
                         runTutorial(name, index + 1);
                     }, false);
-                } else if (index === tutorialMessages.length - 1) {
-                    typeMessage(tutorialMessages[index], () => {
-                        tutorialChoiceEl.style.display = 'block';
+                }
+                // PATCH: Ersetze Block für letzten Tutorial-Schritt
+                else if (index === tutorialMessages.length - 1) {
+                  typeMessage(tutorialMessages[index], () => {
+                    tutorialChoiceEl.style.display = 'block';
+                    tutorialChoiceEl.innerHTML = `
+                      <button id="tutorial-finish">love it!</button>
+                      <button id="tutorial-repeat" style="color: red; border: 2px solid red; background-color: white;">Nicht verstanden</button>
+                    `;
+                    const finishBtn = document.getElementById('tutorial-finish');
+                    const repeatBtn = document.getElementById('tutorial-repeat');
+                    let repeatClickCount = 0;
+
+                    finishBtn.addEventListener('click', () => {
+                      const expiryDate = new Date();
+                      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+                      document.cookie = "introCompleted=true; expires=" + expiryDate.toUTCString() + "; path=/";
+                      confetti({
+                        particleCount: 120,
+                        spread: 80,
+                        origin: { x: 0.5, y: 0.5 }
+                      });
+                      tutorialChoiceEl.style.display = 'none';
+                      tutorialChoiceEl.innerHTML = '';
+                      startAppAfterIntro();
+                    });
+
+                    repeatBtn.addEventListener('click', () => {
+                      repeatClickCount++;
+                      if (repeatClickCount === 1) {
+                        // Erstes Mal: 3 weitere Beschreibungen anzeigen, dann wieder fragen
+                        const extraDescriptions = [
+                          'Kein Problem! Ich erkläre es nochmal ausführlicher.',
+                          'Du siehst Noten auf der Notenzeile, und spielst sie auf deinem Keyboard.',
+                          'Nach jeder Note bekommst du direkt Rückmeldung, ob sie richtig war.'
+                        ];
+                        function showExtra(index2 = 0) {
+                          if (index2 >= extraDescriptions.length) {
+                            typeMessage('Alles klar, verstanden?', () => {
+                              tutorialChoiceEl.innerHTML = `
+                                <button id="tutorial-finish">love it!</button>
+                                <button id="tutorial-repeat" style="color: red; border: 2px solid red; background-color: white;">Nicht verstanden</button>
+                              `;
+                              document.getElementById('tutorial-finish').addEventListener('click', () => {
+                                const expiryDate = new Date();
+                                expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+                                document.cookie = "introCompleted=true; expires=" + expiryDate.toUTCString() + "; path=/";
+                                confetti({
+                                  particleCount: 120,
+                                  spread: 80,
+                                  origin: { x: 0.5, y: 0.5 }
+                                });
+                                tutorialChoiceEl.style.display = 'none';
+                                tutorialChoiceEl.innerHTML = '';
+                                startAppAfterIntro();
+                              });
+                              document.getElementById('tutorial-repeat').addEventListener('click', () => {
+                                repeatBtn.click(); // Zweiter Klick triggert nächste Eskalation
+                              });
+                            }, false);
+                            return;
+                          }
+                          typeMessage(extraDescriptions[index2], () => showExtra(index2 + 1), false);
+                        }
+                        showExtra();
+                      } else {
+                        // Zweites Mal: Doku-Button anzeigen
                         tutorialChoiceEl.innerHTML = `
                           <button id="tutorial-finish">love it!</button>
+                          <button id="tutorial-repeat" style="color: red; border: 2px solid red; background-color: white;">Nicht verstanden</button>
+                          <button id="open-docs" style="color: blue; border: 2px solid blue; background-color: white;">Dokumentation öffnen</button>
                         `;
                         document.getElementById('tutorial-finish').addEventListener('click', () => {
-                            tutorialChoiceEl.style.display = 'none';
-                            tutorialChoiceEl.innerHTML = '';
-                            startAppAfterIntro();
+                          const expiryDate = new Date();
+                          expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+                          document.cookie = "introCompleted=true; expires=" + expiryDate.toUTCString() + "; path=/";
+                          confetti({
+                            particleCount: 120,
+                            spread: 80,
+                            origin: { x: 0.5, y: 0.5 }
+                          });
+                          tutorialChoiceEl.style.display = 'none';
+                          tutorialChoiceEl.innerHTML = '';
+                          startAppAfterIntro();
                         });
-                    }, false);
-                } else {
+                        document.getElementById('open-docs').addEventListener('click', () => {
+                          window.open('https://jp0024.github.io/piano.github.io/docs', '_blank');
+                        });
+                      }
+                    });
+                  }, false);
+                }
+                // ENDE PATCH
+                else {
                     typeMessage(tutorialMessages[index], () => runTutorial(name, index + 1), false);
                 }
             }
@@ -2954,7 +3035,80 @@ const drawSeries = () => {
                     document.getElementById('name-yes').addEventListener('click', () => {
                         tutorialChoiceEl.style.display = 'none';
                         tutorialChoiceEl.innerHTML = '';
-                        showTutorialChoice(name);
+                        // MIDI-Verbindungsprüfung hier einfügen:
+                        typeMessage('Suche nach deinem Klavier ...', () => {
+                          const circle = document.createElement('div');
+                          circle.style.width = '20px';
+                          circle.style.height = '20px';
+                          circle.style.borderRadius = '50%';
+                          circle.style.backgroundColor = 'black';
+                          circle.style.position = 'relative';
+                          circle.style.left = '0px';
+                          circle.style.marginTop = '10px';
+                          circle.style.transition = 'left 0.5s ease-in-out';
+                          messagesEl.appendChild(circle);
+
+                          let direction = 1;
+                          let pingInterval = setInterval(() => {
+                            const currentLeft = parseInt(circle.style.left) || 0;
+                            const nextLeft = currentLeft + direction * 100;
+                            circle.style.left = nextLeft + 'px';
+                            direction *= -1;
+                          }, 500);
+
+                          function checkMIDIConnection() {
+                            return new Promise((resolve) => {
+                              if (navigator.requestMIDIAccess) {
+                                navigator.requestMIDIAccess().then((midiAccess) => {
+                                  const hasInput = Array.from(midiAccess.inputs.values()).length > 0;
+                                  resolve(hasInput);
+                                }).catch(() => resolve(false));
+                              } else {
+                                resolve(false);
+                              }
+                            });
+                          }
+
+                          let stopChecking = false;
+
+                          async function checkConnectionLoop() {
+                            const connected = await checkMIDIConnection();
+                            if (connected && !stopChecking) {
+                              stopChecking = true;
+                              clearInterval(pingInterval);
+                              clearTimeout(timeoutFallback);
+                              circle.remove();
+                              typeMessage('Gefunden.', () => {
+                                showTutorialChoice(name);
+                              }, false);
+                            }
+                          }
+
+                          const timeoutFallback = setTimeout(() => {
+                            if (!stopChecking) {
+                              stopChecking = true;
+                              clearInterval(pingInterval);
+                              circle.remove();
+                              typeMessage('Oops! Keine Verbindung. Bitte starte dein Gerät und versuche es erneut.', () => {
+                                tutorialChoiceEl.style.display = 'block';
+                                tutorialChoiceEl.innerHTML = `
+                                  <button id="retry-midi">Erneut versuchen</button>
+                                `;
+                                document.getElementById('retry-midi').addEventListener('click', () => {
+                                  tutorialChoiceEl.style.display = 'none';
+                                  tutorialChoiceEl.innerHTML = '';
+                                  typeMessage('Alles klar, wir versuchen es nochmal.', () => {
+                                    typeMessage('Suche nach deinem Klavier ...', () => {
+                                      handleNameInput(); // startet den Ablauf erneut
+                                    }, false);
+                                  }, false);
+                                });
+                              }, false);
+                            }
+                          }, 10000);
+
+                          const intervalId = setInterval(checkConnectionLoop, 1000);
+                        }, false);
                     });
                     document.getElementById('name-no').addEventListener('click', () => {
                         tutorialChoiceEl.style.display = 'none';
@@ -3006,11 +3160,85 @@ const drawSeries = () => {
                     tutorialChoiceEl.style.display = 'none';
                     tutorialChoiceEl.innerHTML = '';
                     typeMessage(`Hallo, ${storedName}.`, () => {
-                        typeMessage('Willkommen zurück!', () => {
+                      // Prüfe MIDI-Verbindung
+                      function checkMIDIConnection() {
+                        return new Promise((resolve) => {
+                          if (navigator.requestMIDIAccess) {
+                            navigator.requestMIDIAccess().then((midiAccess) => {
+                              const hasInput = Array.from(midiAccess.inputs.values()).length > 0;
+                              resolve(hasInput);
+                            }).catch(() => resolve(false));
+                          } else {
+                            resolve(false);
+                          }
+                        });
+                      }
+
+                      checkMIDIConnection().then((connected) => {
+                        if (connected) {
+                          typeMessage('Willkommen zurück!', () => {
                             setTimeout(() => {
-                                startAppAfterIntro();
+                              startAppAfterIntro();
                             }, 700);
-                        }, false);
+                          }, false);
+                        } else {
+                          typeMessage('Suche nach deinem Klavier ...', () => {
+                            const circle = document.createElement('div');
+                            circle.style.width = '20px';
+                            circle.style.height = '20px';
+                            circle.style.borderRadius = '50%';
+                            circle.style.backgroundColor = 'black';
+                            circle.style.position = 'relative';
+                            circle.style.left = '0px';
+                            circle.style.marginTop = '10px';
+                            circle.style.transition = 'left 0.5s ease-in-out';
+                            messagesEl.appendChild(circle);
+
+                            let direction = 1;
+                            let pingInterval = setInterval(() => {
+                              const currentLeft = parseInt(circle.style.left) || 0;
+                              const nextLeft = currentLeft + direction * 100;
+                              circle.style.left = nextLeft + 'px';
+                              direction *= -1;
+                            }, 500);
+
+                            const timeoutFallback = setTimeout(() => {
+                              clearInterval(pingInterval);
+                              circle.remove();
+                              typeMessage('Keine Verbindung gefunden. Bitte starte dein Gerät neu oder prüfe die Verbindung.', () => {
+                                const retryButton = document.createElement('button');
+                                retryButton.textContent = 'Erneut versuchen';
+                                retryButton.id = 'retry-midi';
+                                tutorialChoiceEl.style.display = 'block';
+                                tutorialChoiceEl.innerHTML = '';
+                                tutorialChoiceEl.appendChild(retryButton);
+                                retryButton.addEventListener('click', () => {
+                                  tutorialChoiceEl.style.display = 'none';
+                                  tutorialChoiceEl.innerHTML = '';
+                                  typeMessage('Alles klar, wir versuchen es nochmal.', () => {
+                                    initIntro(); // startet die Intro-Sequenz erneut
+                                  }, false);
+                                });
+                              }, false);
+                            }, 10000);
+
+                            const checkInterval = setInterval(async () => {
+                              const connectedNow = await checkMIDIConnection();
+                              if (connectedNow) {
+                                clearInterval(pingInterval);
+                                clearInterval(checkInterval);
+                                clearTimeout(timeoutFallback);
+                                circle.remove();
+                                typeMessage('Gefunden.', () => {
+                                  setTimeout(() => {
+                                    startAppAfterIntro();
+                                  }, 700);
+                                }, false);
+                              }
+                            }, 1000);
+                          }, false);
+                        }
+                      });
                     }, false);
                 } else {
                     runIntroSequence();
