@@ -2063,7 +2063,7 @@ const drawSeries = () => {
     const removeFromErrorNotes = (noteObj) => {
       errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
     };
-    const handleMIDIMessage = (status, data1, data2) => {
+    let handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
       resetInactivityTimer();
       if ((status & 0xf0) === 0x90 && data2 > 0) {
@@ -3288,7 +3288,39 @@ const timeoutFallback = setTimeout(() => {
                     resetNameInput();
                 }
             }
+            
+            // --- Swift-MIDI Erkennung (Hybrid WebView) ---
+            let midiKeyPressListenerActive = false;
+            let midiKeyPressDetected = false;
 
+            function waitForMIDIPress(callback) {
+              midiKeyPressDetected = false;
+              midiKeyPressListenerActive = true;
+
+              const timeout = setTimeout(() => {
+                midiKeyPressListenerActive = false;
+                if (!midiKeyPressDetected) callback(false);
+              }, 10000);
+
+              window._introMIDICallback = () => {
+                clearTimeout(timeout);
+                midiKeyPressDetected = true;
+                midiKeyPressListenerActive = false;
+                callback(true);
+              };
+            }
+
+            // Ergänze handleMIDIMessage, falls noch nicht vorhanden:
+            if (typeof handleMIDIMessage === "function") {
+              const oldHandle = handleMIDIMessage;
+              handleMIDIMessage = function(status, data1, data2) {
+                if (midiKeyPressListenerActive && typeof window._introMIDICallback === 'function') {
+                  window._introMIDICallback();
+                }
+                oldHandle(status, data1, data2);
+              };
+            }
+            // --- Ende Swift-MIDI Erkennung ---
           function initIntro() {
                 introEl.classList.remove('hidden');
                 introEl.setAttribute('aria-hidden', 'false');
@@ -3297,181 +3329,98 @@ const timeoutFallback = setTimeout(() => {
                 }
                 const storedName = getStoredName();
                 if (storedName) {
-                    messagesEl.innerHTML = '';
-                    nameInputEl.style.display = 'none';
-                    nameOkBtn.style.display = 'none';
-                    tutorialChoiceEl.style.display = 'none';
-                    tutorialChoiceEl.innerHTML = '';
-                    typeMessage(`Hallo, ${storedName}.`, () => {
-                      // Prüfe MIDI-Verbindung (hybride Web MIDI/Swift-Bridge Variante)
-                      function checkMIDIConnection() {
+                  messagesEl.innerHTML = '';
+                  nameInputEl.style.display = 'none';
+                  nameOkBtn.style.display = 'none';
+                  tutorialChoiceEl.style.display = 'none';
+                  tutorialChoiceEl.innerHTML = '';
+
+                  typeMessage(`Hallo, ${storedName}.`, () => {
+                    typeMessage('Suche nach deinem Klavier ...', () => {
+                      const circle = document.createElement('div');
+                      circle.style.width = '20px';
+                      circle.style.height = '20px';
+                      circle.style.borderRadius = '50%';
+                      circle.style.backgroundColor = 'black';
+                      circle.style.position = 'relative';
+                      circle.style.left = '0px';
+                      circle.style.marginTop = '10px';
+                      circle.style.transition = 'left 0.5s ease-in-out';
+                      messagesEl.appendChild(circle);
+
+                      let direction = 1;
+                      let pingInterval = setInterval(() => {
+                        const currentLeft = parseInt(circle.style.left) || 0;
+                        const nextLeft = currentLeft + direction * 100;
+                        circle.style.left = nextLeft + 'px';
+                        direction *= -1;
+                      }, 500);
+
+                      function checkHybridMIDIConnection() {
                         return new Promise((resolve) => {
-                          // 1️⃣ Web MIDI API verfügbar?
                           if (navigator.requestMIDIAccess) {
                             navigator.requestMIDIAccess().then((midiAccess) => {
                               const hasInput = Array.from(midiAccess.inputs.values()).length > 0;
-                              if (hasInput) {
-                                resolve(true);
-                                return;
-                              }
-
-                              // 2️⃣ Swift Bridge verfügbar?
+                              if (hasInput) return resolve(true);
                               if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
                                 try {
                                   window.webkit.messageHandlers.customPrompt.postMessage("checkMIDI");
-                                  if (window.swiftMIDIConnected === true) {
-                                    resolve(true);
-                                    return;
-                                  }
-                                } catch (e) {
-                                  console.warn("Swift Bridge Fehler:", e);
-                                }
+                                  if (window.swiftMIDIConnected === true) return resolve(true);
+                                } catch (e) { console.warn("Swift Bridge Fehler:", e); }
                               }
-
                               resolve(false);
                             }).catch(() => resolve(false));
+                          } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
+                            try {
+                              window.webkit.messageHandlers.customPrompt.postMessage("checkMIDI");
+                              if (window.swiftMIDIConnected === true) return resolve(true);
+                            } catch (e) { console.warn("Swift Bridge Fehler:", e); }
+                            resolve(false);
                           } else {
-                            // 3️⃣ Kein Web MIDI, aber evtl. Swift?
-                            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
-                              try {
-                                window.webkit.messageHandlers.customPrompt.postMessage("checkMIDI");
-                                if (window.swiftMIDIConnected === true) {
-                                  resolve(true);
-                                  return;
-                                }
-                              } catch (e) {
-                                console.warn("Swift Bridge Fehler:", e);
-                              }
-                            }
                             resolve(false);
                           }
                         });
                       }
 
-                      checkMIDIConnection().then((connected) => {
-                        if (connected) {
-                          typeMessage('Willkommen zurück!', () => {
-                            setTimeout(() => {
-                              startAppAfterIntro();
-                            }, 700);
-                          }, false);
+                      let finished = false;
+                      checkHybridMIDIConnection().then((connected) => {
+                        if (connected && !finished) {
+                          finished = true;
+                          clearInterval(pingInterval);
+                          circle.remove();
+                          typeMessage('Willkommen zurück!', () => startAppAfterIntro(), false);
                         } else {
-                          typeMessage('Suche nach deinem Klavier ...', () => {
-                            const circle = document.createElement('div');
-                            circle.style.width = '20px';
-                            circle.style.height = '20px';
-                            circle.style.borderRadius = '50%';
-                            circle.style.backgroundColor = 'black';
-                            circle.style.position = 'relative';
-                            circle.style.left = '0px';
-                            circle.style.marginTop = '10px';
-                            circle.style.transition = 'left 0.5s ease-in-out';
-                            messagesEl.appendChild(circle);
-
-                            let direction = 1;
-                            let pingInterval = setInterval(() => {
-                              const currentLeft = parseInt(circle.style.left) || 0;
-                              const nextLeft = currentLeft + direction * 100;
-                              circle.style.left = nextLeft + 'px';
-                              direction *= -1;
-                            }, 500);
-
-                            let stopChecking = false;
-
-                            async function checkConnectionLoop() {
-                              const connectedNow = await checkMIDIConnection();
-                              if (connectedNow && !stopChecking) {
-                                stopChecking = true;
-                                clearInterval(pingInterval);
-                                clearTimeout(timeoutFallback);
-                                circle.remove();
-                                typeMessage('Gefunden.', () => {
-                                  setTimeout(() => {
-                                    startAppAfterIntro();
-                                  }, 700);
-                                }, false);
-                              }
+                          waitForMIDIPress((detected) => {
+                            clearInterval(pingInterval);
+                            circle.remove();
+                            if (detected) {
+                              typeMessage('Verbindung erkannt!', () => startAppAfterIntro(), false);
+                            } else {
+                              typeMessage('Leider keine Taste erkannt.', () => {
+                                tutorialChoiceEl.style.display = 'block';
+                                tutorialChoiceEl.innerHTML = `
+                                  <button id="retry-midi">Erneut versuchen</button>
+                                  <button id="skip-midi" style="color: red; border: 2px solid red; background-color: white;">Trotzdem versuchen</button>
+                                `;
+                                document.getElementById('retry-midi').addEventListener('click', () => {
+                                  tutorialChoiceEl.style.display = 'none';
+                                  tutorialChoiceEl.innerHTML = '';
+                                  initIntro();
+                                });
+                                document.getElementById('skip-midi').addEventListener('click', () => {
+                                  tutorialChoiceEl.style.display = 'none';
+                                  tutorialChoiceEl.innerHTML = '';
+                                  typeMessage('Okay, du kannst trotzdem starten.', () => startAppAfterIntro(), false);
+                                });
+                              }, false);
                             }
-
-                            const timeoutFallback = setTimeout(() => {
-                              if (!stopChecking) {
-                                stopChecking = true;
-                                clearInterval(pingInterval);
-                                circle.remove();
-                                typeMessage('Keine Verbindung erkannt. Drücke bitte eine Taste auf deinem Klavier, falls du bereits verbunden bist.', () => {
-                                  let midiDetected = false;
-
-                                  function midiKeyListener(status, data1, data2) {
-                                    if ((status & 0xf0) === 0x90 && data2 > 0) {
-                                      midiDetected = true;
-                                      typeMessage('Verbindung erkannt!', () => {
-                                        window.swiftMIDIConnected = true;
-                                        document.removeEventListener('midiKeyEvent', midiKeyListener);
-                                        setTimeout(() => {
-                                          startAppAfterIntro();
-                                        }, 700);
-                                      }, false);
-                                    }
-                                  }
-
-                                  // Aktiviere temporären MIDI-Listener für 10 Sekunden
-                                  function tempMIDICheck() {
-                                    if (navigator.requestMIDIAccess) {
-                                      navigator.requestMIDIAccess().then((midiAccess) => {
-                                        midiAccess.inputs.forEach((input) => {
-                                          input.onmidimessage = ({ data }) => {
-                                            const [status, data1, data2] = data;
-                                            midiKeyListener(status, data1, data2);
-                                          };
-                                        });
-                                      });
-                                    }
-                                  }
-
-                                  tempMIDICheck();
-
-                                  // Nach 10 Sekunden prüfen, ob eine Taste erkannt wurde
-                                  setTimeout(() => {
-                                    if (!midiDetected) {
-                                      typeMessage('Leider keine Taste erkannt.', () => {
-                                        tutorialChoiceEl.style.display = 'block';
-                                        tutorialChoiceEl.innerHTML = `
-                                          <button id="retry-midi">Erneut versuchen</button>
-                                          <button id="skip-midi" style="color: red; border: 2px solid red; background-color: white; margin-left: 10px;">Trotzdem versuchen</button>
-                                        `;
-                                        const retryButton = document.getElementById('retry-midi');
-                                        const skipButton = document.getElementById('skip-midi');
-                                        retryButton.addEventListener('click', () => {
-                                          tutorialChoiceEl.style.display = 'none';
-                                          tutorialChoiceEl.innerHTML = '';
-                                          typeMessage('Alles klar, wir versuchen es nochmal.', () => {
-                                            initIntro(); // startet die Intro-Sequenz erneut
-                                          }, false);
-                                        });
-                                        skipButton.addEventListener('click', () => {
-                                          tutorialChoiceEl.style.display = 'none';
-                                          tutorialChoiceEl.innerHTML = '';
-                                          typeMessage('Okay, du kannst trotzdem starten.', () => {
-                                            setTimeout(() => {
-                                              startAppAfterIntro(); // führt direkt zur Hauptansicht
-                                            }, 700);
-                                          }, false);
-                                        });
-                                      }, false);
-                                    }
-                                  }, 10000);
-                                }, false);
-                              }
-                            }, 10000);
-
-                            // MIDI-Verbindung nur einmal prüfen, keine Endlosschleife:
-                            checkConnectionLoop();
-                          }, false);
+                          });
                         }
                       });
                     }, false);
+                  }, false);
                 } else {
-                    runIntroSequence();
+                  runIntroSequence();
                 }
             }
 
