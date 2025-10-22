@@ -1,0 +1,374 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Klavierlern‑App</title>
+  <style>
+    /* Blinker-Cursor für Chat-Intro */
+    .cursor-dot {
+      display: inline-block;
+      width: 0.6rem;
+      height: 0.6rem;
+      background-color: #000;
+      border-radius: 50%;
+      margin-left: 0.2rem;
+      animation: blink 1s step-start infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    /* Chat-Zeilen für Intro und allgemeine Chat-Zeilen */
+    .chat-line {
+      margin: 0.3rem 0;
+      transition: opacity 0.4s, max-height 0.4s, margin 0.4s, transform 0.4s;
+      max-height: 100px;
+      overflow: hidden;
+    }
+    .faded-line {
+      opacity: 0.5;
+    }
+    .active-line {
+      opacity: 1;
+    }
+
+    /* Grundlegendes Layout und Typografie */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      background-color: #ffffff;
+      color: #000000;
+    }
+
+    /* Begrüßungs‑Overlay */
+    #intro {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background-color: #ffffff;
+      z-index: 999;
+      padding: 2rem;
+      font-size: 5rem;
+      box-sizing: border-box;
+    }
+    #intro.hidden {
+      display: none;
+    }
+    #messages {
+      margin-bottom: 1rem;
+      font-size: 2.2rem;
+      font-weight: bold;
+      line-height: 1.4;
+    }
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 800px;
+    }
+    #name-input {
+      visibility: hidden;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: #000;
+      line-height: 1.4;
+      margin: 0;
+      vertical-align: baseline;
+      display: inline-block;
+      padding: 0;
+      height: auto;
+      font-family: inherit;
+      min-width: auto;
+      flex: none;
+      box-sizing: content-box;
+      transition: width 0.2s ease;
+    }
+
+      .input-line {
+        display: inline-flex;
+        align-items: center;   /* statt baseline */
+        width: auto;
+      }
+
+      #intro button {
+        background-color: #000;
+        color: #fff;
+        border: none;
+        border-radius: 2rem;
+        padding: 0.5rem 1rem;
+        margin-left: 0.3rem; /* geringerer Abstand zwischen Buttons */
+        cursor: pointer;
+        font-size: 1rem;     /* etwas näher an der Input-Schriftgröße */
+        line-height: 1.4;
+        transition: background 0.15s, color 0.15s;
+        align-items: center;   /* <- Semikolon nicht vergessen */
+      }
+    #intro button:hover,
+    #intro button:focus {
+      background-color: #222;
+      color: #fff;
+    }
+
+    #tutorial-choice {
+      margin-top: 0.5rem; /* kleiner Abstand zwischen Text und Buttons */
+    }
+
+    /* Begrenzung der Chat-Zeilen: Animation für nach oben rutschen */
+    .shift-up {
+      transform: translateY(-120%);
+      opacity: 0;
+    }
+    </style>
+</head>
+<body>
+  <!-- Begrüßungs‑Overlay -->
+  <div id="intro">
+    <div class="chat-container">
+      <div id="messages"></div>
+      <div class="input-line">
+        <input id="name-input" type="text" placeholder="Name" />
+        <button id="name-ok" style="display:none;">OK</button>
+      </div>
+      <div id="tutorial-choice" style="display:none;"></div>
+    </div>
+  </div>
+
+
+  <script>
+    // Intro/Begrüßung + Chat-Logik
+    (() => {
+      // Name speichern/lesen
+      function getStoredName() {
+        return null;
+      }
+      function setStoredName(name) {
+      }
+
+      // DOM-Elemente
+      const introEl = document.getElementById('intro');
+      const messagesEl = document.getElementById('messages');
+      const nameInputEl = document.getElementById('name-input');
+      const nameOkBtn = document.getElementById('name-ok');
+      const tutorialChoiceEl = document.getElementById('tutorial-choice');
+
+      // Chat-Intro
+      const introMessages = [
+        'Hallo! Ich bin Finn',
+        'Ich unterstütze dich beim Lernen der Noten',
+        'Wie heißt du?'
+      ];
+      let introIndex = 0;
+      function typeMessage(message, callback, withCursorDot = true) {
+        let i = 0;
+        // Bisherige Zeilen ausblenden
+        Array.from(messagesEl.children).forEach(child => {
+          child.classList.remove('active-line');
+          child.classList.add('faded-line');
+        });
+        // Neue Zeile
+        const lineDiv = document.createElement('div');
+        lineDiv.classList.add('chat-line', 'active-line');
+        let cursor = null;
+        if (withCursorDot) {
+          cursor = document.createElement('span');
+          cursor.className = 'cursor-dot';
+          lineDiv.appendChild(cursor);
+        }
+        messagesEl.appendChild(lineDiv);
+        const interval = setInterval(() => {
+          if (cursor) {
+            cursor.before(document.createTextNode(message.charAt(i)));
+          } else {
+            lineDiv.appendChild(document.createTextNode(message.charAt(i)));
+          }
+          i++;
+          if (i >= message.length) {
+            clearInterval(interval);
+            if (cursor) cursor.remove();
+            enforceMaxChatLines();
+            setTimeout(() => callback && callback(), 300);
+          }
+        }, 20);
+      }
+      function enforceMaxChatLines(max = 4) {
+        if (messagesEl.children.length > max) {
+          const first = messagesEl.firstElementChild;
+          if (first) {
+            first.classList.add('shift-up');
+            first.addEventListener('transitionend', () => {
+              if (first.parentElement === messagesEl) {
+                messagesEl.removeChild(first);
+              }
+            }, { once: true });
+          }
+        }
+      }
+      function runIntro() {
+        if (introIndex < introMessages.length) {
+          const msg = introMessages[introIndex];
+          introIndex++;
+          if (introIndex === introMessages.length) {
+            typeMessage(msg, runIntro, false);
+          } else {
+            typeMessage(msg, runIntro, true);
+          }
+        } else {
+          nameInputEl.style.visibility = 'visible';
+          nameOkBtn.style.display = 'inline-block';
+          nameInputEl.addEventListener('input', function() {
+            const len = Math.max(nameInputEl.value.length, nameInputEl.placeholder.length);
+            nameInputEl.style.width = len + 'ch';
+          });
+        }
+      }
+      function showTutorialChoice(name) {
+        typeMessage(`${name}, sollen wir dir zeigen, wie die App funktioniert?`, () => {
+          tutorialChoiceEl.style.display = 'block';
+          tutorialChoiceEl.innerHTML = `
+            <button id="tutorial-yes">Gerne!</button>
+            <button id="tutorial-no">Ich war schon mal hier.</button>
+          `;
+          document.getElementById('tutorial-yes').addEventListener('click', () => {
+            tutorialChoiceEl.style.display = 'none';
+            runTutorial(name);
+          });
+          document.getElementById('tutorial-no').addEventListener('click', () => {
+            tutorialChoiceEl.style.display = 'none';
+            introEl.classList.add('hidden');
+          });
+        }, false);
+      }
+      function runTutorial(name, index = 0) {
+        const tutorialMessages = [
+          "Alles klar! Das Prinzip ist ganz einfach",
+          "Im Notensystem erscheint jeweils eine Note, die du auf deinem Keyboard spielen sollst.",
+          "Du erhältst umgehend Feedback",
+          "Beüben kannst du alle festen Lagen, den Quintenzirkel und mehr.",
+          "Viel Spaß beim Ausprobieren!"
+        ];
+        if (index < tutorialMessages.length - 2) {
+          typeMessage(tutorialMessages[index], () => runTutorial(name, index + 1), false);
+        }
+        else if (index === 2) {
+          typeMessage(tutorialMessages[index], () => {
+            // Bild anzeigen
+            const img = document.createElement('img');
+            img.src = '/Users/jan-philippjakob/Documents/GitHub/Klavier/intro_image.png';
+            img.alt = 'Tutorial Bild';
+            img.style.maxWidth = '80%';
+            img.style.marginTop = '1rem';
+            img.style.borderRadius = '1rem';
+            messagesEl.appendChild(img);
+
+            // OK-Button anzeigen
+            tutorialChoiceEl.style.display = 'block';
+            tutorialChoiceEl.innerHTML = `
+              <button id="feedback-ok">OK</button>
+            `;
+            document.getElementById('feedback-ok').addEventListener('click', () => {
+              img.remove();
+              tutorialChoiceEl.style.display = 'none';
+              runTutorial(name, index + 1);
+            });
+          }, false);
+        }
+        else if (index === 3) {
+          typeMessage(tutorialMessages[index], () => {
+            startTutorialExercise();
+            runTutorial(name, index + 1);
+          }, false);
+        } else if (index === tutorialMessages.length - 1) {
+          typeMessage(tutorialMessages[index], () => {
+            tutorialChoiceEl.style.display = 'block';
+            tutorialChoiceEl.innerHTML = `
+              <button id="tutorial-finish">love it!</button>
+            `;
+            document.getElementById('tutorial-finish').addEventListener('click', () => {
+              tutorialChoiceEl.style.display = 'none';
+              introEl.classList.add('hidden');
+            });
+          }, false);
+        }
+      }
+      function startTutorialExercise() {
+        // Platzhalter: Keine Notendarstellung mehr im Intro-Only-Modus
+      }
+      function handleNameInput() {
+        const name = nameInputEl.value.trim();
+        if (name) {
+          setStoredName(name);
+          nameInputEl.style.display = 'none';
+          nameOkBtn.style.display = 'none';
+          const inputContainer = nameInputEl.parentElement;
+          const cursorDot = inputContainer.querySelector('.cursor-dot');
+          if (cursorDot) cursorDot.remove();
+          // Bestätigung des Namens
+          typeMessage(`Also nenne ich dich ${name}, richtig so?`, () => {
+            tutorialChoiceEl.style.display = 'block';
+            tutorialChoiceEl.innerHTML = `
+              <button id="name-yes">Ja</button>
+              <button id="name-no">Nein</button>
+            `;
+            document.getElementById('name-yes').addEventListener('click', () => {
+              tutorialChoiceEl.style.display = 'none';
+              showTutorialChoice(name);
+            });
+            document.getElementById('name-no').addEventListener('click', () => {
+              tutorialChoiceEl.style.display = 'none';
+              nameInputEl.value = '';
+              nameInputEl.style.display = 'inline-block';
+              nameOkBtn.style.display = 'inline-block';
+              nameInputEl.style.visibility = 'visible';
+              nameInputEl.focus();
+              typeMessage('Okay, wie heißt du dann?', () => {}, false);
+            });
+          }, false);
+          return;
+        }
+      }
+      nameInputEl.addEventListener('keypress', function (evt) {
+        if (evt.key === 'Enter') {
+          handleNameInput();
+        }
+      });
+      nameOkBtn.addEventListener('click', function () {
+        handleNameInput();
+      });
+      function init() {
+        const storedName = getStoredName();
+        if (storedName) {
+          introEl.classList.remove('hidden');
+          messagesEl.innerHTML = '';
+          nameInputEl.style.display = 'none';
+          nameOkBtn.style.display = 'none';
+          tutorialChoiceEl.style.display = 'none';
+          typeMessage(`Hallo, ${storedName}.`, () => {
+            typeMessage(`Willkommen zurück! (v1.5)`, () => {
+              setTimeout(() => { introEl.classList.add('hidden'); }, 700);
+            }, false);
+          }, false);
+        } else {
+          introEl.classList.remove('hidden');
+          runIntro();
+        }
+      }
+      init();
+    })();
+  </script>
+</body>
+</html>
+
+     
