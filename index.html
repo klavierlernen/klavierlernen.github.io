@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>Klavier</title>
@@ -60,10 +57,12 @@
     }
     #notation svg {
       width: 100%;
-      height: auto;
+      height: 10%;;
       shape-rendering: crispEdges;
       display: block;
       margin: 0 auto;
+      position: absolute;
+      top: -2100%;
     }
     #notation svg * {
       vector-effect: non-scaling-stroke;
@@ -256,21 +255,6 @@
       width: 100%;
       max-width: 800px;
     }
-    #avatarPreview {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      border: 2px solid black;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 0.5rem;
-      box-sizing: border-box;
-      background: #fff;
-    }
-    #intro .input-line #avatarPreview {
-      display: flex;
-    }
     #messages {
       margin-bottom: 1rem;
       font-size: 2.2rem;
@@ -308,11 +292,6 @@
       align-items: center;
       width: auto;
     }
-    #avatarPreview svg {
-      width: 44px;
-      height: 44px;
-      display: block;
-    }
     #name-input {
       visibility: hidden;
       border: none;
@@ -334,7 +313,7 @@
       transition: width 0.2s ease;
     }
     #intro button {
-      background-color: black;
+      background-color: #000;
       color: #fff;
       border: none;
       border-radius: 2rem;
@@ -916,426 +895,6 @@
     }
     
     document.addEventListener("DOMContentLoaded", () => {
-      // Pastellfarben-Palette
-      const pastelColors = [
-        "#FFB3BA", "#FFDFBA", "#FFFFBA", "#BAFFC9", "#BAE1FF", "#E0BBE4", "#957DAD", "#D5AAFF", "#A8E6CF", "#DCEDC1",
-        "#FFD3B6", "#FFAAA5", "#FF8B94", "#AFCBFF", "#D0E6A5", "#FFEC8B", "#F3C1C6", "#C3E0E5", "#B5EAD7", "#FFDAC1"
-      ];
-      // Symbolformen-Array mit 100 Einträgen
-      const symbolShapes = [
-        "circle","square","triangle","star","hexagon","heart","diamond","clover","moon","cloud","flower","leaf","gear","eye","drop","wave","sun","mountain","tree","arrow","spiral","fish","bird","butterfly","anchor","snowflake","key","lock","book","music","note","camera","pencil","brush","palette","cube","cone","pyramid","ring","planet","comet","starburst","cross","pentagon","octagon","ellipse","bean","shell","feather","planetRing","triangleDown","triangleLeft","triangleRight","crosshair","hourglass","flame","bolt","skull","face","ghost","bell","balloon","flag","crown","gem","gear2","planet2","umbrella","rainbow","wave2","paw","bone","leaf2","bubble","planet3","heart2","moon2","circle2","triangle2","square2","hexagon2","star2","gear3","gear4","flower2","cross2","arrow2","arrow3","drop2","spiral2","snowflake2","sun2","mountain2","tree2","fish2","bird2","eye2","wave3","planet4","bolt2","gear5","leaf3"
-      ];
-
-      // Hilfsfunktion: HEX zu HSL und zurück, um Helligkeit zu reduzieren
-      function hexToHSL(hex) {
-        hex = hex.replace(/^#/, "");
-        if (hex.length === 3) {
-          hex = hex.split("").map(x => x + x).join("");
-        }
-        const num = parseInt(hex, 16);
-        let r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
-        r /= 255; g /= 255; b /= 255;
-        const max = Math.max(r, g, b), min = Math.min(r, g, b);
-        let h, s, l = (max + min) / 2;
-        if (max === min) {
-          h = s = 0;
-        } else {
-          const d = max - min;
-          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-          switch (max) {
-            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-            case g: h = (b - r) / d + 2; break;
-            case b: h = (r - g) / d + 4; break;
-          }
-          h /= 6;
-        }
-        return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
-      }
-      function hslToHex(h, s, l) {
-        h /= 360; s /= 100; l /= 100;
-        let r, g, b;
-        if (s === 0) {
-          r = g = b = l;
-        } else {
-          const hue2rgb = function(p, q, t) {
-            if (t < 0) t += 1;
-            if (t > 1) t -= 1;
-            if (t < 1/6) return p + (q - p) * 6 * t;
-            if (t < 1/2) return q;
-            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
-            return p;
-          };
-          const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-          const p = 2 * l - q;
-          r = hue2rgb(p, q, h + 1/3);
-          g = hue2rgb(p, q, h);
-          b = hue2rgb(p, q, h - 1/3);
-        }
-        const toHex = x => {
-          const hex = Math.round(x * 255).toString(16);
-          return hex.length === 1 ? "0" + hex : hex;
-        };
-        return "#" + toHex(r) + toHex(g) + toHex(b);
-      }
-      function darkenHexColor(hex, percent) {
-        let hsl = hexToHSL(hex);
-        hsl.l = Math.max(0, hsl.l - percent);
-        return hslToHex(hsl.h, hsl.s, hsl.l);
-      }
-
-      // Avatar-Preview im Intro einfügen
-      (function injectAvatarPreview() {
-        // Finde die Input-Line mit Namenseingabe
-        const intro = document.getElementById("intro");
-        if (!intro) return;
-        const chatContainer = intro.querySelector(".chat-container");
-        if (!chatContainer) return;
-        // Finde die Zeile mit #name-input
-        const inputLine = chatContainer.querySelector(".input-line");
-        if (!inputLine) return;
-        // Finde den OK-Button
-        const okButton = inputLine.querySelector("button");
-        // Füge Avatar-Preview über dem OK-Button ein, aber innerhalb der input-line
-        if (inputLine && !inputLine.querySelector("#avatarPreview")) {
-          const avatarDiv = document.createElement("div");
-          avatarDiv.id = "avatarPreview";
-          // SVG-Element für die Form
-          const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-          svg.setAttribute("id", "avatarShape");
-          svg.setAttribute("width", "44");
-          svg.setAttribute("height", "44");
-          avatarDiv.appendChild(svg);
-          // Füge es VOR dem OK-Button ein
-          if (okButton) {
-            inputLine.insertBefore(avatarDiv, okButton);
-          } else {
-            inputLine.appendChild(avatarDiv);
-          }
-        }
-      })();
-
-      // Avatar-Shape Generator (mit Pastellfarben und Symbolformen)
-      function generateRandomShape(svgElem) {
-        // Nur anzeigen, wenn #intro sichtbar
-        const intro = document.getElementById("intro");
-        if (!intro || intro.classList.contains("hidden") || intro.style.display === "none") return;
-        if (!svgElem) return;
-        // Lösche vorherigen Inhalt
-        while (svgElem.firstChild) svgElem.removeChild(svgElem.firstChild);
-        // Hintergrundfarbe (Pastell)
-        const bgColor = pastelColors[Math.floor(Math.random() * pastelColors.length)];
-        // Symbolform
-        const shape = symbolShapes[Math.floor(Math.random() * symbolShapes.length)];
-        // Dunklere Symbolfarbe
-        const symbolColor = darkenHexColor(bgColor, 30);
-        // Hintergrundkreis (44x44, Radius 22)
-        const bgCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        bgCircle.setAttribute("cx", "22");
-        bgCircle.setAttribute("cy", "22");
-        bgCircle.setAttribute("r", "22");
-        bgCircle.setAttribute("fill", bgColor);
-        svgElem.appendChild(bgCircle);
-        // Symbol zentriert (max. 28x28 px, mittig bei 22,22)
-        function addShape(form) {
-          let el;
-          switch (form) {
-            case "circle":
-            case "circle2":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-              el.setAttribute("cx", "22");
-              el.setAttribute("cy", "22");
-              el.setAttribute("r", "12");
-              break;
-            case "square":
-            case "square2":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-              el.setAttribute("x", "8");
-              el.setAttribute("y", "8");
-              el.setAttribute("width", "28");
-              el.setAttribute("height", "28");
-              break;
-            case "triangle":
-            case "triangle2":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-              el.setAttribute("points", "22,7 37,37 7,37");
-              break;
-            case "triangleDown":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-              el.setAttribute("points", "7,15 37,15 22,37");
-              break;
-            case "triangleLeft":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-              el.setAttribute("points", "29,7 29,37 7,22");
-              break;
-            case "triangleRight":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-              el.setAttribute("points", "15,7 15,37 37,22");
-              break;
-            case "star":
-            case "star2":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-              el.setAttribute("points", "22,7 25,16 34,16 27,22 30,32 22,26 14,32 17,22 10,16 19,16");
-              break;
-            case "hexagon":
-            case "hexagon2":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-              el.setAttribute("points", "22,7 34,14 34,30 22,37 10,30 10,14");
-              break;
-            case "pentagon":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-              el.setAttribute("points", "22,7 36,17 30,35 14,35 8,17");
-              break;
-            case "octagon":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-              el.setAttribute("points", "14,7 30,7 37,14 37,30 30,37 14,37 7,30 7,14");
-              break;
-            case "diamond":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-              el.setAttribute("points", "22,7 37,22 22,37 7,22");
-              break;
-            case "heart":
-            case "heart2":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "path");
-              el.setAttribute("d", "M22 34 Q12 26 12 18 Q12 12 18 12 Q22 12 22 16 Q22 12 26 12 Q32 12 32 18 Q32 26 22 34 Z");
-              break;
-            case "moon":
-            case "moon2":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "path");
-              el.setAttribute("d", "M28 22a10 10 0 1 1-10-10a8 8 0 1 0 10 10z");
-              break;
-            case "cloud":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
-              el.setAttribute("cx", "22");
-              el.setAttribute("cy", "24");
-              el.setAttribute("rx", "14");
-              el.setAttribute("ry", "10");
-              break;
-            case "flower":
-            case "flower2":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "g");
-              for (let i = 0; i < 6; i++) {
-                let petal = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
-                let angle = (i * 60) * Math.PI / 180;
-                let cx = 22 + Math.cos(angle) * 9;
-                let cy = 22 + Math.sin(angle) * 9;
-                petal.setAttribute("cx", cx);
-                petal.setAttribute("cy", cy);
-                petal.setAttribute("rx", "5");
-                petal.setAttribute("ry", "10");
-                petal.setAttribute("transform", `rotate(${i*60},${cx},${cy})`);
-                petal.setAttribute("fill", symbolColor);
-                el.appendChild(petal);
-              }
-              let center = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-              center.setAttribute("cx", "22");
-              center.setAttribute("cy", "22");
-              center.setAttribute("r", "5");
-              center.setAttribute("fill", symbolColor);
-              el.appendChild(center);
-              break;
-            case "gear":
-            case "gear2":
-            case "gear3":
-            case "gear4":
-            case "gear5":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "g");
-              let gearCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-              gearCircle.setAttribute("cx", "22");
-              gearCircle.setAttribute("cy", "22");
-              gearCircle.setAttribute("r", "8");
-              gearCircle.setAttribute("fill", symbolColor);
-              el.appendChild(gearCircle);
-              for (let i = 0; i < 8; i++) {
-                let angle = (i * 45) * Math.PI / 180;
-                let x1 = 22 + Math.cos(angle) * 13;
-                let y1 = 22 + Math.sin(angle) * 13;
-                let x2 = 22 + Math.cos(angle) * 17;
-                let y2 = 22 + Math.sin(angle) * 17;
-                let tooth = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-                tooth.setAttribute("x", x1-2);
-                tooth.setAttribute("y", y1-2);
-                tooth.setAttribute("width", "4");
-                tooth.setAttribute("height", "4");
-                tooth.setAttribute("fill", symbolColor);
-                tooth.setAttribute("transform", `rotate(${i*45},${x1},${y1})`);
-                el.appendChild(tooth);
-              }
-              break;
-            case "sun":
-            case "sun2":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "g");
-              let sunCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-              sunCircle.setAttribute("cx", "22");
-              sunCircle.setAttribute("cy", "22");
-              sunCircle.setAttribute("r", "8");
-              sunCircle.setAttribute("fill", symbolColor);
-              el.appendChild(sunCircle);
-              for (let i = 0; i < 12; i++) {
-                let angle = (i * 30) * Math.PI / 180;
-                let x1 = 22 + Math.cos(angle) * 12;
-                let y1 = 22 + Math.sin(angle) * 12;
-                let x2 = 22 + Math.cos(angle) * 18;
-                let y2 = 22 + Math.sin(angle) * 18;
-                let ray = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                ray.setAttribute("x1", x1);
-                ray.setAttribute("y1", y1);
-                ray.setAttribute("x2", x2);
-                ray.setAttribute("y2", y2);
-                ray.setAttribute("stroke", symbolColor);
-                ray.setAttribute("stroke-width", "2");
-                el.appendChild(ray);
-              }
-              break;
-            case "starburst":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "g");
-              for (let i = 0; i < 8; i++) {
-                let angle = (i * 45) * Math.PI / 180;
-                let x1 = 22 + Math.cos(angle) * 6;
-                let y1 = 22 + Math.sin(angle) * 6;
-                let x2 = 22 + Math.cos(angle) * 18;
-                let y2 = 22 + Math.sin(angle) * 18;
-                let ray = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                ray.setAttribute("x1", x1);
-                ray.setAttribute("y1", y1);
-                ray.setAttribute("x2", x2);
-                ray.setAttribute("y2", y2);
-                ray.setAttribute("stroke", symbolColor);
-                ray.setAttribute("stroke-width", "2");
-                el.appendChild(ray);
-              }
-              break;
-            case "cross":
-            case "cross2":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "g");
-              let vline = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-              vline.setAttribute("x", "19");
-              vline.setAttribute("y", "8");
-              vline.setAttribute("width", "6");
-              vline.setAttribute("height", "28");
-              vline.setAttribute("fill", symbolColor);
-              el.appendChild(vline);
-              let hline = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-              hline.setAttribute("x", "8");
-              hline.setAttribute("y", "19");
-              hline.setAttribute("width", "28");
-              hline.setAttribute("height", "6");
-              hline.setAttribute("fill", symbolColor);
-              el.appendChild(hline);
-              break;
-            case "ellipse":
-              el = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
-              el.setAttribute("cx", "22");
-              el.setAttribute("cy", "22");
-              el.setAttribute("rx", "14");
-              el.setAttribute("ry", "10");
-              break;
-            // ... weitere Formen können ergänzt werden ...
-            default:
-              // Fallback: kleiner Kreis
-              el = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-              el.setAttribute("cx", "22");
-              el.setAttribute("cy", "22");
-              el.setAttribute("r", "10");
-              break;
-          }
-          if (el) {
-            if (!el.getAttribute("fill")) el.setAttribute("fill", symbolColor);
-            svgElem.appendChild(el);
-          }
-        }
-        addShape(shape);
-      }
-
-      // Namenseingabe: Avatar-Shape bei jedem Input ändern (nur wenn #intro sichtbar)
-      (function setupAvatarInputListener() {
-        const nameInput = document.getElementById("name-input");
-        const avatarSvg = document.getElementById("avatarShape");
-        if (nameInput && avatarSvg) {
-          nameInput.addEventListener("input", () => {
-            // Nur aktualisieren, wenn #intro sichtbar
-            const intro = document.getElementById("intro");
-            if (intro && !intro.classList.contains("hidden") && intro.style.display !== "none") {
-              generateRandomShape(avatarSvg);
-            }
-          });
-          // Bei erstmaligem Anzeigen initialisieren
-          generateRandomShape(avatarSvg);
-        }
-      })();
-      // Namenseingabe: Avatar-Shape speichern bei Enter im Eingabefeld
-function setupAvatarInputEnterSave() {
-  const nameInput = document.getElementById("name-input");
-  if (nameInput) {
-    nameInput.addEventListener("keydown", function (event) {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        const avatarSvg = document.getElementById("avatarShape");
-        if (avatarSvg) {
-          const svgClone = avatarSvg.cloneNode(true);
-          svgClone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-          const tmp = document.createElement("div");
-          tmp.appendChild(svgClone);
-          const svgString = tmp.innerHTML;
-          localStorage.setItem("profileShape", svgString);
-        }
-        // Name speichern
-        const nameValue = nameInput.value.trim();
-        if (nameValue) {
-          localStorage.setItem("userName", nameValue);
-        }
-        const okBtn = document.querySelector("#intro .chat-container .input-line button");
-        if (okBtn) okBtn.style.display = "none";
-        const avatarDiv = document.getElementById("avatarPreview");
-        if (avatarDiv) avatarDiv.style.display = "none";
-        // Kleinen Delay, um Speichern abzuschließen, bevor Intro fortgesetzt wird
-        setTimeout(() => {
-          const nameValue = nameInput.value.trim();
-          if (typeof showNameConfirmation === "function") {
-            showNameConfirmation(nameValue);
-          } else if (typeof triggerNextIntroStep === "function") {
-            triggerNextIntroStep();
-          }
-        }, 200);
-      }
-    });
-  }
-}
-
-// Name-Bestätigung nach Namenseingabe im Intro
-function showNameConfirmation(name) {
-  const chatContainer = document.querySelector("#intro .chat-container");
-  if (!chatContainer) return;
-
-  const confirmationLine = document.createElement("div");
-  confirmationLine.className = "chat-line";
-  confirmationLine.textContent = `Du heißt ${name}, richtig so?`;
-
-  const buttonYes = document.createElement("button");
-  buttonYes.textContent = "Ja";
-  buttonYes.addEventListener("click", () => {
-    confirmationLine.remove();
-    if (typeof triggerNextIntroStep === "function") {
-      triggerNextIntroStep();
-    }
-  });
-
-  const buttonNo = document.createElement("button");
-  buttonNo.textContent = "Nein";
-  buttonNo.addEventListener("click", () => {
-    confirmationLine.remove();
-    const nameInput = document.getElementById("name-input");
-    if (nameInput) {
-      nameInput.value = "";
-      nameInput.focus();
-    }
-    const avatarDiv = document.getElementById("avatarPreview");
-    if (avatarDiv) avatarDiv.style.display = "flex";
-  });
-
-  confirmationLine.appendChild(buttonYes);
-  confirmationLine.appendChild(buttonNo);
-  chatContainer.appendChild(confirmationLine);
-}
       const settingsPanel = document.getElementById("settingsPanel");
       const pauseButton = document.createElement("span");
       pauseButton.id = "pauseButton";
@@ -2048,36 +1607,6 @@ function calculateAdaptiveBreakTime(responseTimes, hitRate) {
       window.addEventListener("resize", resizeCanvas);
       animateCircles();
       resetInactivityTimer();
-      const now = new Date();
-      const hour = now.getHours();
-      let greeting;
-      if (hour >= 6 && hour < 12) {
-        greeting = "Guten Morgen!";
-      } else if (hour >= 12 && hour < 17) {
-        greeting = "Guten Tag!";
-      } else {
-        greeting = "Guten Abend!";
-      }
-      const welcomeMsgElem = document.getElementById("welcomeMessage");
-      if (welcomeMsgElem) {
-        // Lade Avatar-Shape aus localStorage
-        let svg = localStorage.getItem("profileShape");
-        let name = localStorage.getItem("userName") || "";
-        // Fallback: wenn kein Name im Storage, versuche aus Input zu lesen
-        if (!name) {
-          const nameInput = document.getElementById("name-input");
-          if (nameInput) name = nameInput.value;
-        }
-        // Wenn kein SVG, zeige normalen Gruß
-        if (!svg) {
-          welcomeMsgElem.innerHTML = greeting + "<br>Schön, dass du da bist!";
-        } else {
-          // Zeige SVG links neben Name
-          let nameHtml = name ? (" " + name) : "";
-          welcomeMsgElem.innerHTML = svg + " Willkommen," + nameHtml + "!<br><span style='font-size:0.6em;opacity:0.8'>" + greeting + "</span>";
-        }
-      }
-      
       const settingsPanel = document.getElementById("settingsPanel");
       // Handtoggle
       const handToggle = document.createElement("span");
@@ -2521,7 +2050,7 @@ const drawSeries = () => {
     const removeFromErrorNotes = (noteObj) => {
       errorNotes = errorNotes.filter(n => !(n.note === noteObj.note && n.octave === noteObj.octave && n.clef === noteObj.clef));
     };
-    let handleMIDIMessage = (status, data1, data2) => {
+    const handleMIDIMessage = (status, data1, data2) => {
       if (sessionPaused) return;
       resetInactivityTimer();
       if ((status & 0xf0) === 0x90 && data2 > 0) {
@@ -2649,66 +2178,6 @@ const drawSeries = () => {
 }
   window.addEventListener("resize", checkOrientation);
   checkOrientation();
-
-  // MIDI/Swift-Verbindungsprüfung: erkennt Web MIDI & Swift-Bridge
-  function checkMIDIConnection() {
-    return new Promise((resolve) => {
-      // 1️⃣ Web MIDI API verfügbar?
-      if (navigator.requestMIDIAccess) {
-        navigator.requestMIDIAccess().then((midiAccess) => {
-          const hasInput = Array.from(midiAccess.inputs.values()).length > 0;
-          if (hasInput) {
-            resolve(true);
-            return;
-          }
-
-          // 2️⃣ Swift-Bridge verfügbar?
-          if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
-            try {
-              window.webkit.messageHandlers.customPrompt.postMessage("checkMIDI");
-              // Wenn Swift antwortet, kann sie einen globalen Flag setzen
-              if (window.swiftMIDIConnected === true) {
-                resolve(true);
-                return;
-              }
-            } catch (e) {
-              console.warn("Swift-Bridge-Check fehlgeschlagen:", e);
-            }
-          }
-
-          resolve(false);
-        }).catch(() => {
-          // Kein Zugriff, aber Swift-Bridge als Fallback
-          if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
-            try {
-              window.webkit.messageHandlers.customPrompt.postMessage("checkMIDI");
-              if (window.swiftMIDIConnected === true) {
-                resolve(true);
-                return;
-              }
-            } catch (e) {
-              console.warn("Swift-Bridge-Check fehlgeschlagen:", e);
-            }
-          }
-          resolve(false);
-        });
-      } else {
-        // 3️⃣ Web MIDI API fehlt, aber Swift-Bridge?
-        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
-          try {
-            window.webkit.messageHandlers.customPrompt.postMessage("checkMIDI");
-            if (window.swiftMIDIConnected === true) {
-              resolve(true);
-              return;
-            }
-          } catch (e) {
-            console.warn("Swift-Bridge-Check fehlgeschlagen:", e);
-          }
-        }
-        resolve(false);
-      }
-    });
-  }
   
   </script>
 <script>
@@ -2744,38 +2213,7 @@ const drawSeries = () => {
     });
   }
 
-  // Überwacht Änderungen an angeschlossenen MIDI-Geräten
-  function monitorMIDIDevices() {
-    if (!navigator.requestMIDIAccess) return;
-
-    navigator.requestMIDIAccess().then((midiAccess) => {
-      midiAccess.onstatechange = (event) => {
-        const port = event.port;
-        if (port.type === "input") {
-          console.log("🎹 MIDI-Port geändert:", port.name, port.state);
-
-          if (port.state === "connected") {
-            window.swiftMIDIConnected = true;
-            if (typeof typeMessage === "function") {
-              typeMessage("Klavier verbunden!", () => {}, false);
-            }
-          }
-
-          if (port.state === "disconnected") {
-            window.swiftMIDIConnected = false;
-            if (typeof typeMessage === "function") {
-              typeMessage("MIDI-Verbindung getrennt.", () => {}, false);
-            }
-          }
-        }
-      };
-    });
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    initMIDIAccess();
-    monitorMIDIDevices();
-  });
+  document.addEventListener("DOMContentLoaded", initMIDIAccess);
   
   function onMIDISuccess(midiAccess) {
     // Alle vorhandenen MIDI-Eingänge initialisieren
@@ -2827,7 +2265,7 @@ const drawSeries = () => {
             <div id="messages" aria-live="polite"></div>
             <div class="input-line">
                 <input id="name-input" type="text" placeholder="Name">
-                <button id="name-ok" style="display:none;"></button>
+                <button id="name-ok" style="display:none;">OK</button>
             </div>
             <div id="tutorial-choice" style="display:none;"></div>
         </div>
@@ -3584,131 +3022,9 @@ const drawSeries = () => {
                     document.getElementById('name-yes').addEventListener('click', () => {
                         tutorialChoiceEl.style.display = 'none';
                         tutorialChoiceEl.innerHTML = '';
-                        // MIDI-Verbindungsprüfung hier einfügen:
-                        typeMessage('Suche nach deinem Klavier ...', () => {
-                          const circle = document.createElement('div');
-                          circle.style.width = '20px';
-                          circle.style.height = '20px';
-                          circle.style.borderRadius = '50%';
-                          circle.style.backgroundColor = 'black';
-                          circle.style.position = 'relative';
-                          circle.style.left = '0px';
-                          circle.style.marginTop = '10px';
-                          circle.style.transition = 'left 0.5s ease-in-out';
-                          messagesEl.appendChild(circle);
-
-                          let direction = 1;
-                          let pingInterval = setInterval(() => {
-                            const currentLeft = parseInt(circle.style.left) || 0;
-                            const nextLeft = currentLeft + direction * 100;
-                            circle.style.left = nextLeft + 'px';
-                            direction *= -1;
-                          }, 500);
-
-                          function checkMIDIConnection() {
-                            return new Promise((resolve) => {
-                              if (navigator.requestMIDIAccess) {
-                                navigator.requestMIDIAccess().then((midiAccess) => {
-                                  const hasInput = Array.from(midiAccess.inputs.values()).length > 0;
-                                  resolve(hasInput);
-                                }).catch(() => resolve(false));
-                              } else {
-                                resolve(false);
-                              }
-                            });
-                          }
-
-                          let stopChecking = false;
-
-                          async function checkConnectionLoop() {
-                            const connected = await checkMIDIConnection();
-                            if (connected && !stopChecking) {
-                              stopChecking = true;
-                              clearInterval(pingInterval);
-                              clearTimeout(timeoutFallback);
-                              circle.remove();
-                              typeMessage('Gefunden.', () => {
-                                showTutorialChoice(name);
-                              }, false);
-                            }
-                          }
-
-const timeoutFallback = setTimeout(() => {
-  if (!stopChecking) {
-    stopChecking = true;
-    clearInterval(pingInterval);
-    circle.remove();
-    typeMessage('Keine Verbindung erkannt. Drücke bitte eine Taste auf deinem Klavier, falls du bereits verbunden bist.', () => {
-      let midiDetected = false;
-
-      function midiKeyListener(status, data1, data2) {
-        if ((status & 0xf0) === 0x90 && data2 > 0) {
-          midiDetected = true;
-          typeMessage('Verbindung erkannt!', () => {
-            window.swiftMIDIConnected = true;
-            document.removeEventListener('midiKeyEvent', midiKeyListener);
-            showTutorialChoice(name);
-          }, false);
-        }
-      }
-
-      // Aktiviere temporären MIDI-Listener für 10 Sekunden
-      function tempMIDICheck() {
-        if (navigator.requestMIDIAccess) {
-          navigator.requestMIDIAccess().then((midiAccess) => {
-            midiAccess.inputs.forEach((input) => {
-              input.onmidimessage = ({ data }) => {
-                const [status, data1, data2] = data;
-                midiKeyListener(status, data1, data2);
-              };
-            });
-          });
-        }
-      }
-
-      tempMIDICheck();
-
-      // Nach 10 Sekunden prüfen, ob eine Taste erkannt wurde
-      setTimeout(() => {
-        if (!midiDetected) {
-          typeMessage('Leider keine Taste erkannt.', () => {
-            tutorialChoiceEl.style.display = 'block';
-            tutorialChoiceEl.innerHTML = `
-              <button id="retry-midi">Erneut versuchen</button>
-              <button id="skip-midi" style="color: red; border: 2px solid red; background-color: white; margin-left: 10px;">Trotzdem versuchen</button>
-            `;
-
-            const retryButton = document.getElementById('retry-midi');
-            const skipButton = document.getElementById('skip-midi');
-
-            retryButton.addEventListener('click', () => {
-              tutorialChoiceEl.style.display = 'none';
-              tutorialChoiceEl.innerHTML = '';
-              typeMessage('Alles klar, wir versuchen es nochmal.', () => {
-                typeMessage('Suche nach deinem Klavier ...', () => {
-                  handleNameInput(); // startet den Ablauf erneut
-                }, false);
-              }, false);
-            });
-
-            skipButton.addEventListener('click', () => {
-              tutorialChoiceEl.style.display = 'none';
-              tutorialChoiceEl.innerHTML = '';
-              typeMessage('Okay, du kannst trotzdem starten.', () => {
-                setTimeout(() => {
-                    showTutorialChoice(name); // setzt das Tutorial normal fort
-                }, 700);
-              }, false);
-            });
-          }, false);
-        }
-      }, 10000);
-    }, false);
-  }
-}, 10000);
-
-                          // MIDI-Verbindung nur einmal prüfen, keine Endlosschleife:
-                          checkConnectionLoop();
+                        // Statt MIDI-Check: direkte Begrüßung und weiter
+                        typeMessage(`Alles klar, ${name}`, () => {
+                          showTutorialChoice(name);
                         }, false);
                     });
                     document.getElementById('name-no').addEventListener('click', () => {
@@ -3746,144 +3062,34 @@ const timeoutFallback = setTimeout(() => {
                     resetNameInput();
                 }
             }
-            
-            // --- Swift-MIDI Erkennung (Hybrid WebView) ---
-            let midiKeyPressListenerActive = false;
-            let midiKeyPressDetected = false;
 
-            function waitForMIDIPress(callback) {
-              midiKeyPressDetected = false;
-              midiKeyPressListenerActive = true;
+            function initIntro() {
+                 introEl.classList.remove('hidden');
+                 introEl.setAttribute('aria-hidden', 'false');
+                 if (typeof introEl.focus === 'function') {
+                     introEl.focus();
+                 }
+                 const storedName = getStoredName();
+                 if (storedName) {
+                     messagesEl.innerHTML = '';
+                     nameInputEl.style.display = 'none';
+                     nameOkBtn.style.display = 'none';
+                     tutorialChoiceEl.style.display = 'none';
+                     tutorialChoiceEl.innerHTML = '';
+                     typeMessage(`Hallo, ${storedName}.`, () => {
+                       typeMessage('Willkommen zurück!', () => {
+                         setTimeout(() => {
+                           startAppAfterIntro();
+                         }, 700);
+                       }, false);
+                     }, false);
+                 } else {
+                     runIntroSequence();
+                 }
+             }
 
-              const timeout = setTimeout(() => {
-                midiKeyPressListenerActive = false;
-                if (!midiKeyPressDetected) callback(false);
-              }, 10000);
-
-              window._introMIDICallback = () => {
-                clearTimeout(timeout);
-                midiKeyPressDetected = true;
-                midiKeyPressListenerActive = false;
-                callback(true);
-              };
-            }
-
-            // Ergänze handleMIDIMessage, falls noch nicht vorhanden:
-            if (typeof handleMIDIMessage === "function") {
-              const oldHandle = handleMIDIMessage;
-              handleMIDIMessage = function(status, data1, data2) {
-                if (midiKeyPressListenerActive && typeof window._introMIDICallback === 'function') {
-                  window._introMIDICallback();
-                }
-                oldHandle(status, data1, data2);
-              };
-            }
-            // --- Ende Swift-MIDI Erkennung ---
-          function initIntro() {
-                introEl.classList.remove('hidden');
-                introEl.setAttribute('aria-hidden', 'false');
-                if (typeof introEl.focus === 'function') {
-                    introEl.focus();
-                }
-                const storedName = getStoredName();
-                if (storedName) {
-                  messagesEl.innerHTML = '';
-                  nameInputEl.style.display = 'none';
-                  nameOkBtn.style.display = 'none';
-                  tutorialChoiceEl.style.display = 'none';
-                  tutorialChoiceEl.innerHTML = '';
-
-                  typeMessage(`Hallo, ${storedName}.`, () => {
-                    typeMessage('Suche nach deinem Klavier ...', () => {
-                      const circle = document.createElement('div');
-                      circle.style.width = '20px';
-                      circle.style.height = '20px';
-                      circle.style.borderRadius = '50%';
-                      circle.style.backgroundColor = 'black';
-                      circle.style.position = 'relative';
-                      circle.style.left = '0px';
-                      circle.style.marginTop = '10px';
-                      circle.style.transition = 'left 0.5s ease-in-out';
-                      messagesEl.appendChild(circle);
-
-                      let direction = 1;
-                      let pingInterval = setInterval(() => {
-                        const currentLeft = parseInt(circle.style.left) || 0;
-                        const nextLeft = currentLeft + direction * 100;
-                        circle.style.left = nextLeft + 'px';
-                        direction *= -1;
-                      }, 500);
-
-                      function checkHybridMIDIConnection() {
-                        return new Promise((resolve) => {
-                          if (navigator.requestMIDIAccess) {
-                            navigator.requestMIDIAccess().then((midiAccess) => {
-                              const hasInput = Array.from(midiAccess.inputs.values()).length > 0;
-                              if (hasInput) return resolve(true);
-                              if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
-                                try {
-                                  window.webkit.messageHandlers.customPrompt.postMessage("checkMIDI");
-                                  if (window.swiftMIDIConnected === true) return resolve(true);
-                                } catch (e) { console.warn("Swift Bridge Fehler:", e); }
-                              }
-                              resolve(false);
-                            }).catch(() => resolve(false));
-                          } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.customPrompt) {
-                            try {
-                              window.webkit.messageHandlers.customPrompt.postMessage("checkMIDI");
-                              if (window.swiftMIDIConnected === true) return resolve(true);
-                            } catch (e) { console.warn("Swift Bridge Fehler:", e); }
-                            resolve(false);
-                          } else {
-                            resolve(false);
-                          }
-                        });
-                      }
-
-                      let finished = false;
-                      checkHybridMIDIConnection().then((connected) => {
-                        if (connected && !finished) {
-                          finished = true;
-                          clearInterval(pingInterval);
-                          circle.remove();
-                          typeMessage('Willkommen zurück!', () => startAppAfterIntro(), false);
-                        } else {
-                          waitForMIDIPress((detected) => {
-                            clearInterval(pingInterval);
-                            circle.remove();
-                            if (detected) {
-                              typeMessage('Verbindung erkannt!', () => startAppAfterIntro(), false);
-                            } else {
-                              typeMessage('Leider keine Taste erkannt.', () => {
-                                tutorialChoiceEl.style.display = 'block';
-                                tutorialChoiceEl.innerHTML = `
-                                  <button id="retry-midi">Erneut versuchen</button>
-                                  <button id="skip-midi" style="color: red; border: 2px solid red; background-color: white;">Trotzdem versuchen</button>
-                                `;
-                                document.getElementById('retry-midi').addEventListener('click', () => {
-                                  tutorialChoiceEl.style.display = 'none';
-                                  tutorialChoiceEl.innerHTML = '';
-                                  initIntro();
-                                });
-                                document.getElementById('skip-midi').addEventListener('click', () => {
-                                  tutorialChoiceEl.style.display = 'none';
-                                  tutorialChoiceEl.innerHTML = '';
-                                  typeMessage('Okay, du kannst trotzdem starten.', () => startAppAfterIntro(), false);
-                                });
-                              }, false);
-                            }
-                          });
-                        }
-                      });
-                    }, false);
-                  }, false);
-                } else {
-                  runIntroSequence();
-                }
-            }
-
-            initIntro();
-        });
+             initIntro();
+         });
     </script>
 
 </body>
