@@ -239,22 +239,65 @@
     function generateSeries() {
       currentSeries = [];
       seriesCounter = 0;
-      // Bestimme seriesLength basierend auf level
-      if (level === 1) {
-        seriesLength = 1;
-      } else if (level === 2) {
-        seriesLength = 5;
-      } else if (level === 3) {
-        seriesLength = 10;
-      } else if (level === "random") {
-        seriesLength = Math.floor(Math.random() * 10) + 1;
+
+      // seriesLength bestimmen
+      if (level === 1) seriesLength = 1;
+      else if (level === 2) seriesLength = 5;
+      else if (level === 3) seriesLength = 10;
+      else if (level === "random") seriesLength = Math.floor(Math.random() * 10) + 1;
+
+      // aktive Lage
+      var activeRange = document.querySelector("#rangeSelector .active-range").id;
+      var rangeMap = {
+        "range-c": ["c","d","e","f","g"],
+        "range-d": ["d","e","f#","g","a"],
+        "range-f": ["f","g","a","bb","c"],
+        "range-g": ["g","a","b","c","d"],
+        "range-mc": ["c","d","e","f","g"]
+      };
+      var rangeNotes = rangeMap[activeRange] || ["c","d","e","f","g"];
+
+      // Handmodus
+      var activeMode = document.querySelector("#modeSelector .active-mode").id;
+      var clef = "treble";
+      var octave = 4;
+
+      if (activeMode === "mode-left") {
+        clef = "bass";
+        octave = 3;
+      } else if (activeMode === "mode-right") {
+        clef = "treble";
+        octave = 4;
+      } else if (activeMode === "mode-both") {
+        // klatsch → zufällig Hand auswählen
+        if (Math.random() < 0.5) {
+          clef = "bass";
+          octave = 3;
+        } else {
+          clef = "treble";
+          octave = 4;
+        }
       }
-      var rangeNotes = ["c", "d", "e", "f", "g"];
+
       for (var i = 0; i < seriesLength; i++) {
         var randomIndex = Math.floor(Math.random() * rangeNotes.length);
-        // Für diesen Test: Alle Noten in Oktave 4, Clef "treble"
-        currentSeries.push({ note: rangeNotes[randomIndex], octave: 4, clef: "treble", color: "black" });
+        currentSeries.push({
+          note: rangeNotes[randomIndex],
+          octave: octave,
+          clef: clef,
+          color: "black"
+        });
+
+        // Bei mode-both pro neuer Note entscheiden, welche Hand
+        if (activeMode === "mode-both") {
+          if (Math.random() < 0.5) {
+            clef = "bass"; octave = 3;
+          } else {
+            clef = "treble"; octave = 4;
+          }
+        }
       }
+
       drawSeries();
     }
     
