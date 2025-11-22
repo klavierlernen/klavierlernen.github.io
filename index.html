@@ -3,7 +3,69 @@
 <head>
   <meta charset="UTF-8">
   <title>Notentraining</title>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <style>
+    #toolbox {
+      width: 92%;
+      margin: 20px auto;
+      background: #ffffff;
+      border: 2px solid #000;
+      border-radius: 18px;
+      padding: 18px;
+      text-align: center;
+    }
+
+    .toolbox-header {
+      font-size: 1.4em;
+      font-weight: 600;
+      color: #000;
+      margin-bottom: 15px;
+      letter-spacing: 0.5px;
+    }
+
+    .toolbox-inner {
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px;
+      border: 1.5px solid #000;
+      position: relative;
+    }
+
+    #rangeTrack {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      padding: 6px;
+    }
+
+    #rangeTrack span {
+      flex: 1;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+      z-index: 2;
+      font-size: 1em;
+      font-weight: 500;
+      color: #000;
+    }
+
+    #rangeIndicator {
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      width: calc(100% / 5 - 6px);
+      background: #000;
+      border-radius: 10px;
+      transition: transform 0.25s ease;
+      z-index: 1;
+      opacity: 0.1;
+    }
+
+    #rangeTrack .active-range {
+      font-weight: 700;
+      color: #000;
+    }
     body {
       font-family: sans-serif;
       text-align: center;
@@ -17,12 +79,15 @@
     }
     #notation {
       width: 820px;
-      transform: scale(1.5);
-      margin: 20px auto;
+      margin: 0 auto;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(1.5);
       text-align: center;
       border: none !important;
       padding: 10px;
-    }
+  }
     /* Styling der Buttons */
     #rangeSelector, #modeSelector, #levelSelector {
       margin: 10px auto;
@@ -50,15 +115,27 @@
     }
     /* Mode und Level: Standardfarben */
     #modeSelector span, #levelSelector span {
-      color: #007bff;
-      transition: color 0.2s;
+      color: #000;
+      padding: 6px 10px;
+      margin: 0 4px;
+      border-radius: 10px;
+      border: 1.5px solid #000;
+      background: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
+
     .active-mode, .active-level {
-      font-weight: bold;
-      color: #0056b3;
+      background: none;
+      color: #000;
+      font-weight: 700;
     }
+
     .inactive-mode, .inactive-level {
-      color: #007bff;
+      background: none;
+      color: #000;
+      opacity: 0.6;
     }
     /* Debug-Ausgabe und Score */
     #nativeLog {
@@ -69,6 +146,28 @@
     #score, #responseTime {
       margin-top: 10px;
       font-size: 1.2em;
+    }
+
+    #toolbar {
+      width: 100%;
+      display: flex;
+      flex-direction: row; justify-content: center; align-items: center; gap: 12px;
+      padding: 28px 0 14px 0;
+      background: #fff;
+      text-align: center;
+    }
+    .toolbar-section {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      padding: 8px 0;
+    }
+    .toolbar-separator {
+      width: 2px;
+      height: 24px;
+      background: #000;
+      margin: 0 10px;
+      align-self: center;
     }
   </style>
   
@@ -81,10 +180,11 @@
     var totalAttempts = 0;
     var correctAnswers = 0;
     var level = 3; // Standard: Level 3 (10 Noten)
+    var lastStartTime = Date.now();
 
     // Globale Funktion updateScore
     function updateScore() {
-      var scoreElem = document.getElementById("score");
+      var scoreElem = document.getElementById("toolbar-score");
       var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
       scoreElem.textContent = "Score: " + percent + "%";
     }
@@ -108,6 +208,18 @@
       if (status >= 144 && status < 160 && data2 > 0) {
         var midiInfo = midiNoteToName(data1);
         console.log("Umgewandelte Note:", midiInfo);
+        var now = Date.now();
+        var delta = now - lastStartTime;
+        lastStartTime = now;
+
+        var icon = "turtle";
+        if (delta < 400) icon = "rocket";
+        else if (delta < 900) icon = "rabbit";
+
+        var rtElem = document.getElementById("toolbar-speed");
+        rtElem.innerHTML = '<i data-lucide="' + icon + '"></i> ' + delta + " ms";
+        lucide.createIcons();
+
         if (seriesCounter < currentSeries.length) {
           var expected = currentSeries[seriesCounter];
           if (midiInfo.note === expected.note && midiInfo.octave === expected.octave) {
@@ -142,36 +254,44 @@
 </head>
 <body>
   <div id="midiStatus" style="position: absolute; top: 10px; left: 10px; font-size: 1em;"></div>
-  <h1>Notentraining</h1>
   
-  <!-- Range-Auswahl -->
-  <div id="rangeSelector">
-    <span id="range-c" class="active-range">C-Lage</span>
-    <span id="range-d" class="inactive-range">D-Lage</span>
-    <span id="range-f" class="inactive-range">F-Lage</span>
-    <span id="range-g" class="inactive-range">G-Lage</span>
-    <span id="range-mc" class="inactive-range">Mittlere C</span>
+  <div id="toolbar">
+    <div id="toolbar-hands" class="toolbar-section">
+      <span id="mode-left" class="inactive-mode"><i data-lucide="hand-helping" style="transform: rotate(180deg);"></i></span>
+      <span id="mode-right" class="active-mode"><i data-lucide="hand-helping" style="transform: rotate(180deg) scaleX(-1);"></i></span>
+      <span id="mode-both" class="inactive-mode"><i data-lucide="dices"></i></span>
+    </div>
+
+    <div class="toolbar-separator"></div>
+
+    <div id="toolbar-ranges" class="toolbar-section">
+      <span id="range-c" class="active-range">C-Lage</span>
+      <span id="range-d" class="inactive-range">D-Lage</span>
+      <span id="range-f" class="inactive-range">F-Lage</span>
+      <span id="range-g" class="inactive-range">G-Lage</span>
+      <span id="range-mc" class="inactive-range">Mittlere C</span>
+    </div>
+
+    <div class="toolbar-separator"></div>
+
+    <div id="toolbar-levels" class="toolbar-section">
+      <span id="level-1" class="inactive-level"><i data-lucide="tally-1"></i></span>
+      <span id="level-2" class="inactive-level"><i data-lucide="tally-2"></i></span>
+      <span id="level-3" class="active-level"><i data-lucide="tally-3"></i></span>
+    </div>
+    <div class="toolbar-separator"></div>
+    <div id="toolbar-stats" class="toolbar-section">
+      <span id="toolbar-score">Score: 0%</span>
+      <span id="toolbar-speed">-- ms</span>
+    </div>
   </div>
   
-  <!-- Handmodus-Auswahl -->
-  <div id="modeSelector">
-    <span id="mode-left" class="inactive-mode">✋</span>
-    <span id="mode-right" class="active-mode" style="transform: scaleX(-1);">✋</span>
-    <span id="mode-both" class="inactive-mode">🙌</span>
-  </div>
   
-  <!-- Level-Auswahl -->
-  <div id="levelSelector">
-    <span id="level-1" class="inactive-level">1️⃣</span>
-    <span id="level-2" class="inactive-level">2️⃣</span>
-    <span id="level-3" class="active-level">3️⃣</span>
-    <span id="level-random" class="inactive-level">🎉</span>
-  </div>
   
   <!-- Notensystem, Score, ResponseTime, Debug -->
   <div id="notation"></div>
-  <div id="score">Score: 0%</div>
-  <div id="responseTime">🏎️ -- ms</div>
+  <!-- <div id="score">Score: 0%</div> -->
+  <!-- <div id="responseTime">-- ms</div> -->
   <div id="nativeLog"></div>
   
   <!-- VexFlow einbinden -->
@@ -183,22 +303,8 @@
       // Initiale Serien-Generierung
       generateSeries();
       
-      // Konfiguration der Range-Buttons (Text in Schwarz)
-      var rangeButtons = document.querySelectorAll("#rangeSelector span");
-      rangeButtons.forEach(function(btn) {
-        btn.addEventListener("click", function() {
-          rangeButtons.forEach(function(b) {
-            b.classList.remove("active-range");
-            b.classList.add("inactive-range");
-          });
-          btn.classList.remove("inactive-range");
-          btn.classList.add("active-range");
-          generateSeries();
-        });
-      });
-      
       // Konfiguration der Handmodus-Buttons
-      var modeButtons = document.querySelectorAll("#modeSelector span");
+      var modeButtons = document.querySelectorAll("#toolbar-hands span");
       modeButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
           modeButtons.forEach(function(b) {
@@ -212,7 +318,7 @@
       });
       
       // Konfiguration der Level-Buttons: Ändert den globalen Level-Wert und passt seriesLength an.
-      var levelButtons = document.querySelectorAll("#levelSelector span");
+      var levelButtons = document.querySelectorAll("#toolbar-levels span");
       levelButtons.forEach(function(btn) {
         btn.addEventListener("click", function() {
           levelButtons.forEach(function(b) {
@@ -227,77 +333,56 @@
             level = 2;
           } else if (btn.id === "level-3") {
             level = 3;
-          } else if (btn.id === "level-random") {
-            level = "random";
           }
           generateSeries();
         });
       });
+
+      var rangeSpans = document.querySelectorAll("#toolbar-ranges span");
+
+      rangeSpans.forEach(function(btn, index) {
+        btn.addEventListener("click", function() {
+          document.querySelectorAll("#toolbar-ranges span").forEach(s => s.classList.remove("active-range"));
+          btn.classList.add("active-range");
+          generateSeries();
+        });
+      });
+
+      lucide.createIcons();
+
+      // GSAP button animations
+      document.querySelectorAll("#toolbar-hands span").forEach(btn => {
+        btn.addEventListener("click", () => {
+          gsap.fromTo(btn, { scale: 1 }, { scale: 0.85, duration: 0.1, yoyo: true, repeat: 1 });
+        });
+      });
+      const diceBtn = document.getElementById("mode-both");
+      if (diceBtn) {
+        diceBtn.addEventListener("click", () => {
+          gsap.fromTo(diceBtn, { rotation: -5 }, { rotation: 5, duration: 0.08, yoyo: true, repeat: 5 });
+        });
+      }
     });
     
     // Funktion zum Generieren einer neuen Serie erwarteter Noten.
     function generateSeries() {
+      lastStartTime = Date.now();
       currentSeries = [];
       seriesCounter = 0;
-
-      // seriesLength bestimmen
-      if (level === 1) seriesLength = 1;
-      else if (level === 2) seriesLength = 5;
-      else if (level === 3) seriesLength = 10;
-      else if (level === "random") seriesLength = Math.floor(Math.random() * 10) + 1;
-
-      // aktive Lage
-      var activeRange = document.querySelector("#rangeSelector .active-range").id;
-      var rangeMap = {
-        "range-c": ["c","d","e","f","g"],
-        "range-d": ["d","e","f#","g","a"],
-        "range-f": ["f","g","a","bb","c"],
-        "range-g": ["g","a","b","c","d"],
-        "range-mc": ["c","d","e","f","g"]
-      };
-      var rangeNotes = rangeMap[activeRange] || ["c","d","e","f","g"];
-
-      // Handmodus
-      var activeMode = document.querySelector("#modeSelector .active-mode").id;
-      var clef = "treble";
-      var octave = 4;
-
-      if (activeMode === "mode-left") {
-        clef = "bass";
-        octave = 3;
-      } else if (activeMode === "mode-right") {
-        clef = "treble";
-        octave = 4;
-      } else if (activeMode === "mode-both") {
-        // klatsch → zufällig Hand auswählen
-        if (Math.random() < 0.5) {
-          clef = "bass";
-          octave = 3;
-        } else {
-          clef = "treble";
-          octave = 4;
-        }
+      // Bestimme seriesLength basierend auf level
+      if (level === 1) {
+        seriesLength = 1;
+      } else if (level === 2) {
+        seriesLength = 5;
+      } else if (level === 3) {
+        seriesLength = 10;
       }
-
+      var rangeNotes = ["c", "d", "e", "f", "g"];
       for (var i = 0; i < seriesLength; i++) {
         var randomIndex = Math.floor(Math.random() * rangeNotes.length);
-        currentSeries.push({
-          note: rangeNotes[randomIndex],
-          octave: octave,
-          clef: clef,
-          color: "black"
-        });
-
-        // Bei mode-both pro neuer Note entscheiden, welche Hand
-        if (activeMode === "mode-both") {
-          if (Math.random() < 0.5) {
-            clef = "bass"; octave = 3;
-          } else {
-            clef = "treble"; octave = 4;
-          }
-        }
+        // Für diesen Test: Alle Noten in Oktave 4, Clef "treble"
+        currentSeries.push({ note: rangeNotes[randomIndex], octave: 4, clef: "treble", color: "black" });
       }
-
       drawSeries();
     }
     
