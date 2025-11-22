@@ -378,10 +378,36 @@
         seriesLength = 10;
       }
       var rangeNotes = ["c", "d", "e", "f", "g"];
+
+      // Determine hand mode
+      var activeHand = document.querySelector("#toolbar-hands .active-mode").id;
+      var clef = "treble";
+      var octave = 4;
+
+      if (activeHand === "mode-left") {
+        clef = "bass";
+        octave = 3;
+      } else if (activeHand === "mode-right") {
+        clef = "treble";
+        octave = 4;
+      } else if (activeHand === "mode-both") {
+        // Randomly choose per note later
+      }
+
       for (var i = 0; i < seriesLength; i++) {
         var randomIndex = Math.floor(Math.random() * rangeNotes.length);
-        // Für diesen Test: Alle Noten in Oktave 4, Clef "treble"
-        currentSeries.push({ note: rangeNotes[randomIndex], octave: 4, clef: "treble", color: "black" });
+
+        if (activeHand === "mode-both") {
+          if (Math.random() < 0.5) { clef = "bass"; octave = 3; }
+          else { clef = "treble"; octave = 4; }
+        }
+
+        currentSeries.push({
+          note: rangeNotes[randomIndex],
+          octave: octave,
+          clef: clef,
+          color: "black"
+        });
       }
       drawSeries();
     }
