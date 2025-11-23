@@ -1,427 +1,409 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <title>Notentraining</title>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-  <style>
-    #toolbox {
-      width: 92%;
-      margin: 20px auto;
-      background: #ffffff;
-      border: 2px solid #000;
-      border-radius: 18px;
-      padding: 18px;
-      text-align: center;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Algorithmus UI – Grid rechts</title>
 
-    .toolbox-header {
-      font-size: 1.4em;
-      font-weight: 600;
-      color: #000;
-      margin-bottom: 15px;
-      letter-spacing: 0.5px;
-    }
-
-    .toolbox-inner {
-      background: #fff;
-      border-radius: 14px;
-      padding: 14px;
-      border: 1.5px solid #000;
-      position: relative;
-    }
-
-    #rangeTrack {
-      position: relative;
-      display: flex;
-      justify-content: space-between;
-      padding: 6px;
-    }
-
-    #rangeTrack span {
-      flex: 1;
-      text-align: center;
-      cursor: pointer;
-      position: relative;
-      z-index: 2;
-      font-size: 1em;
-      font-weight: 500;
-      color: #000;
-    }
-
-    #rangeIndicator {
-      position: absolute;
-      top: 3px;
-      bottom: 3px;
-      width: calc(100% / 5 - 6px);
-      background: #000;
-      border-radius: 10px;
-      transition: transform 0.25s ease;
-      z-index: 1;
-      opacity: 0.1;
-    }
-
-    #rangeTrack .active-range {
-      font-weight: 700;
-      color: #000;
-    }
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 0;
-      transition: background-color 0.5s;
-      background-color: #ffffff;
-    }
-    h1 {
-      margin-top: 20px;
-    }
-    #notation {
-      width: 820px;
-      margin: 0 auto;
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(1.5);
-      text-align: center;
-      border: none !important;
-      padding: 10px;
+<style>
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: white;
+    height: 100vh;
+    display: flex;
+    justify-content: flex-end; /* alles nach rechts */
+    align-items: flex-start;       /* vertikal zentriert */
+    padding-top: 10px;
   }
-    /* Styling der Buttons */
-    #rangeSelector, #modeSelector, #levelSelector {
-      margin: 10px auto;
-    }
-    #rangeSelector span, #modeSelector span, #levelSelector span {
-      cursor: pointer;
-      font-size: 1.5em;
-      margin: 5px;
-      padding: 8px 12px;
-      border: none;
-      background: none;
-      display: inline-block;
-    }
-    /* Range: schwarzer Text */
-    #rangeSelector span {
-      color: #000;
-      transition: color 0.2s;
-    }
-    .active-range {
-      font-weight: bold;
-      color: #000;
-    }
-    .inactive-range {
-      color: #000;
-    }
-    /* Mode und Level: Standardfarben */
-    #modeSelector span {
-      color: #000;
-      padding: 6px 10px;
-      margin: 0 4px;
-      border-radius: 10px;
-      border: 1.5px solid #000;
-      background: #fff;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
 
-    .active-mode {
-      background: none;
-      color: #000;
-      font-weight: 700;
-    }
+  .right-grid {
+    width: 55vw;                 /* breiter */
+    max-width: 580px;            /* größere Maximalbreite */
+    height: calc(100vh - 20px);  /* bis fast an unteren Bildschirmrand */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: 1fr;
+    gap: 10px;
+    padding-right: 10px;
+  }
 
-    .inactive-mode {
-      background: none;
-      color: #000;
-      opacity: 0.6;
-    }
-    /* Debug-Ausgabe und Score */
-    #nativeLog {
-      margin-top: 10px;
-      font-size: 0.9em;
-      color: gray;
-    }
-    #score, #responseTime {
-      margin-top: 10px;
-      font-size: 1.2em;
-    }
+  /* Jedes einzelne Rechteck */
+  .cell {
+    background: #E6E6E6;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
 
-    #toolbar {
-      width: 100%;
-      display: flex;
-      flex-direction: row; justify-content: center; align-items: center; gap: 22px;
-      padding: 40px 0 24px 0;
-      background: #fff;
-      text-align: center;
-      font-size: 1.4em;
-    }
-    .toolbar-section {
-      display: flex;
-      justify-content: center;
-      gap: 26px;
-      padding: 14px 0;
-    }
-    .toolbar-separator {
-      width: 3px;
-      height: 40px;
-      background: #000;
-      margin: 0 16px;
-      align-self: center;
-    }
+  .hand-cell {
+    position: relative;
+  }
 
-    #toolbar-hands span i,
-    #toolbar-ranges span i {
-      width: 42px;
-      height: 42px;
-    }
+  .hand-content {
+    position: absolute;
+    top: 5%;
+    left: 5%;
+    right: 5%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    height: 100%;
+  }
 
-    #toolbar-ranges {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 20px;
-      height: 40px;
-    }
+  .hand-title {
+    font-size: calc(3vw + 3vh);
+    font-weight: 700;
+    color: #5f5e5e;
+    word-break: break-word;
+  }
 
-    #toolbar-ranges span {
-      position: relative;
-      opacity: 1;
-      transform: none;
-      font-size: 1em;
-      color: #000;
-      cursor: pointer;
-    }
-  </style>
-  
-  <!-- Globale Funktionen im Head -->
-  <script>
-    // Globale Variablen – diese Variablen sind im globalen Scope verfügbar.
-    var currentSeries = [];
-    var seriesCounter = 0;
-    var seriesLength = 10; // Standardmäßig 10 Noten (Level 3)
-    var totalAttempts = 0;
-    var correctAnswers = 0;
-    var level = 3; // Standard: Level 3 (10 Noten)
-    var lastStartTime = Date.now();
+  .hand-icon {
+    position: absolute;
+    bottom: 10%;
+    left: 50%;
+    width: calc(15vw + 15vh);
+    height: calc(15vw + 15vh);
+    max-width: 90%;
+    max-height: 50%;
+    transform: translateX(-50%) rotate(180deg);
+    stroke-width: 2.5;
+    color: #5f5e5e;
+    visibility: hidden;
+  }
 
-    // Globale Funktion updateScore
-    function updateScore() {
-      var scoreElem = document.getElementById("toolbar-score");
-      var percent = totalAttempts > 0 ? Math.round((correctAnswers / totalAttempts) * 100) : 0;
-      scoreElem.textContent = "Score: " + percent + "%";
-    }
-    window.updateScore = updateScore;
+  .icon-right svg {
+    transform: rotate(180deg) scaleX(-1);
+  }
 
-    // Umrechnung von MIDI Data1 in Notennamen und Oktave
-    function midiNoteToName(noteNumber) {
-      var noteNames = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
-      var octave = Math.floor(noteNumber / 12) - 1;
-      var noteName = noteNames[noteNumber % 12];
-      return { note: noteName, octave: octave };
-    }
+  .icon-left svg {
+    transform: rotate(180deg);
+  }
 
-    // Globale Funktion handleMIDIMessage, die von Swift (via evaluateJavaScript) aufgerufen wird.
-    window.handleMIDIMessage = function(status, data1, data2) {
-      console.log("handleMIDIMessage aufgerufen:", status, data1, data2);
-      var nativeLog = document.getElementById("nativeLog");
-      nativeLog.textContent = "MIDI: Status " + status + ", Data1 " + data1 + ", Data2 " + data2;
-      
-      // Nur Note-On Nachrichten verarbeiten (Status 144-159 und velocity > 0)
-      if (status >= 144 && status < 160 && data2 > 0) {
-        var midiInfo = midiNoteToName(data1);
-        console.log("Umgewandelte Note:", midiInfo);
-        var now = Date.now();
-        var delta = now - lastStartTime;
-        lastStartTime = now;
+  .icon-random svg {
+    transform: none;
+  }
 
-        var icon = "turtle";
-        if (delta < 400) icon = "rocket";
-        else if (delta < 900) icon = "rabbit";
+  .hand-icon.right-hand svg {
+    transform: rotate(180deg) scaleX(-1);
+  }
 
-        var rtElem = document.getElementById("toolbar-speed");
-        rtElem.innerHTML = '<i data-lucide="' + icon + '"></i> ' + delta + " ms";
-        lucide.createIcons();
+  .hand-icon.left-hand svg {
+    transform: rotate(180deg);
+  }
 
-        if (seriesCounter < currentSeries.length) {
-          var expected = currentSeries[seriesCounter];
-          if (midiInfo.note === expected.note && midiInfo.octave === expected.octave) {
-            correctAnswers++;
-            expected.color = "green";
-            nativeLog.textContent += " - Richtig!";
-            /* no background change */
-          } else {
-            expected.color = "red";
-            nativeLog.textContent += " - Falsch!";
-            /* no background change */
-          }
-          totalAttempts++;
-          window.updateScore();
-          seriesCounter++;
-          drawSeries();
-          // Wenn alle Noten abgearbeitet wurden, neue Serie nach 1 Sekunde erzeugen und Hintergrund zurücksetzen.
-          if (seriesCounter >= seriesLength) {
-            setTimeout(function() {
-              /* no background reset */
-              generateSeries();
-            }, 1000);
-          }
-        }
-      }
-    };
-    // Alias für Swift: handleSwiftMIDI ruft handleMIDIMessage auf
-    window.handleSwiftMIDI = function(status, data1, data2) {
-      return window.handleMIDIMessage(status, data1, data2);
-    };
-  </script>
+  .hand-icon.random-mode svg {
+    transform: none;
+  }
+
+  .lage-cell {
+    position: relative;
+  }
+
+  .lage-content {
+    position: absolute;
+    top: 5%;
+    left: 5%;
+    right: 5%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+
+  .lage-letter {
+    font-size: calc(15vw + 15vh);
+    font-weight: 700;
+    color: #5f5e5e;
+    line-height: 1;
+    width: 100%;
+    word-break: break-word;
+    text-align: center;
+  }
+
+  .lage-word {
+    margin-top: 10px;
+    font-weight: 600;
+    color: #5f5e5e;
+    font-size: calc(1.5vw + 1.5vh);
+    max-width: 100%;
+    text-transform: uppercase;
+  }
+
+  .gespielt-cell {
+    position: relative;
+  }
+
+  .gespielt-content {
+    position: absolute;
+    top: 5%;
+    left: 5%;
+    right: 5%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .gespielt-letter {
+    font-size: calc(15vw + 15vh);
+    font-weight: 700;
+    color: #5f5e5e;
+    line-height: 1;
+    width: 100%;
+    text-align: center;
+    word-break: break-word;
+  }
+
+  .rabbit-cell {
+    position: relative;
+  }
+
+  .rabbit-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: calc(15vw + 15vh);
+    height: calc(15vw + 15vh);
+    max-width: 90%;
+    max-height: 90%;
+    transform: translate(-50%, -50%);
+    stroke-width: 2.5;
+    color: #5f5e5e;
+  }
+
+
+  /* Texte im Rechteck — rotiert wie im Original */
+  .label {
+    transform: rotate(-90deg);   /* exakt wie SVG */
+    font-size: 26px;
+    font-weight: bold;
+    color: #5f5e5e;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  #left-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(100vw - 55vw - 10px);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  #stave-canvas {
+    max-width: 90%;
+    max-height: 90%;
+  }
+
+  .hand-cell { cursor: pointer; }
+  .lage-cell { cursor: pointer; }
+</style>
 </head>
+
 <body>
-  
-  <div id="toolbar">
-    <div id="toolbar-hands" class="toolbar-section">
-      <span id="mode-left" class="inactive-mode"><i data-lucide="hand-helping" style="transform: rotate(180deg);"></i></span>
-      <span id="mode-right" class="active-mode"><i data-lucide="hand-helping" style="transform: rotate(180deg) scaleX(-1);"></i></span>
-      <span id="mode-both" class="inactive-mode"><i data-lucide="dices"></i></span>
+
+  <div id="left-area">
+    <div id="notation"></div>
+  </div>
+
+  <div class="right-grid">
+    <div class="cell hand-cell">
+      <div class="hand-content">
+        <div class="hand-title">Rechte Hand</div>
+        <i data-lucide="hand-helping" class="hand-icon icon-right" style="visibility: visible;"></i>
+        <i data-lucide="hand-helping" class="hand-icon icon-left" style="visibility: hidden;"></i>
+        <i data-lucide="dices" class="hand-icon icon-random" style="visibility: hidden;"></i>
+      </div>
     </div>
-
-    <div class="toolbar-separator"></div>
-
-    <div id="toolbar-ranges" class="toolbar-section">
-      <span id="range-c">C-Lage</span>
-      <span id="range-d">D-Lage</span>
-      <span id="range-f">F-Lage</span>
-      <span id="range-g">G-Lage</span>
-      <span id="range-mc">Mittlere C</span>
+    <div class="cell lage-cell">
+      <div class="lage-content">
+        <div class="lage-letter">C</div>
+        <div class="lage-word">Lage</div>
+      </div>
     </div>
-
-    <div class="toolbar-separator"></div>
-
-    <div id="toolbar-stats" class="toolbar-section">
-      <span id="toolbar-score">Score: 0%</span>
-      <span id="toolbar-speed">-- ms</span>
+    <div class="cell gespielt-cell">
+      <div class="gespielt-content">
+        <div class="gespielt-letter">A</div>
+    </div>
+    </div>
+    <div class="cell rabbit-cell">
+      <i data-lucide="rabbit" class="rabbit-icon"></i>
     </div>
   </div>
-  
-  
-  
-  <!-- Notensystem, Score, ResponseTime, Debug -->
-  <div id="notation"></div>
-  <!-- <div id="score">Score: 0%</div> -->
-  <!-- <div id="responseTime">-- ms</div> -->
-  <div id="nativeLog"></div>
-  
-  <!-- VexFlow einbinden -->
-  <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
-  
-  <script>
-    // Event Listener: DOMContentLoaded – konfiguriert die UI-Elemente.
-    document.addEventListener("DOMContentLoaded", function() {
-      // Initiale Serien-Generierung
-      generateSeries();
-      
-      // Konfiguration der Handmodus-Buttons
-      var modeButtons = document.querySelectorAll("#toolbar-hands span");
-      modeButtons.forEach(function(btn) {
-        btn.addEventListener("click", function() {
-          modeButtons.forEach(function(b) {
-            b.classList.remove("active-mode");
-            b.classList.add("inactive-mode");
-          });
-          btn.classList.remove("inactive-mode");
-          btn.classList.add("active-mode");
-          generateSeries();
-        });
-      });
 
-      var rangeButtons = document.querySelectorAll("#toolbar-ranges span");
-      rangeButtons.forEach(function(btn) {
-        btn.addEventListener("click", function() {
-          rangeButtons.forEach(function(b) { b.style.fontWeight = "normal"; });
-          btn.style.fontWeight = "700";
-          generateSeries();
-        });
-      });
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
 
-      lucide.createIcons();
+<script>
+  lucide.createIcons();
 
-      // GSAP button animations
-      document.querySelectorAll("#toolbar-hands span").forEach(btn => {
-        btn.addEventListener("click", () => {
-          gsap.fromTo(btn, { scale: 1 }, { scale: 0.85, duration: 0.1, yoyo: true, repeat: 1 });
-        });
-      });
-      const diceBtn = document.getElementById("mode-both");
-      if (diceBtn) {
-        diceBtn.addEventListener("click", () => {
-          gsap.fromTo(diceBtn, { rotation: -5 }, { rotation: 5, duration: 0.08, yoyo: true, repeat: 5 });
-        });
+  let currentSeries = [];
+  let seriesLength = 5;
+
+  let handModes = ["Rechte Hand", "Linke Hand", "Zufall"];
+  let handIndex = 0;
+
+let lageList = ["C", "D", "E", "F", "G", "A", "B"];
+let lageIndex = 0;
+
+  const handTitle = document.querySelector(".hand-title");
+  let handIcon = document.querySelector(".hand-icon");
+  const lageLetter = document.querySelector(".lage-letter");
+
+  // --------- CLICK HAND ----------
+  document.querySelector(".hand-cell").addEventListener("click", () => {
+    handIndex = (handIndex + 1) % handModes.length;
+
+    const mode = handModes[handIndex];
+
+    // Update text
+    handTitle.textContent = mode;
+
+    let iconName = "hand-helping";
+
+    // Hide all icons
+    document.querySelector(".icon-right").style.visibility = "hidden";
+    document.querySelector(".icon-left").style.visibility = "hidden";
+    document.querySelector(".icon-random").style.visibility = "hidden";
+
+    // Show correct icon
+    if (mode === "Rechte Hand") {
+      document.querySelector(".icon-right").style.visibility = "visible";
+    }
+    else if (mode === "Linke Hand") {
+      document.querySelector(".icon-left").style.visibility = "visible";
+    }
+    else {
+      document.querySelector(".icon-random").style.visibility = "visible";
+    }
+
+    generateSeries();
+  });
+
+  // --------- CLICK LAGE ----------
+  document.querySelector(".lage-cell").addEventListener("click", () => {
+    lageIndex = (lageIndex + 1) % lageList.length;
+    lageLetter.textContent = lageList[lageIndex];
+    generateSeries();
+  });
+
+  // --------- MIDI SETUP ----------
+  let midiAccess = null;
+  let lastNote = null;
+
+  function onMIDIMessage(event) {
+    const [command, note, velocity] = event.data;
+    if (command === 144 && velocity > 0) {
+      lastNote = note;
+      document.querySelector(".gespielt-letter").textContent = midiToNote(note);
+      renderStave(note);
+    }
+  }
+
+  function midiToNote(num) {
+    const notes = ["C", "C#", "D", "D#", "E","F","F#","G","G#","A","A#","B"];
+    return notes[num % 12];
+  }
+
+  if (navigator.requestMIDIAccess) {
+    navigator.requestMIDIAccess().then((access) => {
+      midiAccess = access;
+      for (let input of midiAccess.inputs.values()) {
+        input.onmidimessage = onMIDIMessage;
       }
     });
-    
-    // Funktion zum Generieren einer neuen Serie erwarteter Noten.
-    function generateSeries() {
-      lastStartTime = Date.now();
-      currentSeries = [];
-      seriesCounter = 0;
-      // Bestimme seriesLength statisch
-      seriesLength = 5;
-      var rangeNotes = ["c", "d", "e", "f", "g"];
-      for (var i = 0; i < seriesLength; i++) {
-        var randomIndex = Math.floor(Math.random() * rangeNotes.length);
-        // Für diesen Test: Alle Noten in Oktave 4, Clef "treble"
-        currentSeries.push({ note: rangeNotes[randomIndex], octave: 4, clef: "treble", color: "black" });
+  }
+
+  const lageNotes = {
+    "C": ["c", "d", "e", "f", "g"],
+    "D": ["d", "e", "f#", "g", "a"],
+    "E": ["e", "f#", "g#", "a", "b"],
+    "F": ["f", "g", "a", "b", "c"],
+    "G": ["g", "a", "b", "c", "d"],
+    "A": ["a", "b", "c", "d", "e"],
+    "B": ["b", "c#", "d", "e", "f#"]
+  };
+
+  function generateSeries() {
+    currentSeries = [];
+    seriesLength = 5;
+
+    const lage = lageList[lageIndex];
+    const possibleNotes = lageNotes[lage];
+
+    for (let i = 0; i < seriesLength; i++) {
+      let r = Math.floor(Math.random() * possibleNotes.length);
+
+      let clef = "treble";
+      let octave = 4;
+
+      if (handModes[handIndex] === "Linke Hand") {
+        clef = "bass";
+        octave = 2;
       }
-      drawSeries();
-    }
-    
-    // Zeichnet die aktuelle Notenserie mithilfe von VexFlow.
-    function drawSeries() {
-      var notationDiv = document.getElementById("notation");
-      notationDiv.innerHTML = "";
-      var usedWidth = 80 * seriesLength + 20;
-      var renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
-      renderer.resize(usedWidth, 200);
-      var context = renderer.getContext();
-      var stave = new Vex.Flow.Stave(10, 40, usedWidth - 20);
-      if (currentSeries.length > 0) {
-        stave.addClef(currentSeries[0].clef).setContext(context).draw();
+
+      if (handModes[handIndex] === "Zufall") {
+        clef = Math.random() < 0.5 ? "treble" : "bass";
+        octave = clef === "treble" ? 4 : 2;
       }
-      var staveNotes = currentSeries.map(function(item) {
-        return new Vex.Flow.StaveNote({
-          clef: item.clef,
-          keys: [item.note + "/" + item.octave],
-          duration: "q"
-        }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
+
+      currentSeries.push({
+        note: possibleNotes[r],
+        octave: octave,
+        clef: clef,
+        color: "black"
       });
-      var voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
-      staveNotes.forEach(function(note) { voice.addTickable(note); });
-      new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
-      voice.draw(context, stave);
-    }
-  </script>
-
-  <script>
-    if (navigator.requestMIDIAccess) {
-      navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
     }
 
-    function onMIDISuccess(midiAccess) {
-      const inputs = midiAccess.inputs.values();
-      for (let input of inputs) {
-        input.onmidimessage = handleMIDIMessageWeb;
+    drawSeries();
+  }
+
+  // --------- VEXFLOW RENDER ----------
+  function drawSeries() {
+    var notationDiv = document.getElementById("notation");
+    notationDiv.innerHTML = "";
+    var usedWidth = 80 * seriesLength + 20;
+    var renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
+    renderer.resize(usedWidth, 200);
+    var context = renderer.getContext();
+    var stave = new Vex.Flow.Stave(10, 40, usedWidth - 10);
+    if (currentSeries.length > 0) {
+      stave.addClef(currentSeries[0].clef);
+    }
+    stave.setContext(context).draw();
+    var staveNotes = currentSeries.map(function(item) {
+      const key = item.note + "/" + item.octave;
+      const note = new Vex.Flow.StaveNote({
+        clef: item.clef,
+        keys: [key],
+        duration: "q"
+      }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
+
+      // Accidentals einfügen, wenn ein Kreuz vorkommt
+      if (item.note.includes("#")) {
+        note.addAccidental(0, new Vex.Flow.Accidental("#"));
       }
-      console.log("MIDI ready");
-    }
 
-    function onMIDIFailure() {
-      console.log("MIDI not available");
-    }
+      return note;
+    });
+    var voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
+    staveNotes.forEach(function(note) { voice.addTickable(note); });
+    new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
+    voice.draw(context, stave);
+  }
 
-    function handleMIDIMessageWeb(event) {
-      const [status, data1, data2] = event.data;
-      window.handleMIDIMessage(status, data1, data2);
-    }
-  </script>
+  generateSeries();
+</script>
+
 </body>
 </html>
