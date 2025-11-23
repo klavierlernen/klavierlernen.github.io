@@ -429,7 +429,7 @@ let lageIndex = 0;
     navigator.requestMIDIAccess().then((access) => {
       midiAccess = access;
       for (let input of midiAccess.inputs.values()) {
-        input.onmidimessage = onMIDIMessage;
+        input.onmidimessage = handleMIDIMessageWeb;
       }
     });
   }
@@ -525,13 +525,14 @@ let lageIndex = 0;
 
   generateSeries();
 
+  function handleMIDIMessageWeb(event) {
+    const [status, data1, data2] = event.data;
+    window.handleMIDIMessage(status, data1, data2);
+  }
+
   // --- Swift MIDI Bridge (iOS WebView -> JS) ---
   window.handleSwiftMIDI = function(status, data1, data2) {
-    try {
-      onMIDIMessage({ data: [status, data1, data2] });
-    } catch(e) {
-      console.error("Swift→JS MIDI Fehler:", e);
-    }
+    return window.handleMIDIMessage(status, data1, data2);
   };
 </script>
 
