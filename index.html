@@ -26,7 +26,6 @@
     grid-auto-rows: 1fr;
     gap: 10px;
     padding-right: 10px;
-    padding-bottom: 15px;
   }
 
   /* Jedes einzelne Rechteck */
@@ -224,7 +223,6 @@
         <i data-lucide="hand-helping" class="hand-icon icon-right" style="visibility: visible;"></i>
         <i data-lucide="hand-helping" class="hand-icon icon-left" style="visibility: hidden;"></i>
         <i data-lucide="dices" class="hand-icon icon-random" style="visibility: hidden;"></i>
-        <i data-lucide="flask-conical" class="hand-icon icon-expert" style="visibility: hidden;"></i>
       </div>
     </div>
     <div class="cell lage-cell">
@@ -249,13 +247,10 @@
 <script>
   lucide.createIcons();
 
-  let upperSeries = [];
-  let lowerSeries = [];
-  let upperCounter = 0;
-  let lowerCounter = 0;
-  let playUpper = true;
+  let currentSeries = [];
+  let seriesLength = 5;
 
-  let handModes = ["Rechte Hand", "Linke Hand", "Zufall", "Experte"];
+  let handModes = ["Rechte Hand", "Linke Hand", "Zufall"];
   let handIndex = 0;
 
 let lageList = ["C", "D", "E", "F", "G", "A", "B"];
@@ -280,7 +275,6 @@ let lageIndex = 0;
     document.querySelector(".icon-right").style.visibility = "hidden";
     document.querySelector(".icon-left").style.visibility = "hidden";
     document.querySelector(".icon-random").style.visibility = "hidden";
-    document.querySelector(".icon-expert").style.visibility = "hidden";
 
     // Show correct icon
     if (mode === "Rechte Hand") {
@@ -288,9 +282,6 @@ let lageIndex = 0;
     }
     else if (mode === "Linke Hand") {
       document.querySelector(".icon-left").style.visibility = "visible";
-    }
-    else if (mode === "Experte") {
-      document.querySelector(".icon-expert").style.visibility = "visible";
     }
     else {
       document.querySelector(".icon-random").style.visibility = "visible";
@@ -312,111 +303,10 @@ let lageIndex = 0;
 
   function onMIDIMessage(event) {
     const [command, note, velocity] = event.data;
-
     if (command === 144 && velocity > 0) {
-      const played = midiToNote(note);
-      document.querySelector(".gespielt-letter").textContent = played;
-
-      // --- Speed Icon Logic ---
-      const now = performance.now();
-      if (!window._lastSpeedTime) window._lastSpeedTime = now;
-      const delta = now - window._lastSpeedTime;
-      window._lastSpeedTime = now;
-
-      let speedIcon = "turtle";
-      if (delta < 400) speedIcon = "rocket";
-      else if (delta < 900) speedIcon = "rabbit";
-
-      const speedElm = document.querySelector(".rabbit-icon");
-      if (speedElm) {
-        speedElm.setAttribute("data-lucide", speedIcon);
-        lucide.createIcons();
-      }
-
-      const playedUpper = played.toUpperCase();
-
-      let upperExpected = upperSeries[upperCounter];
-      let lowerExpected = lowerSeries[lowerCounter];
-
-      let upperMatch = false;
-      let lowerMatch = false;
-
-      if (upperExpected) {
-        const expU = upperExpected.note.replace("#","♯").toUpperCase();
-        if (playedUpper === expU) upperMatch = true;
-      }
-
-      if (lowerExpected) {
-        const expL = lowerExpected.note.replace("#","♯").toUpperCase();
-        if (playedUpper === expL) lowerMatch = true;
-      }
-
-      if (handModes[handIndex] === "Rechte Hand") {
-        if (upperMatch) {
-          upperExpected.color = "green";
-          upperCounter++;
-        } else {
-          upperExpected.color = "red";
-        }
-      }
-
-      else if (handModes[handIndex] === "Linke Hand") {
-        if (lowerMatch) {
-          lowerExpected.color = "green";
-          lowerCounter++;
-        } else {
-          lowerExpected.color = "red";
-        }
-      }
-
-      else if (handModes[handIndex] === "Zufall") {
-        if (playUpper) {
-          let expected = upperSeries[upperCounter];
-          if (upperMatch) {
-            expected.color = "green";
-            upperCounter++;
-          } else {
-            expected.color = "red";
-          }
-        } else {
-          let expected = lowerSeries[lowerCounter];
-          if (lowerMatch) {
-            expected.color = "green";
-            lowerCounter++;
-          } else {
-            expected.color = "red";
-          }
-        }
-        playUpper = !playUpper;
-      }
-
-      else if (handModes[handIndex] === "Experte") {
-        if (playUpper) {
-          let expected = upperSeries[upperCounter];
-          if (upperMatch) {
-            expected.color = "green";
-            upperCounter++;
-            playUpper = false;
-          } else {
-            expected.color = "red";
-          }
-        } else {
-          let expected = lowerSeries[lowerCounter];
-          if (lowerMatch) {
-            expected.color = "green";
-            lowerCounter++;
-            playUpper = true;
-          } else {
-            expected.color = "red";
-          }
-        }
-      }
-
-      drawSeries();
-
-      if (upperCounter >= 3 && lowerCounter >= 3) {
-        setTimeout(() => generateSeries(), 400);
-      }
+      lastNote = note;
+      document.querySelector(".gespielt-letter").textContent = midiToNote(note);
+      renderStave(note);
     }
   }
 
@@ -429,7 +319,7 @@ let lageIndex = 0;
     navigator.requestMIDIAccess().then((access) => {
       midiAccess = access;
       for (let input of midiAccess.inputs.values()) {
-        input.onmidimessage = handleMIDIMessageWeb;
+        input.onmidimessage = onMIDIMessage;
       }
     });
   }
@@ -445,38 +335,36 @@ let lageIndex = 0;
   };
 
   function generateSeries() {
-    upperSeries = [];
-    lowerSeries = [];
-    upperCounter = 0;
-    lowerCounter = 0;
-
-    // Always 6 notes total, alternating: U, L, U, L, U, L
-    seriesLength = 6;
+    currentSeries = [];
+    seriesLength = 5;
 
     const lage = lageList[lageIndex];
     const possibleNotes = lageNotes[lage];
 
-    for (let i = 0; i < 3; i++) {
-      // Upper
-      let r1 = Math.floor(Math.random() * possibleNotes.length);
-      upperSeries.push({
-        note: possibleNotes[r1],
-        octave: 4,
-        clef: "treble",
-        color: "black"
-      });
+    for (let i = 0; i < seriesLength; i++) {
+      let r = Math.floor(Math.random() * possibleNotes.length);
 
-      // Lower (paired)
-      let r2 = Math.floor(Math.random() * possibleNotes.length);
-      lowerSeries.push({
-        note: possibleNotes[r2],
-        octave: 2,
-        clef: "bass",
+      let clef = "treble";
+      let octave = 4;
+
+      if (handModes[handIndex] === "Linke Hand") {
+        clef = "bass";
+        octave = 2;
+      }
+
+      if (handModes[handIndex] === "Zufall") {
+        clef = Math.random() < 0.5 ? "treble" : "bass";
+        octave = clef === "treble" ? 4 : 2;
+      }
+
+      currentSeries.push({
+        note: possibleNotes[r],
+        octave: octave,
+        clef: clef,
         color: "black"
       });
     }
 
-    playUpper = true; // alternating start
     drawSeries();
   }
 
@@ -484,56 +372,37 @@ let lageIndex = 0;
   function drawSeries() {
     var notationDiv = document.getElementById("notation");
     notationDiv.innerHTML = "";
-
-    var totalWidth = 80 * seriesLength + 30;
-    var totalHeight = 320;
-
+    var usedWidth = 80 * seriesLength + 20;
     var renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
-    renderer.resize(totalWidth, totalHeight);
+    renderer.resize(usedWidth, 200);
     var context = renderer.getContext();
-
-    function renderStave(yOffset, series) {
-      var stave = new Vex.Flow.Stave(10, yOffset, totalWidth - 20);
-      if (series.length > 0) {
-        stave.addClef(series[0].clef);
-      }
-      stave.setContext(context).draw();
-
-      var staveNotes = series.map(function(item) {
-        const key = item.note + "/" + item.octave;
-        const note = new Vex.Flow.StaveNote({
-          clef: item.clef,
-          keys: [key],
-          duration: "q"
-        }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
-
-        if (item.note.includes("#")) {
-          note.addModifier(0, new Vex.Flow.Accidental("#"));
-        }
-        return note;
-      });
-
-      var voice = new Vex.Flow.Voice({ num_beats: series.length, beat_value: 4 });
-      staveNotes.forEach(n => voice.addTickable(n));
-      new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
-      voice.draw(context, stave);
+    var stave = new Vex.Flow.Stave(10, 40, usedWidth - 10);
+    if (currentSeries.length > 0) {
+      stave.addClef(currentSeries[0].clef);
     }
+    stave.setContext(context).draw();
+    var staveNotes = currentSeries.map(function(item) {
+      const key = item.note + "/" + item.octave;
+      const note = new Vex.Flow.StaveNote({
+        clef: item.clef,
+        keys: [key],
+        duration: "q"
+      }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
 
-    renderStave(40, upperSeries);
-    renderStave(180, lowerSeries);
+      // Accidentals einfügen, wenn ein Kreuz vorkommt
+      if (item.note.includes("#")) {
+        note.addAccidental(0, new Vex.Flow.Accidental("#"));
+      }
+
+      return note;
+    });
+    var voice = new Vex.Flow.Voice({ num_beats: seriesLength, beat_value: 4 });
+    staveNotes.forEach(function(note) { voice.addTickable(note); });
+    new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth() - 20);
+    voice.draw(context, stave);
   }
 
   generateSeries();
-
-  function handleMIDIMessageWeb(event) {
-    const [status, data1, data2] = event.data;
-    window.handleMIDIMessage(status, data1, data2);
-  }
-
-  // --- Swift MIDI Bridge (iOS WebView -> JS) ---
-  window.handleSwiftMIDI = function(status, data1, data2) {
-    return window.handleMIDIMessage(status, data1, data2);
-  };
 </script>
 
 </body>
