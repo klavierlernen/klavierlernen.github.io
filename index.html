@@ -348,6 +348,12 @@ let lageIndex = 0;
   let midiAccess = null;
   let lastNote = null;
 
+  // SWIFT → JS bridge so Swift can call MIDI handler
+  window.handleMIDIMessage = function(status, data1, data2) {
+    const event = { data: [status, data1, data2] };
+    onMIDIMessage(event);
+  };
+
   function onMIDIMessage(event) {
     const [command, note, velocity] = event.data;
 
