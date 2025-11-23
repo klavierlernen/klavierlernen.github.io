@@ -153,10 +153,10 @@
     position: relative;
   }
   .gespielt-cell.correct {
-    background: rgb(40,110,45);
+    background: rgb(80,140,85);
   }
   .gespielt-cell.incorrect {
-    background: rgb(130,40,40);
+    background: rgb(170,70,70);
   }
 
   .gespielt-content {
@@ -246,7 +246,7 @@
   /* Thicker stave lines */
   svg .vf-stave path {
     stroke-width: 2.5px !important;
-    stroke: rgb(70,70,70) !important;
+    stroke: rgb(120,120,120) !important;
   }
 
   /* Thicker note heads and stems */
@@ -453,36 +453,36 @@ let lageIndex = 0;
 
       if (handModes[handIndex] === "Rechte Hand") {
         if (upperMatch) {
-          upperExpected.color = "rgb(47,75,48)";
+          upperExpected.color = "rgb(80,140,85)";
           upperCounter++;
         } else {
-          upperExpected.color = "rgb(58,39,40)";
+          upperExpected.color = "rgb(170,70,70)";
         }
       }
 
       else if (handModes[handIndex] === "Linke Hand") {
         if (lowerMatch) {
-          lowerExpected.color = "rgb(47,75,48)";
+          lowerExpected.color = "rgb(80,140,85)";
           lowerCounter++;
         } else {
-          lowerExpected.color = "rgb(58,39,40)";
+          lowerExpected.color = "rgb(170,70,70)";
         }
       }
 
       else if (handModes[handIndex] === "Zufall") {
         if (playUpper) {
           if (upperMatch) {
-            upperExpected.color = "rgb(47,75,48)";
+            upperExpected.color = "rgb(80,140,85)";
             upperCounter++;
           } else {
-            upperExpected.color = "rgb(58,39,40)";
+            upperExpected.color = "rgb(170,70,70)";
           }
         } else {
           if (lowerMatch) {
-            lowerExpected.color = "rgb(47,75,48)";
+            lowerExpected.color = "rgb(80,140,85)";
             lowerCounter++;
           } else {
-            lowerExpected.color = "rgb(58,39,40)";
+            lowerExpected.color = "rgb(170,70,70)";
           }
         }
         playUpper = !playUpper;
@@ -490,16 +490,16 @@ let lageIndex = 0;
 
       else if (handModes[handIndex] === "Experte") {
         if (upperMatch) {
-          upperExpected.color = "rgb(47,75,48)";
+          upperExpected.color = "rgb(80,140,85)";
           upperCounter++;
         }
         if (lowerMatch) {
-          lowerExpected.color = "rgb(47,75,48)";
+          lowerExpected.color = "rgb(80,140,85)";
           lowerCounter++;
         }
         if (!upperMatch && !lowerMatch) {
-          if (upperExpected) upperExpected.color = "rgb(58,39,40)";
-          if (lowerExpected) lowerExpected.color = "rgb(58,39,40)";
+          if (upperExpected) upperExpected.color = "rgb(170,70,70)";
+          if (lowerExpected) lowerExpected.color = "rgb(170,70,70)";
         }
       }
 
