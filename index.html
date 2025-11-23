@@ -152,6 +152,12 @@
   .gespielt-cell {
     position: relative;
   }
+  .gespielt-cell.correct {
+    background: rgb(40,110,45);
+  }
+  .gespielt-cell.incorrect {
+    background: rgb(130,40,40);
+  }
 
   .gespielt-content {
     position: absolute;
@@ -206,7 +212,7 @@
   #left-area {
     position: absolute;
     top: 0;
-    left: 0;
+    left: 20px;
     width: calc(100vw - 55vw - 10px);
     height: var(--real-vh);
     display: flex;
@@ -229,6 +235,28 @@
   svg .vf-clef .vf-glyph {
     stroke: white !important;
     fill: white !important;
+  }
+
+  /* Make ALL VexFlow SVG elements white */
+  svg.vf-document * {
+    stroke: white !important;
+    fill: white !important;
+  }
+
+  /* Thicker stave lines */
+  svg .vf-stave path {
+    stroke-width: 2.5px !important;
+    stroke: rgb(70,70,70) !important;
+  }
+
+  /* Thicker note heads and stems */
+  svg .vf-stavenote * {
+    stroke-width: 2.5px !important;
+  }
+
+  svg.vf-document {
+    transform: scale(var(--notation-zoom, 1));
+    transform-origin: center center;
   }
 </style>
 </style>
@@ -279,6 +307,29 @@
   }
   fixVH();
   window.addEventListener("resize", fixVH);
+
+  function applyZoom() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    let z = 1;
+
+    // Stronger scaling for larger monitors
+    if (w < 600) {
+      z = 1.6;
+    } else if (w < 900) {
+      z = 1.45;
+    } else if (w < 1400) {
+      z = 1.3;
+    } else if (w < 2000) {
+      z = 1.55;
+    } else {
+      z = 1.75;
+    }
+
+    document.documentElement.style.setProperty("--notation-zoom", z);
+  }
+  applyZoom();
+  window.addEventListener("resize", applyZoom);
 </script>
 
 <script>
@@ -454,7 +505,17 @@ let lageIndex = 0;
 
       // Set .gespielt-letter color according to correctness
       const gespieltElm = document.querySelector(".gespielt-letter");
-      gespieltElm.style.color = upperMatch || lowerMatch ? "rgb(47,75,48)" : "rgb(58,39,40)";
+      const gespieltCell = document.querySelector(".gespielt-cell");
+
+      if (upperMatch || lowerMatch) {
+        gespieltElm.style.color = "white";
+        gespieltCell.classList.remove("incorrect");
+        gespieltCell.classList.add("correct");
+      } else {
+        gespieltElm.style.color = "white";
+        gespieltCell.classList.remove("correct");
+        gespieltCell.classList.add("incorrect");
+      }
 
       drawSeries();
 
@@ -678,8 +739,8 @@ let rangeNoteKeys = ["c/4", "d/4"];
     var notationDiv = document.getElementById("notation");
     notationDiv.innerHTML = "";
 
-    var totalWidth = 80 * seriesLength + 30;
-    var totalHeight = (handModes[handIndex] === "Zufall" || handModes[handIndex] === "Experte") ? 320 : 200;
+    var totalWidth = 530;
+    var totalHeight = 300;
 
     var renderer = new Vex.Flow.Renderer(notationDiv, Vex.Flow.Renderer.Backends.SVG);
     renderer.resize(totalWidth, totalHeight);
