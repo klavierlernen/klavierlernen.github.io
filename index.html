@@ -26,6 +26,7 @@
     grid-auto-rows: 1fr;
     gap: 10px;
     padding-right: 10px;
+    padding-bottom: 15px;
   }
 
   /* Jedes einzelne Rechteck */
@@ -248,8 +249,11 @@
 <script>
   lucide.createIcons();
 
-  let currentSeries = [];
-  let seriesLength = 5;
+  let upperSeries = [];
+  let lowerSeries = [];
+  let upperCounter = 0;
+  let lowerCounter = 0;
+  let playUpper = true;
 
   let handModes = ["Rechte Hand", "Linke Hand", "Zufall", "Experte"];
   let handIndex = 0;
@@ -308,10 +312,114 @@ let lageIndex = 0;
 
   function onMIDIMessage(event) {
     const [command, note, velocity] = event.data;
+
     if (command === 144 && velocity > 0) {
-      lastNote = note;
-      document.querySelector(".gespielt-letter").textContent = midiToNote(note);
-      renderStave(note);
+      const played = midiToNote(note);
+      document.querySelector(".gespielt-letter").textContent = played;
+
+      // --- Speed Icon Logic ---
+      const now = performance.now();
+      if (!window._lastSpeedTime) window._lastSpeedTime = now;
+      const delta = now - window._lastSpeedTime;
+      window._lastSpeedTime = now;
+
+      let speedIcon = "turtle";
+      if (delta < 400) speedIcon = "rocket";
+      else if (delta < 900) speedIcon = "rabbit";
+
+      const speedElm = document.querySelector(".rabbit-icon");
+      if (speedElm) {
+        speedElm.setAttribute("data-lucide", speedIcon);
+        lucide.createIcons();
+      }
+
+      const playedUpper = played.toUpperCase();
+
+      let upperExpected = upperSeries[upperCounter];
+      let lowerExpected = lowerSeries[lowerCounter];
+
+      let upperMatch = false;
+      let lowerMatch = false;
+
+      if (upperExpected) {
+        const expU = upperExpected.note.replace("#","♯").toUpperCase();
+        if (playedUpper === expU) upperMatch = true;
+      }
+
+      if (lowerExpected) {
+        const expL = lowerExpected.note.replace("#","♯").toUpperCase();
+        if (playedUpper === expL) lowerMatch = true;
+      }
+
+      if (handModes[handIndex] === "Rechte Hand") {
+        if (upperMatch) {
+          upperExpected.color = "green";
+          upperCounter++;
+        } else {
+          upperExpected.color = "red";
+        }
+      }
+
+      else if (handModes[handIndex] === "Linke Hand") {
+        if (lowerMatch) {
+          lowerExpected.color = "green";
+          lowerCounter++;
+        } else {
+          lowerExpected.color = "red";
+        }
+      }
+
+      else if (handModes[handIndex] === "Zufall") {
+        if (playUpper) {
+          if (upperMatch) {
+            upperExpected.color = "green";
+            upperCounter++;
+          } else {
+            upperExpected.color = "red";
+          }
+        } else {
+          if (lowerMatch) {
+            lowerExpected.color = "green";
+            lowerCounter++;
+          } else {
+            lowerExpected.color = "red";
+          }
+        }
+        playUpper = !playUpper;
+      }
+
+      else if (handModes[handIndex] === "Experte") {
+        if (upperMatch) {
+          upperExpected.color = "green";
+          upperCounter++;
+        }
+        if (lowerMatch) {
+          lowerExpected.color = "green";
+          lowerCounter++;
+        }
+        if (!upperMatch && !lowerMatch) {
+          if (upperExpected) upperExpected.color = "red";
+          if (lowerExpected) lowerExpected.color = "red";
+        }
+      }
+
+      drawSeries();
+
+      let upperDone = (upperCounter >= upperSeries.length);
+      let lowerDone = (lowerCounter >= lowerSeries.length);
+
+      if (handModes[handIndex] === "Rechte Hand" && upperDone) {
+        setTimeout(() => generateSeries(), 400);
+      }
+      else if (handModes[handIndex] === "Linke Hand" && lowerDone) {
+        setTimeout(() => generateSeries(), 400);
+      }
+      else if ((handModes[handIndex] === "Zufall") && upperDone && lowerDone) {
+        setTimeout(() => generateSeries(), 400);
+      }
+      else if ((handModes[handIndex] === "Experte") && upperDone && lowerDone) {
+        setTimeout(() => generateSeries(), 400);
+      }
     }
   }
 
@@ -339,11 +447,12 @@ let lageIndex = 0;
     "B": ["b", "c#", "d", "e", "f#"]
   };
 
-  let currentSeriesBass = [];
-
   function generateSeries() {
-    currentSeriesBass = [];
-    currentSeries = [];
+    lowerSeries = [];
+    upperSeries = [];
+    upperCounter = 0;
+    lowerCounter = 0;
+    playUpper = true;
     seriesLength = 5;
 
     const lage = lageList[lageIndex];
@@ -365,7 +474,7 @@ let lageIndex = 0;
         octave = clef === "treble" ? 4 : 2;
       }
 
-      currentSeries.push({
+      upperSeries.push({
         note: possibleNotes[r],
         octave: octave,
         clef: clef,
@@ -374,9 +483,10 @@ let lageIndex = 0;
     }
 
     if (handModes[handIndex] === "Zufall" || handModes[handIndex] === "Experte") {
+      lowerSeries = [];
       for (let i = 0; i < seriesLength; i++) {
         let r = Math.floor(Math.random() * possibleNotes.length);
-        currentSeriesBass.push({
+        lowerSeries.push({
           note: possibleNotes[r],
           octave: 2,
           clef: "bass",
@@ -427,10 +537,10 @@ let lageIndex = 0;
       voice.draw(context, stave);
     }
 
-    renderStave(40, currentSeries);
+    renderStave(40, upperSeries);
 
     if (handModes[handIndex] === "Zufall" || handModes[handIndex] === "Experte") {
-      renderStave(180, currentSeriesBass);
+      renderStave(180, lowerSeries);
     }
   }
 
