@@ -2,15 +2,29 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Algorithmus UI – Grid rechts</title>
 
 <style>
+  :root {
+    --real-vh: 100vh;
+  }
+  body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+  }
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
   body {
     margin: 0;
     font-family: Arial, sans-serif;
-    background: white;
-    height: 100vh;
+    background: rgb(33,33,33);
+    height: var(--real-vh);
     display: flex;
     justify-content: flex-end; /* alles nach rechts */
     align-items: flex-start;       /* vertikal zentriert */
@@ -20,7 +34,7 @@
   .right-grid {
     width: 55vw;                 /* breiter */
     max-width: 580px;            /* größere Maximalbreite */
-    height: calc(100vh - 20px);  /* bis fast an unteren Bildschirmrand */
+    height: calc(var(--real-vh) - 20px);  /* bis fast an unteren Bildschirmrand */
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-auto-rows: 1fr;
@@ -31,7 +45,7 @@
 
   /* Jedes einzelne Rechteck */
   .cell {
-    background: #E6E6E6;
+    background: rgb(50,50,50);
     border-radius: 6px;
     display: flex;
     align-items: center;
@@ -58,7 +72,7 @@
   .hand-title {
     font-size: calc(3vw + 3vh);
     font-weight: 700;
-    color: #5f5e5e;
+    color: white;
     word-break: break-word;
   }
 
@@ -72,7 +86,7 @@
     max-height: 50%;
     transform: translateX(-50%) rotate(180deg);
     stroke-width: 2.5;
-    color: #5f5e5e;
+    color: white;
     visibility: hidden;
   }
 
@@ -119,7 +133,7 @@
   .lage-letter {
     font-size: calc(15vw + 15vh);
     font-weight: 700;
-    color: #5f5e5e;
+    color: white;
     line-height: 1;
     width: 100%;
     word-break: break-word;
@@ -129,7 +143,7 @@
   .lage-word {
     margin-top: 10px;
     font-weight: 600;
-    color: #5f5e5e;
+    color: white;
     font-size: calc(1.5vw + 1.5vh);
     max-width: 100%;
     text-transform: uppercase;
@@ -154,7 +168,7 @@
   .gespielt-letter {
     font-size: calc(15vw + 15vh);
     font-weight: 700;
-    color: #5f5e5e;
+    color: white;
     line-height: 1;
     width: 100%;
     text-align: center;
@@ -175,7 +189,7 @@
     max-height: 90%;
     transform: translate(-50%, -50%);
     stroke-width: 2.5;
-    color: #5f5e5e;
+    color: white;
   }
 
 
@@ -184,7 +198,7 @@
     transform: rotate(-90deg);   /* exakt wie SVG */
     font-size: 26px;
     font-weight: bold;
-    color: #5f5e5e;
+    color: white;
     pointer-events: none;
     user-select: none;
   }
@@ -194,7 +208,7 @@
     top: 0;
     left: 0;
     width: calc(100vw - 55vw - 10px);
-    height: 100vh;
+    height: var(--real-vh);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -208,6 +222,15 @@
 
   .hand-cell { cursor: pointer; }
   .lage-cell { cursor: pointer; }
+  /* Force VexFlow clefs to be white (all paths, glyphs, groups) */
+  svg .vf-clef *,
+  svg .vf-clef path,
+  svg .vf-clef g,
+  svg .vf-clef .vf-glyph {
+    stroke: white !important;
+    fill: white !important;
+  }
+</style>
 </style>
 </head>
 
@@ -225,6 +248,8 @@
         <i data-lucide="hand-helping" class="hand-icon icon-left" style="visibility: hidden;"></i>
         <i data-lucide="dices" class="hand-icon icon-random" style="visibility: hidden;"></i>
         <i data-lucide="flask-conical" class="hand-icon icon-expert" style="visibility: hidden;"></i>
+        <div id="range-notation" style="position:absolute; bottom:5%; left:50%; transform:translateX(-50%); width:90%; height:40%;">
+        </div>
       </div>
     </div>
     <div class="cell lage-cell">
@@ -245,6 +270,16 @@
 
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+<script>
+  function fixVH() {
+    document.documentElement.style.setProperty(
+      "--real-vh",
+      window.innerHeight + "px"
+    );
+  }
+  fixVH();
+  window.addEventListener("resize", fixVH);
+</script>
 
 <script>
   lucide.createIcons();
@@ -255,7 +290,7 @@
   let lowerCounter = 0;
   let playUpper = true;
 
-  let handModes = ["Rechte Hand", "Linke Hand", "Zufall", "Experte"];
+  let handModes = ["Rechte Hand", "Linke Hand", "Zufall", "Experte", "Bereich beüben"];
   let handIndex = 0;
 
 let lageList = ["C", "D", "E", "F", "G", "A", "B"];
@@ -292,6 +327,9 @@ let lageIndex = 0;
     else if (mode === "Experte") {
       document.querySelector(".icon-expert").style.visibility = "visible";
     }
+    else if (mode === "Bereich beüben") {
+      // no icon displayed
+    }
     else {
       document.querySelector(".icon-random").style.visibility = "visible";
     }
@@ -317,6 +355,11 @@ let lageIndex = 0;
       const played = midiToNote(note);
       document.querySelector(".gespielt-letter").textContent = played;
 
+      // Helper function for normalization
+      function normalize(note) {
+        return note.replace("♯", "#").toUpperCase();
+      }
+
       // --- Speed Icon Logic ---
       const now = performance.now();
       if (!window._lastSpeedTime) window._lastSpeedTime = now;
@@ -333,7 +376,7 @@ let lageIndex = 0;
         lucide.createIcons();
       }
 
-      const playedUpper = played.toUpperCase();
+      const playedUpper = normalize(played);
 
       let upperExpected = upperSeries[upperCounter];
       let lowerExpected = lowerSeries[lowerCounter];
@@ -342,47 +385,47 @@ let lageIndex = 0;
       let lowerMatch = false;
 
       if (upperExpected) {
-        const expU = upperExpected.note.replace("#","♯").toUpperCase();
+        const expU = normalize(upperExpected.note);
         if (playedUpper === expU) upperMatch = true;
       }
 
       if (lowerExpected) {
-        const expL = lowerExpected.note.replace("#","♯").toUpperCase();
+        const expL = normalize(lowerExpected.note);
         if (playedUpper === expL) lowerMatch = true;
       }
 
       if (handModes[handIndex] === "Rechte Hand") {
         if (upperMatch) {
-          upperExpected.color = "green";
+          upperExpected.color = "rgb(47,75,48)";
           upperCounter++;
         } else {
-          upperExpected.color = "red";
+          upperExpected.color = "rgb(58,39,40)";
         }
       }
 
       else if (handModes[handIndex] === "Linke Hand") {
         if (lowerMatch) {
-          lowerExpected.color = "green";
+          lowerExpected.color = "rgb(47,75,48)";
           lowerCounter++;
         } else {
-          lowerExpected.color = "red";
+          lowerExpected.color = "rgb(58,39,40)";
         }
       }
 
       else if (handModes[handIndex] === "Zufall") {
         if (playUpper) {
           if (upperMatch) {
-            upperExpected.color = "green";
+            upperExpected.color = "rgb(47,75,48)";
             upperCounter++;
           } else {
-            upperExpected.color = "red";
+            upperExpected.color = "rgb(58,39,40)";
           }
         } else {
           if (lowerMatch) {
-            lowerExpected.color = "green";
+            lowerExpected.color = "rgb(47,75,48)";
             lowerCounter++;
           } else {
-            lowerExpected.color = "red";
+            lowerExpected.color = "rgb(58,39,40)";
           }
         }
         playUpper = !playUpper;
@@ -390,18 +433,22 @@ let lageIndex = 0;
 
       else if (handModes[handIndex] === "Experte") {
         if (upperMatch) {
-          upperExpected.color = "green";
+          upperExpected.color = "rgb(47,75,48)";
           upperCounter++;
         }
         if (lowerMatch) {
-          lowerExpected.color = "green";
+          lowerExpected.color = "rgb(47,75,48)";
           lowerCounter++;
         }
         if (!upperMatch && !lowerMatch) {
-          if (upperExpected) upperExpected.color = "red";
-          if (lowerExpected) lowerExpected.color = "red";
+          if (upperExpected) upperExpected.color = "rgb(58,39,40)";
+          if (lowerExpected) lowerExpected.color = "rgb(58,39,40)";
         }
       }
+
+      // Set .gespielt-letter color according to correctness
+      const gespieltElm = document.querySelector(".gespielt-letter");
+      gespieltElm.style.color = upperMatch || lowerMatch ? "rgb(47,75,48)" : "rgb(58,39,40)";
 
       drawSeries();
 
@@ -447,7 +494,26 @@ let lageIndex = 0;
     "B": ["b", "c#", "d", "e", "f#"]
   };
 
+// Global range note keys for range selector
+let rangeNoteKeys = ["c/4", "d/4"];
+
   function generateSeries() {
+    if (handModes[handIndex] === "Bereich beüben") {
+      document.getElementById("range-notation").style.display = "block";
+      upperSeries = [
+        { note: "c", octave: 4, clef: "treble", color: "white" },
+        { note: "d", octave: 4, clef: "treble", color: "white" }
+      ];
+      lowerSeries = [];
+      upperCounter = 0;
+      lowerCounter = 0;
+      playUpper = true;
+      drawRangeSelector();
+      drawSeries();
+      return;
+    } else {
+      document.getElementById("range-notation").style.display = "none";
+    }
     lowerSeries = [];
     upperSeries = [];
     upperCounter = 0;
@@ -478,7 +544,7 @@ let lageIndex = 0;
         note: possibleNotes[r],
         octave: octave,
         clef: clef,
-        color: "black"
+        color: "white"
       });
     }
 
@@ -490,12 +556,115 @@ let lageIndex = 0;
           note: possibleNotes[r],
           octave: 2,
           clef: "bass",
-          color: "black"
+          color: "white"
         });
       }
     }
 
     drawSeries();
+  }
+
+  function drawRangeSelector() {
+    const div = document.getElementById("range-notation");
+    div.innerHTML = "";
+    const renderer = new Vex.Flow.Renderer(div, Vex.Flow.Renderer.Backends.SVG);
+    renderer.resize(div.clientWidth, div.clientHeight);
+    const context = renderer.getContext();
+    const stave = new Vex.Flow.Stave(10, 10, div.clientWidth - 20);
+    stave.addClef("treble").setContext(context).draw();
+
+    function createDraggableNote(key) {
+      return new Vex.Flow.StaveNote({
+        clef: "treble",
+        keys: [key],
+        duration: "q"
+      });
+    }
+
+    let notes = [
+      createDraggableNote(rangeNoteKeys[0]),
+      createDraggableNote(rangeNoteKeys[1])
+    ];
+
+    // Add drag handlers on the SVG elements after rendering
+    setTimeout(() => {
+      const svg = div.querySelector("svg");
+      const noteheads = svg.querySelectorAll(".vf-notehead");
+
+      noteheads.forEach((head, index) => {
+        head.style.cursor = "grab";
+
+        let dragging = false;
+        let lastY = 0;
+
+        function startDrag(ev) {
+          dragging = true;
+          lastY = ev.touches ? ev.touches[0].clientY : ev.clientY;
+          head.style.cursor = "grabbing";
+        }
+
+        function moveDrag(ev) {
+          if (!dragging) return;
+          let y = ev.touches ? ev.touches[0].clientY : ev.clientY;
+          let deltaY = y - lastY;
+          if (Math.abs(deltaY) < 4) return;
+          lastY = y;
+
+          let currentKey = rangeNoteKeys[index];
+          let [base, oct] = currentKey.split("/");
+          oct = parseInt(oct);
+
+          // chromatic note list
+          const steps = ["c","c#","d","d#","e","f","f#","g","g#","a","a#","b"];
+
+          // find current index
+          let stepIndex = steps.indexOf(base.toLowerCase());
+          if (stepIndex === -1) return;
+
+          // move one staff step
+          if (deltaY < 0) {
+            stepIndex++;
+            if (stepIndex >= steps.length) {
+              stepIndex = 0;
+              oct++;
+            }
+          } else {
+            stepIndex--;
+            if (stepIndex < 0) {
+              stepIndex = steps.length - 1;
+              oct--;
+            }
+          }
+
+          let newBase = steps[stepIndex];
+          rangeNoteKeys[index] = newBase + "/" + oct;
+
+          drawRangeSelector();
+        }
+
+        function endDrag() {
+          if (dragging) {
+            dragging = false;
+            head.style.cursor = "grab";
+            generateSeries();
+          }
+        }
+
+        head.addEventListener("mousedown", startDrag);
+        head.addEventListener("touchstart", startDrag, { passive: true });
+
+        window.addEventListener("mousemove", moveDrag);
+        window.addEventListener("touchmove", moveDrag, { passive: true });
+
+        window.addEventListener("mouseup", endDrag);
+        window.addEventListener("touchend", endDrag);
+      });
+    }, 50);
+
+    const voice = new Vex.Flow.Voice({ num_beats: 2, beat_value:4 });
+    notes.forEach(n=>voice.addTickable(n));
+    new Vex.Flow.Formatter().joinVoices([voice]).format([voice], stave.getWidth()-20);
+    voice.draw(context, stave);
   }
 
   // --------- VEXFLOW RENDER ----------
@@ -526,7 +695,7 @@ let lageIndex = 0;
         }).setStyle({ fillStyle: item.color, strokeStyle: item.color });
 
         if (item.note.includes("#")) {
-          note.addModifier(0, new Vex.Flow.Accidental("#"));
+          note.addModifier(new Vex.Flow.Accidental("#"), 0);
         }
         return note;
       });
